@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="flink-gelly_2.12-1.7.1">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/../../../flink-1.7.1-bin-hadoop28-scala_2.12/flink-1.7.1/opt/flink-gelly_2.12-1.7.1.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
