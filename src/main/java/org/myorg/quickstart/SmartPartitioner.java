@@ -151,57 +151,9 @@ public class SmartPartitioner {
 						stateTable.put(vertices[i], 1L);
 						count = 1L;
 					}
-					if (count > highest) {
-						highest = count;
-						mostFreq = Integer.parseInt(tuple.getField(i));;
-						//tag = (int) tuple.getField(i) % partitions;
-					}
+
 				}
 
-				Charset charset = StandardCharsets.UTF_8;
-				String fileNameString = "jobHash.txt";
-				File file = new File(fileNameString);
-				//File file = new File("output/job_" + timeStamp + "_finalHash.txt");
-				try{
-					file.createNewFile();
-				} catch (IOException e) {
-					out.println("Maybe now?");
-				}
-				Path pathFinal = Paths.get(fileNameString);
-				//Path pathFinal = Paths.get("output/job_" + timeStamp + "_finalHash.txt");
-				Path pathLog = Paths.get(fileNameString);
-				//Path pathLog = Paths.get("output/job_" + timeStamp + "_log.txt");
-				List<String> oldStateTable = Files.readAllLines(pathLog,charset);
-				double sizeOldStateTable = oldStateTable.size();
-				double threshold = numberOfEdges/parallelism-0.2*numberOfEdges;
-				out.println("current size: " + threshold);
-				out.println("old size: " + sizeOldStateTable);
-
-				//out.println(stateTable);
-				/*if (parallelism == 1) {
-					if (Integer.parseInt(vertices[0]) == lastVertex1 && Integer.parseInt(vertices[1]) == lastVertex2) {
-						Files.write(Paths.get(filePath), (stateTable + ";" + System.lineSeparator()).getBytes(),
-								StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-					}
-				} else {
-					Files.write(Paths.get(filePath), (stateTable + ";" + System.lineSeparator()).getBytes(),
-							StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-				}*/
-				if (sizeOldStateTable > threshold) {
-					//JaccardSimilarity js = new JaccardSimilarity();
-					double jaccardSimilarty = 0d;
-					double jaccardSim = -1d;
-					int highestJaccard = -1;
-					for (int i = oldStateTable.size(); i > oldStateTable.size(); i--) {
-						//jaccardSim = js.calculateJaccardSimilarity(stateTable.toString(), oldStateTable.get(i));
-						out.println("Current HT: " + stateTable.toString());
-						out.println("Old HT: " + oldStateTable.get(i));
-						//out.println("Jaccard: " + js.calculateJaccardSimilarity(stateTable.toString(), oldStateTable.get(i)));
-						if (jaccardSim > highestJaccard) {
-							highestJaccard = i;
-						}
-					}
-				}
 				return new Tuple4<>(tuple.f0,tuple.f1,mostFreq, stateTable);
 				//return new Tuple4<>("","",99999, stateTable);
 
@@ -214,7 +166,7 @@ public class SmartPartitioner {
 		DataStream partitionedEdges = taggedEdges.partitionCustom(new PartitionByTag(),2);
 
 		// Emit results
-		edges.print();
+		//edges.print();
 		taggedEdges.print(timeStamp);
 		//stateTableStuff.print();
 		List<String> list = new ArrayList<>();
@@ -261,83 +213,47 @@ public class SmartPartitioner {
 
 
 
-
-/*		SingleOutputStreamOperator stateTableStuff = taggedEdges.map(new MapFunction<Tuple4<String, String, Integer, HashMap>, String>() {
-			@Override public String map(Tuple4<String, String, Integer, HashMap> tuple) throws Exception {
-				Charset charset = StandardCharsets.UTF_8;
-				Path path = Paths.get("output/job_" + timeStamp + "_finalHash.txt");
-				String currentHashTable = "";
-				currentHashTable = tuple.f3.toString();
-				long sizeOfTable = tuple.f3.size();
-
-				String content = "";
-				out.println(sizeOfTable);
-
-
-				if (sizeOfTable == 2) {
-					Files.write(path, content.getBytes(charset));
-					out.println("new file: " + content);
-*//*				} else if (sizeOfTable == 3 || sizeOfTable < 4) {
-					content = currentHashTable;
-					Files.write(path, content.getBytes(charset));*//*
-				} else if (sizeOfTable > 2) {
-					List<String> oldStateTable = Files.readAllLines(path,charset);
-					double jaccardSim = -1d;
-					int highestJaccard = -1;
-					for (int i = 0; i < oldStateTable.size(); i++) {
-						jaccardSim = js.calculateJaccardSimilarity(currentHashTable, oldStateTable.get(i));
-						out.println("Current HT: " + currentHashTable);
-						out.println("Old HT: " + oldStateTable.get(i));
-						out.println("Jaccard: " + js.calculateJaccardSimilarity(currentHashTable, oldStateTable.get(i)));
-						if (jaccardSim > highestJaccard) {
-							highestJaccard = i;
-					}
-
-					Files.write(path, content.getBytes(charset));
-
-*//*
-
-					// Calculate Jaccard Similarity
-					jaccardSimilarty = js.calculateJaccardSimilarity(currentHashTable, currentHashTable + "abc");
-					String aa = Double.toString(jaccardSimilarty) + "__ similarity, " + currentHashTable;
-*//*
-
-
-					//Files.write(path, content.getBytes(charset));
-					*//*Files.write(Paths.get(filePath), (stateTable + ";" + System.lineSeparator()).getBytes(),
-							StandardOpenOption.CREATE, StandardOpenOption.APPEND);*//*
+/*				Charset charset = StandardCharsets.UTF_8;
+				String fileNameString = "jobHash.txt";
+				File file = new File(fileNameString);
+				//File file = new File("output/job_" + timeStamp + "_finalHash.txt");
+				try{
+					file.createNewFile();
+				} catch (IOException e) {
+					out.println("Maybe now?");
 				}
+				Path pathFinal = Paths.get(fileNameString);
+				//Path pathFinal = Paths.get("output/job_" + timeStamp + "_finalHash.txt");
+				Path pathLog = Paths.get(fileNameString);
+				//Path pathLog = Paths.get("output/job_" + timeStamp + "_log.txt");
+				List<String> oldStateTable = Files.readAllLines(pathLog,charset);
+				double sizeOldStateTable = oldStateTable.size();
+				double threshold = numberOfEdges/parallelism-0.2*numberOfEdges;
+				out.println("current size: " + threshold);
+				out.println("old size: " + sizeOldStateTable);*/
 
-
-
-
-
-
-
-
-*//*				Path fileName2 = new Path["output/job_" + timeStamp + "_finalHash.txt"];
-				for (int i = 0; i < filenames.size(); i++) {
-					paths[i] = Paths.get(filenames.get(i));
-					files.add(i, readAllLines(paths[i], StandardCharsets.UTF_8));
-
-				Path path = Paths.get(fileName);
-				byte[] bytes = Files.readAllBytes(path);
-				List<String> allLines = Files.readAllLines(path, StandardCharsets.UTF_8);*//*
-
-
-
-
- *//*				//out.println(stateTable);
-				if (parallelism == 1) {
+//out.println(stateTable);
+				/*if (parallelism == 1) {
 					if (Integer.parseInt(vertices[0]) == lastVertex1 && Integer.parseInt(vertices[1]) == lastVertex2) {
-						Files.write(Paths.get(filePath), (stateTable + ";"+ System.lineSeparator()).getBytes(),
+						Files.write(Paths.get(filePath), (stateTable + ";" + System.lineSeparator()).getBytes(),
 								StandardOpenOption.CREATE, StandardOpenOption.APPEND);
 					}
 				} else {
 					Files.write(Paths.get(filePath), (stateTable + ";" + System.lineSeparator()).getBytes(),
 							StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-				}*//*
-				return new String("abcd");
-
-			}});*/
-
+				}*/
+/*				if (sizeOldStateTable > threshold) {
+					//JaccardSimilarity js = new JaccardSimilarity();
+					double jaccardSimilarty = 0d;
+					double jaccardSim = -1d;
+					int highestJaccard = -1;
+					for (int i = oldStateTable.size(); i > oldStateTable.size(); i--) {
+						//jaccardSim = js.calculateJaccardSimilarity(stateTable.toString(), oldStateTable.get(i));
+						out.println("Current HT: " + stateTable.toString());
+						out.println("Old HT: " + oldStateTable.get(i));
+						//out.println("Jaccard: " + js.calculateJaccardSimilarity(stateTable.toString(), oldStateTable.get(i)));
+						if (jaccardSim > highestJaccard) {
+							highestJaccard = i;
+						}
+					}
+				}*/
