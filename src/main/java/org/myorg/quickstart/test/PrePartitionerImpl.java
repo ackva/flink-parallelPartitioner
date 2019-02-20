@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.myorg.quickstart;
+package org.myorg.quickstart.test;
 
 import org.apache.flink.api.common.JobExecutionResult;
 import org.apache.flink.api.common.functions.FlatMapFunction;

@@ -22,14 +22,18 @@ import org.apache.flink.api.common.JobExecutionResult;
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.Partitioner;
+import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.utils.ParameterTool;
-//import org.apache.flink.graph.GraphCsvReader;
 import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.util.Collector;
+import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
+
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -38,12 +42,9 @@ import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
-import static java.lang.System.out;
+import java.util.Properties;
 
-import org.apache.flink.api.common.functions.Partitioner;
-import org.apache.flink.api.java.DataSet;
-import org.apache.flink.api.java.ExecutionEnvironment;
-import org.apache.flink.api.java.tuple.Tuple2;
+import static java.lang.System.out;
 
 /*
 Work is under construction
@@ -54,7 +55,7 @@ History:
 0.2 | 06/02/2019 - custom Partitioner which partitions based on tagged value
  */
 
-public class SmartPartitioner {
+public class SmartPartitionerKafka {
 
 
 	public static void main(String[] args) throws Exception {
@@ -71,9 +72,15 @@ public class SmartPartitioner {
 		// Set level of parallelism (hardcoded at the moment)
 		//env.getConfig().setParallelism(2);
 
-		// Get input data
-		//DataStream<String> streamInput = env.readTextFile(params.get("input"));
-		DataStream<String> streamInput = env.readTextFile(params.get("input"));
+		// Kafka Connector (experimental!!)
+		Properties properties = new Properties();
+		properties.setProperty("bootstrap.servers", "localhost:9092");
+
+		FlinkKafkaConsumer<String> myConsumer = new FlinkKafkaConsumer<>("graphRead2", new SimpleStringSchema(), properties);
+		//myConsumer.setStartFromEarliest();
+
+		// Get input from Kafka (must be up with topic "graphRead1")
+		DataStreamSource streamInput = env.addSource(myConsumer);
 
 		// Get timestamp for logging
 		String timeStamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new Date());

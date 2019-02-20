@@ -1,4 +1,4 @@
-package org.myorg.quickstart;
+package org.myorg.quickstart.utils;
 
 import java.lang.reflect.Array;
 import java.nio.charset.StandardCharsets;

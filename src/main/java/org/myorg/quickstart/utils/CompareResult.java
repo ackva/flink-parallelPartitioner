@@ -1,4 +1,4 @@
-package org.myorg.quickstart;
+package org.myorg.quickstart.utils;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;

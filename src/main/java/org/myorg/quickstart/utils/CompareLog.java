@@ -1,4 +1,4 @@
-package org.myorg.quickstart;
+package org.myorg.quickstart.utils;
 
 import org.myorg.quickstart.utils.JaccardSimilarity;
 
