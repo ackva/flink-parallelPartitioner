@@ -14,10 +14,17 @@ import org.myorg.quickstart.SmartPartitioner;
 import org.myorg.quickstart.jobstatistics.JobStatistics;
 import org.myorg.quickstart.jobstatistics.JobSubtask;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+
+import static java.lang.System.out;
+import static java.lang.System.setOut;
 
 public class PartitioningTest {
 
@@ -46,7 +53,7 @@ public class PartitioningTest {
         // Initialize state table (Columns: Vertex, Occurrence)
         HashMap<String, Long> stateTable = new HashMap<>();
 
-        // FlatMap function to create proper tuples (Tuple2) with both vertices, as in input file
+        // FlatMap function to create proper tuples (Tuple2) with both vertices, as in input file --> 22,45 --> Tuple2(22,45)
         SingleOutputStreamOperator edges = streamInput.flatMap(new FlatMapFunction<String, Tuple2<String, String>>() {
             @Override
             public void flatMap(String streamInput, Collector<Tuple2<String, String>> out) {
@@ -62,7 +69,6 @@ public class PartitioningTest {
                         out.collect(new Tuple2<>(t0, t1));
                         Arrays.fill(elements, null);
                     }
-
                 }
             }
         });
@@ -79,45 +85,56 @@ public class PartitioningTest {
             }
         });
 
-        // Partition edges
-        int partitions = env.getConfig().getParallelism();
-
         DataStream partitionedEdges = taggedEdges.partitionCustom(new SmartPartitioner.PartitionByTag(), 2);
+        //DataStream keyedEdges = partitionedEdges.keyBy(2);
 
+        //edges.print();
         partitionedEdges.print();
 
         // Execute program
         JobExecutionResult jobResult = env.execute("Streaming Items and Partitioning");
 
-        // Get Job Metrics
-        jobResult.getNetRuntime();
-        String jobId = jobResult.getJobID().toString();
-        JobStatistics job = new JobStatistics(jobId);
-        job.populateJobAttributes();
-        getJobStatistics(jobId);
-        //FlinkRestApiGet flinkApiGet = new FlinkRestApiGet();
-        //String queryResult = flinkApiGet.getHTML("http://localhost:8081/jobs/");
 
-    }
-
-    public static void getJobStatistics(String jobId) throws Exception {
-        JobStatistics jobStats = new JobStatistics(jobId);
-        jobStats.populateJobAttributes();
-
-        System.out.println("Some statistics");
-        System.out.println("Job Name: " + jobStats.getName());
-        System.out.println("Job ID: " + jobStats.getJobId());
-        System.out.println("Job State: " + jobStats.getState());
-        System.out.println("Job Input: " + jobStats.getInputFile());
-        System.out.println("Job Parallelism: " + jobStats.getParallelism());
-        System.out.println("Job Start Time: " + jobStats.getStarttime());
-        System.out.println("Job Duration: " + jobStats.getDuration());
-        System.out.println("-- About the load:");
-        for (JobSubtask sub : jobStats.getVertices().get(1).getSubtasks()) {
-            System.out.println(sub.getSubtaskId() + " processed " + sub.getWriteRecords() + " records");
+        // Get Job Metrics; depends on local or cluster execution
+        if (params.get("isLocalTest").equals("yes")) {
+            out.println("No metrics because run locally");
+        } else if (params.get("isLocalTest").equals("no")) {
+            // Get Job Metrics
+            String jobId = jobResult.getJobID().toString();
+            JobStatistics job = new JobStatistics(jobId);
+            job.populateJobAttributes();
+            String csvLogging = getJobStatistics(jobId);
+            try {
+                Files.write(Paths.get(params.get("output")), (csvLogging + System.lineSeparator()).getBytes(),
+                        StandardOpenOption.APPEND); //StandardOpenOption.CREATE,
+            } catch (Exception e) {
+                out.println("Job Time append operation failed " + e.getMessage());
+            }
+        } else {
+            out.println("Please specify argument 'isLocalTest'");
         }
 
 
+    }
+
+    public static String getJobStatistics(String jobId) throws Exception {
+        JobStatistics jobStats = new JobStatistics(jobId);
+        jobStats.populateJobAttributes();
+
+        String csvLogging = "";
+        String subtasksPrint = "";
+        for (JobSubtask sub : jobStats.getVertices().get(1).getSubtasks()) {
+            subtasksPrint = subtasksPrint + sub.getWriteRecords() + ",";
+        }
+
+        System.out.println("Job Statistics");
+        System.out.println("JobId, JobName, Input, Parallelism, Duration, Subtask_ignore, Subtask_0, Subtask_1, Subtask_2, Subtask_3, Subtask_4");
+        csvLogging = jobStats.getJobId() + "," + jobStats.getName() + "," + jobStats.getInputFile() + ","
+                + jobStats.getParallelism() + "," + jobStats.getDuration() + "," + subtasksPrint;
+        System.out.println(csvLogging);
+
+        return csvLogging;
+        // Some runtime statistics
     }
 
     }

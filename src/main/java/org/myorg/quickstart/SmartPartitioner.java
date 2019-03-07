@@ -39,6 +39,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import static java.lang.System.out;
+import static java.lang.System.setOut;
 
 import org.apache.flink.api.common.functions.Partitioner;
 import org.apache.flink.api.java.DataSet;
@@ -69,7 +70,7 @@ public class SmartPartitioner {
 		env.getConfig().setGlobalJobParameters(params);
 
 		// Set level of parallelism (hardcoded at the moment)
-		//env.getConfig().setParallelism(2);
+		env.getConfig().setParallelism(4);
 
 		// Get input data
 		//DataStream<String> streamInput = env.readTextFile(params.get("input"));
@@ -146,7 +147,7 @@ public class SmartPartitioner {
 		DataStream partitionedEdges = taggedEdges.partitionCustom(new PartitionByTag(),2);
 
 		// Emit results
-		//edges.print();
+		edges.print();
 		//taggedEdges.print();
 		partitionedEdges.print();
 
