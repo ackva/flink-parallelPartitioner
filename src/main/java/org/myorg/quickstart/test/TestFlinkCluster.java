@@ -1,9 +1,4 @@
-
-
-// THE IMPORT OF "FLINKKAFKACONSUMER" failed. Commmented out verything!
-// 12.03.2019 -- after switching IDE from Linux to Windows
-
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -19,53 +14,44 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- **/
+ */
 
-
-
-package org.myorg.quickstart;
+package org.myorg.quickstart.test;
 
 import org.apache.flink.api.common.JobExecutionResult;
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.Partitioner;
-import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.streaming.api.datastream.DataStream;
-import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.util.Collector;
-import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
-
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Properties;
 
 import static java.lang.System.out;
 
-/*
-Work is under construction
-Use the "Program arguments":
---input input/streamInput.txt --output output/result
-History:
-0.1 | 05/02/2019 - simple hash table and tagging based on "more frequent" vertex in hash table
-0.2 | 06/02/2019 - custom Partitioner which partitions based on tagged value
+/**
+ *
+ * This small application runs without any parameter. It generates 10 "fake" edges to test whether the cluster is properly set up by flatmap and mapping them.
+ * There is no logic, no value generated ;-)
+ * The parallelism should be passed to job trigger command - or it uses the default parallelism.
+ * @parameters: -- not required --
+ *
  */
 
-
-
-public class SmartPartitionerKafka {
-
+public class TestFlinkCluster {
 
 	public static void main(String[] args) throws Exception {
 
@@ -75,21 +61,14 @@ public class SmartPartitionerKafka {
 		// Set up the streaming execution environment
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
-		// Make parameters available in Web Interface
-		env.getConfig().setGlobalJobParameters(params);
+		// Create Input (fake)
+		ArrayList<String> edgeSource = new ArrayList<>();
 
-		// Set level of parallelism (hardcoded at the moment)
-		//env.getConfig().setParallelism(2);
-
-		// Kafka Connector (experimental!!)
-		Properties properties = new Properties();
-		properties.setProperty("bootstrap.servers", "localhost:9092");
-
-		FlinkKafkaConsumer<String> myConsumer = new FlinkKafkaConsumer<>("graphRead2", new SimpleStringSchema(), properties);
-		//myConsumer.setStartFromEarliest();
-
-		// Get input from Kafka (must be up with topic "graphRead1")
-		DataStreamSource streamInput = env.addSource(myConsumer);
+		for (int i = 0; i < 10; i++) {
+			edgeSource.add(i + "," + i+1);
+		}
+		// Get input data
+		DataStream<String> streamInput = env.fromCollection(edgeSource);
 
 		// Get timestamp for logging
 		String timeStamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new Date());
@@ -148,10 +127,6 @@ public class SmartPartitionerKafka {
 					}
 				}
 
-				//out.println(stateTable);
-				Files.write(Paths.get("logFile.txt"), (stateTable + ";"+ System.lineSeparator()).getBytes(),
-						StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-
 				return new Tuple3<>(tuple.f0,tuple.f1,mostFreq);
 
 			}});
@@ -161,30 +136,11 @@ public class SmartPartitionerKafka {
 
 		DataStream partitionedEdges = taggedEdges.partitionCustom(new PartitionByTag(),2);
 
-		// Emit results
-		//edges.print();
-		//taggedEdges.print();
 		partitionedEdges.print();
-
-		// write results to log file on local disk
-		Files.write(Paths.get("logFile.txt"), ("job_" + timeStamp + System.lineSeparator()).getBytes(),
-				StandardOpenOption.CREATE, StandardOpenOption.APPEND);
 
 		// Execute program
 		JobExecutionResult result = env.execute("Streaming Items and Partitioning");
 		long executionTime = result.getNetRuntime();
-
-		// Some runtime statistics
-		try {
-			String execTimeText = "job_" + timeStamp + "---"
-					+ executionTime + "ms---"
-					+ env.getConfig().getParallelism() + "_parallelism "
-					+ "---";
-			Files.write(Paths.get("jobExecTimes.txt"), (execTimeText + System.lineSeparator()).getBytes(),
-					StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-		} catch (IOException e) {
-			out.println("Job Time append operation failed");
-		}
 
 	}
 

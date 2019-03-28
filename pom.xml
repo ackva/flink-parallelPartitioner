@@ -99,12 +99,6 @@ under the License.
 		      <version>3.1</version>
 		    </dependency>
 
-        <dependency>
-            <groupId>org.apache.flink</groupId>
-            <artifactId>flink-connector-kafka-base_2.11</artifactId>
-            <version>1.7.1</version>
-        </dependency>
-
     <dependency>
         <groupId>org.apache.flink</groupId>
         <artifactId>flink-hadoop-fs</artifactId>
@@ -116,6 +110,11 @@ under the License.
   <artifactId>gson</artifactId>
   <version>2.8.5</version>
 </dependency>
+		<dependency>
+			<groupId>org.apache.flink</groupId>
+			<artifactId>flink-connector-kafka_2.11</artifactId>
+			<version>1.7.0</version>
+		</dependency>
 
 	</dependencies>
 

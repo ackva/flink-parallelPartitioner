@@ -70,7 +70,7 @@ public class SmartPartitioner {
 		env.getConfig().setGlobalJobParameters(params);
 
 		// Set level of parallelism (hardcoded at the moment)
-		env.getConfig().setParallelism(4);
+		//env.getConfig().setParallelism(4);
 
 		// Get input data
 		//DataStream<String> streamInput = env.readTextFile(params.get("input"));
