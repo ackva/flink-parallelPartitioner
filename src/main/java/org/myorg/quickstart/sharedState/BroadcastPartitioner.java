@@ -1,29 +1,21 @@
 package org.myorg.quickstart.sharedState;
 
 import org.apache.flink.api.common.functions.FlatMapFunction;
-import org.apache.flink.api.common.state.MapState;
 import org.apache.flink.api.common.state.MapStateDescriptor;
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.api.java.typeutils.EnumTypeInfo;
 import org.apache.flink.api.java.typeutils.GenericTypeInfo;
-import org.apache.flink.api.java.typeutils.ListTypeInfo;
 import org.apache.flink.api.java.typeutils.TupleTypeInfo;
 import org.apache.flink.streaming.api.datastream.BroadcastStream;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.KeyedStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.functions.co.KeyedBroadcastProcessFunction;
-import org.apache.flink.streaming.api.windowing.assigners.GlobalWindows;
-import org.apache.flink.streaming.api.windowing.windows.GlobalWindow;
 import org.apache.flink.util.Collector;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
-public class PartitionWithBroadcast {
+public class BroadcastPartitioner {
 
     final static Class<Tuple2<Vertex, ArrayList<Integer>>> typedTuple = (Class<Tuple2<Vertex, ArrayList<Integer>>>) (Class<?>) Tuple2.class;
 
@@ -54,6 +46,8 @@ public class PartitionWithBroadcast {
                 BasicTypeInfo.STRING_TYPE_INFO,
                 tupleTypeInfo
         );
+
+        // "Window" quick'n dirty
 
         MatchFunction matchFunction = new MatchFunction();
 

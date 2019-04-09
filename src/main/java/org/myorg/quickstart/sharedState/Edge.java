@@ -1,5 +1,7 @@
 package org.myorg.quickstart.sharedState;
 
+import java.util.ArrayList;
+
 public class Edge {
 
     private final Vertex originVertex;
@@ -10,9 +12,21 @@ public class Edge {
         this.originVertex = originVertex;
     }
 
-    public Vertex getVertex() {
-        return destinVertex;
+    public ArrayList<Vertex> getVertices() {
+        ArrayList<Vertex> vertices = new ArrayList<>();
+        vertices.add(originVertex);
+        vertices.add(destinVertex);
+        return vertices;
     }
+
+    public Vertex getDestinVertex() {
+        return this.destinVertex;
+    }
+
+    public Vertex getOriginVertex() {
+        return this.originVertex;
+    }
+
 
     @Override
     public String toString() {
