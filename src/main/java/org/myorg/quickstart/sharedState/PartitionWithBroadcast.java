@@ -15,6 +15,8 @@ import org.apache.flink.streaming.api.datastream.KeyedStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.co.KeyedBroadcastProcessFunction;
 import org.apache.flink.streaming.api.windowing.assigners.GlobalWindows;
+import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
+import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.windows.GlobalWindow;
 import org.apache.flink.util.Collector;
 
@@ -72,14 +74,14 @@ public class PartitionWithBroadcast {
                             out.collect(value);
                         }
                     })
-                    .setParallelism(4)
+                    .setParallelism(2)
                     .broadcast(rulesStateDescriptor);
 
             // Stream of with window-sized amount of edges
             KeyedStream<Edge, Vertex> edgeKeyedStream = env.fromCollection(keyedInput.subList(i*windowSize,i*windowSize+windowSize))
                     .rebalance()                               // needed to increase the parallelism
                     .map(edge -> edge)
-                    .setParallelism(4)
+                    .setParallelism(2)
                     .keyBy(Edge::getOriginVertex);
 
             DataStream<String> output = edgeKeyedStream

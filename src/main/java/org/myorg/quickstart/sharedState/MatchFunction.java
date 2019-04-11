@@ -5,6 +5,8 @@ import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.functions.co.KeyedBroadcastProcessFunction;
 import org.apache.flink.util.Collector;
+import org.apache.flink.util.OutputTag;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +43,8 @@ public class MatchFunction extends KeyedBroadcastProcessFunction<Vertex, Edge, T
     @Override
     public void processElement(Edge currentEdge, ReadOnlyContext ctx, Collector<String> out) throws Exception {
 
+        final OutputTag<String> outputTag = new OutputTag<String>("side-output"){};
+
         System.out.println("EDGE: " + currentEdge.getOriginVertex().getId() + " " + currentEdge.getDestinVertex().getId());
 
         // Iterate through all "stateTable" rows
@@ -57,6 +61,7 @@ public class MatchFunction extends KeyedBroadcastProcessFunction<Vertex, Edge, T
                     sb.append(v.getId());
                     //out.collect("New Vertex " + sb.toString() + " to be added to state table. " + "( currentPart: " + currentPartitions);
                     out.collect("New Vertex " + sb.toString() + " to be added to state table. for current entry: " + entry.getValue().f0.getId() + " with part: " + currentPartitions);
+                    ctx.output(outputTag, "sideout-" + String.valueOf(sb.toString()));
 
                 }
             }
