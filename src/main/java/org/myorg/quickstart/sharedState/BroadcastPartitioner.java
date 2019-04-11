@@ -10,8 +10,13 @@ import org.apache.flink.streaming.api.datastream.BroadcastStream;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.KeyedStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
+import org.apache.flink.streaming.api.watermark.Watermark;
+import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
+import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.util.Collector;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,13 +38,6 @@ public class BroadcastPartitioner {
         // Generate "random" edges as input for stream
         List<Edge> keyedInput = getGraph();
 
-        // create 1 sample "state" for Vertex 1, appearing in partition 1
-        List<Integer> stateArray = new ArrayList<>(); stateArray.add(1); stateArray.add(3);
-        List<Tuple2<Vertex, List<Integer>>> stateList = new ArrayList<>();
-        stateList.add(new Tuple2<>(new Vertex(1), stateArray));
-        // 2nd state Array for other vertex
-        List<Integer> stateArray1 = new ArrayList<>();stateArray1.add(3); stateArray1.add(4);
-
         // MapState Descriptor (as from data artisans)
         MapStateDescriptor<String, Tuple2<Vertex, ArrayList<Integer>>> rulesStateDescriptor = new MapStateDescriptor<>(
                 "RulesBroadcastState",
@@ -47,44 +45,46 @@ public class BroadcastPartitioner {
                 tupleTypeInfo
         );
 
-        // "Window" quick'n dirty
-
         MatchFunction matchFunction = new MatchFunction();
 
-        // "Window" quick'n dirty
-        int windowSize = 4;
-        for (int i = 0; i < windowSize; i++) {
+        // create 1 sample "state" for Vertex 1, appearing in partition 1
+        List<Integer> stateArray = new ArrayList<>(); stateArray.add(1); stateArray.add(3);
+        List<Tuple2<Vertex, List<Integer>>> stateList = new ArrayList<>();
+        stateList.add(new Tuple2<>(new Vertex(1), stateArray));
+        // 2nd state Array for other vertex
+        List<Integer> stateArray1 = new ArrayList<>();stateArray1.add(3); stateArray1.add(4);
 
 
-            //System.out.println("iteration: " + i + " :: stateList size: " + stateList.size());
+        //System.out.println("iteration: " + i + " :: stateList size: " + stateList.size());
 
-            // Stream of state table, based on an ArrayList
-            BroadcastStream<Tuple2<Vertex, List<Integer>>> broadcastRulesStream = env.fromCollection(stateList)
-                    .flatMap(new FlatMapFunction<Tuple2<Vertex, List<Integer>>, Tuple2<Vertex, List<Integer>>>() {
-                        @Override
-                        public void flatMap(Tuple2<Vertex, List<Integer>> value, Collector<Tuple2<Vertex, List<Integer>>> out) {
-                            out.collect(value);
-                        }
-                    })
-                    .setParallelism(4)
-                    .broadcast(rulesStateDescriptor);
+        // Stream of state table, based on an ArrayList
+        BroadcastStream<Tuple2<Vertex, List<Integer>>> broadcastRulesStream = env.fromCollection(stateList)
+                .flatMap(new FlatMapFunction<Tuple2<Vertex, List<Integer>>, Tuple2<Vertex, List<Integer>>>() {
+                    @Override
+                    public void flatMap(Tuple2<Vertex, List<Integer>> value, Collector<Tuple2<Vertex, List<Integer>>> out) {
+                        out.collect(value);
+                    }
+                })
+                .setParallelism(4)
+                .broadcast(rulesStateDescriptor);
 
-            // Stream of with window-sized amount of edges
-            KeyedStream<Edge, Vertex> edgeKeyedStream = env.fromCollection(keyedInput.subList(i*windowSize,i*windowSize+windowSize))
-                    .rebalance()                               // needed to increase the parallelism
-                    .map(edge -> edge)
-                    .setParallelism(4)
-                    .keyBy(Edge::getOriginVertex);
-
-            DataStream<String> output = edgeKeyedStream
-                    .connect(broadcastRulesStream)
-                    .process(matchFunction);
-
-            //output.broadcast(rulesStateDescriptor);
+        // Stream of with window-sized amount of edges
+        KeyedStream<Edge, Vertex> edgeKeyedStream = env.fromCollection(keyedInput.subList(0,4))
+                .rebalance()                               // needed to increase the parallelism
+                .map(edge -> edge)
+                .setParallelism(4)
+                .keyBy(Edge::getOriginVertex);
 
 
-            output.print();
-        } // for loop
+        DataStream<String> output = edgeKeyedStream
+                .connect(broadcastRulesStream)
+                .process(matchFunction);
+
+        //output.broadcast(rulesStateDescriptor);
+
+
+        output.print();
+
 
         System.out.println(env.getExecutionPlan());
         env.execute();
