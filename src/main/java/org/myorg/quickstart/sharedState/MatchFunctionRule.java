@@ -25,14 +25,13 @@ public class MatchFunctionRule extends KeyedBroadcastProcessFunction<Integer, Ed
     @Override
     public void processBroadcastElement(Tuple2<Integer, List<Integer>> broadcastElement, Context ctx, Collector<Tuple2<Integer, List<Integer>>> out) throws Exception {
 
-            System.out.println("ctx entries before processing " + broadcastElement.f0 + " (in: " + broadcastElement.f1.get(0) + ") --> " + ctx.getBroadcastState(broadcastStateDescriptor).entries());
-            //System.out.println("ctx entries before processing " + broadcastElement.f0 + " (in: " + broadcastElement.f1.get(0) + "," + broadcastElement.f1.get(1) + ") --> " + ctx.getBroadcastState(broadcastStateDescriptor).entries());
-
+            //System.out.println("ctx entries before processing " + broadcastElement.f0 + " (in: " + broadcastElement.f1.get(0) + ") --> " + ctx.getBroadcastState(broadcastStateDescriptor).entries());
+        System.out.println("what's here? Vertex " + broadcastElement.f0 + " -- " + broadcastElement.f1.size());
             boolean inList = false;
             ctx.getBroadcastState(broadcastStateDescriptor).put("Entry_" + counter++, broadcastElement);
             for (Map.Entry<String, Tuple2<Integer, List<Integer>>> stateEntry : ctx.getBroadcastState(broadcastStateDescriptor).entries()) {
                 if (stateEntry.getValue().f0 == broadcastElement.f0)
-                    System.out.println("found existing -- id from entry: " + stateEntry.getValue().f0 + " -- id from broadcast " + broadcastElement.f0);
+                    //System.out.println("found existing -- id from entry: " + stateEntry.getValue().f0 + " -- id from broadcast " + broadcastElement.f0);
                 inList = true;
             }
             if (inList == false) {
@@ -40,13 +39,12 @@ public class MatchFunctionRule extends KeyedBroadcastProcessFunction<Integer, Ed
                 System.out.println("Add RULE " + broadcastElement.f0 + " to state table");
             }
             System.out.println("ctx entries after processing " + broadcastElement.f0 + " --> " + ctx.getBroadcastState(broadcastStateDescriptor).entries());
-
     }
 
     @Override
     public void processElement(EdgeSimple currentEdge, ReadOnlyContext ctx, Collector<Tuple2<Integer, List<Integer>>> out) throws Exception {
 
-        System.out.println("EDGE: " + currentEdge.getOriginVertex() + " " + currentEdge.getDestinVertex());
+        //System.out.println("EDGE: " + currentEdge.getOriginVertex() + " " + currentEdge.getDestinVertex());
         List<Integer> currentPartitions = new ArrayList<>();
 
         // Iterate through all "stateTable" rows
@@ -73,7 +71,7 @@ public class MatchFunctionRule extends KeyedBroadcastProcessFunction<Integer, Ed
 
     public int choosePartition(int vertexId) {
         Random rand = new Random();
-        return rand.nextInt(1);
+        return rand.nextInt(2);
 
     }
 
