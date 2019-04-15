@@ -1,8 +1,10 @@
 package org.myorg.quickstart.sharedState;
 
 import org.apache.flink.api.common.functions.FlatMapFunction;
+import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.common.state.MapStateDescriptor;
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
+import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.GenericTypeInfo;
 import org.apache.flink.api.java.typeutils.TupleTypeInfo;
@@ -15,8 +17,7 @@ import org.apache.flink.util.OutputTag;
 import scala.Int;
 
 import java.security.Key;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class BroadcastPartitionerSimple {
 
@@ -66,8 +67,8 @@ public class BroadcastPartitionerSimple {
                 .broadcast(rulesStateDescriptor);
 
         // Stream of with window-sized amount of edges
-        KeyedStream<EdgeSimple, Integer> edgeKeyedStream = env.fromCollection(keyedInput.subList(0,9))
-                .rebalance()                               // needed to increase the parallelism
+        KeyedStream<EdgeSimple, Integer> edgeKeyedStream = env.fromCollection(keyedInput.subList(0,4))
+                //.rebalance()                               // needed to increase the parallelism
                 .map(edgeSimple -> edgeSimple)
                 .setParallelism(2)
                 .keyBy(EdgeSimple::getOriginVertex);
@@ -76,59 +77,57 @@ public class BroadcastPartitionerSimple {
                 .connect(broadcastRulesStream)
                 .process(matchRules);
 
-        outputRules.print();
-
 
         // ##### ROUND 2 #####
 
-        BroadcastStream<Tuple2<Integer, List<Integer>>> broadcastRulesStream2 = outputRules
-                .flatMap(new FlatMapFunction<Tuple2<Integer, List<Integer>>, Tuple2<Integer, List<Integer>>>() {
-                    @Override
-                    public void flatMap(Tuple2<Integer, List<Integer>> value, Collector<Tuple2<Integer, List<Integer>>> out) {
-                        out.collect(value);
-                    }
-                })
-                .setParallelism(2)
-                .broadcast(rulesStateDescriptor);
 
-        KeyedStream<EdgeSimple, Integer> edgeKeyedStream2 = env.fromCollection(keyedInput.subList(10,19))
-                .rebalance()                               // needed to increase the parallelism
-                .map(edgeSimple -> edgeSimple)
-                .setParallelism(2)
-                .keyBy(EdgeSimple::getOriginVertex);
+        BroadcastStream<Tuple2<Integer, List<Integer>>> broadcastRulesStream2 = outputRules
+            .flatMap(new FlatMapFunction<Tuple2<Integer, List<Integer>>, Tuple2<Integer, List<Integer>>>() {
+                @Override
+                public void flatMap(Tuple2<Integer, List<Integer>> value, Collector<Tuple2<Integer, List<Integer>>> out) {
+                    out.collect(value);
+                }
+            })
+            .setParallelism(2)
+            .broadcast(rulesStateDescriptor);
+
+        KeyedStream<EdgeSimple, Integer> edgeKeyedStream2 = env.fromCollection(keyedInput.subList(4,8))
+            .rebalance()                               // needed to increase the parallelism
+            .map(edgeSimple -> edgeSimple)
+            .setParallelism(2)
+            .keyBy(EdgeSimple::getOriginVertex);
 
         DataStream<Tuple2<Integer, List<Integer>>> outputRules2 = edgeKeyedStream2
-                .connect(broadcastRulesStream2)
-                .process(matchRules);
+            .connect(broadcastRulesStream2)
+            .process(matchRules);
 
         outputRules2.print();
 
 
-/*
-        // ##### ROUND 3 #####
+
+/*        // ##### ROUND 3 #####
 
         BroadcastStream<Tuple2<Integer, List<Integer>>> broadcastRulesStream3 = outputRules2
-                .flatMap(new FlatMapFunction<Tuple2<Integer, List<Integer>>, Tuple2<Integer, List<Integer>>>() {
-                    @Override
-                    public void flatMap(Tuple2<Integer, List<Integer>> value, Collector<Tuple2<Integer, List<Integer>>> out) {
-                        out.collect(value);
-                    }
-                })
-                .setParallelism(2)
-                .broadcast(rulesStateDescriptor);
+            .flatMap(new FlatMapFunction<Tuple2<Integer, List<Integer>>, Tuple2<Integer, List<Integer>>>() {
+                @Override
+                public void flatMap(Tuple2<Integer, List<Integer>> value, Collector<Tuple2<Integer, List<Integer>>> out) {
+                    out.collect(value);
+                }
+            })
+            .setParallelism(2)
+            .broadcast(rulesStateDescriptor);
 
-        KeyedStream<EdgeSimple, Integer> edgeKeyedStream3 = env.fromCollection(keyedInput.subList(20,29))
-                .rebalance()                               // needed to increase the parallelism
-                .map(edgeSimple -> edgeSimple)
-                .setParallelism(2)
-                .keyBy(EdgeSimple::getOriginVertex);
+        KeyedStream<EdgeSimple, Integer> edgeKeyedStream3 = env.fromCollection(keyedInput.subList(8,12))
+            .rebalance()                               // needed to increase the parallelism
+            .map(edgeSimple -> edgeSimple)
+            .setParallelism(2)
+            .keyBy(EdgeSimple::getOriginVertex);
 
         DataStream<Tuple2<Integer, List<Integer>>> outputRules3 = edgeKeyedStream3
-                .connect(broadcastRulesStream3)
-                .process(matchRules);
+            .connect(broadcastRulesStream3)
+            .process(matchRules);
 
-        outputRules3.print();
-*/
+        outputRules3.print();*/
 
 
 
@@ -149,6 +148,7 @@ public class BroadcastPartitionerSimple {
         keyedInput.add(new EdgeSimple(1,7));
         keyedInput.add(new EdgeSimple(1,8));
         keyedInput.add(new EdgeSimple(1,9));
+
         keyedInput.add(new EdgeSimple(1,10));
         keyedInput.add(new EdgeSimple(1,11));
         keyedInput.add(new EdgeSimple(1,12));

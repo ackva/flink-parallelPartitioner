@@ -1,3 +1,4 @@
+/*
 package org.myorg.quickstart.sharedState;
 
 import org.apache.flink.api.common.state.MapStateDescriptor;
@@ -5,20 +6,29 @@ import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.functions.co.KeyedBroadcastProcessFunction;
 import org.apache.flink.util.Collector;
-import org.apache.flink.util.OutputTag;
 
-import java.security.Timestamp;
-import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
 
 import static org.myorg.quickstart.sharedState.PartitionWithBroadcast.tupleTypeInfo;
 
-public class MatchFunctionRule extends KeyedBroadcastProcessFunction<Integer, EdgeSimple, Tuple2<Integer, List<Integer>>, Tuple2<Integer, List<Integer>>> {
+
+
+
+//public class MatchFunctionRule extends KeyedBroadcastProcessFunction<Integer, EdgeSimple, Tuple2<Integer, List<Integer>>, Tuple2<Integer, List<Integer>>> {
+
+public class MergeCurrentState {
 
     private int counter = 0;
 
+*/
+/*
     private final MapStateDescriptor<String, Tuple2<Integer, List<Integer>>> broadcastStateDescriptor =
             new MapStateDescriptor<>("RulesBroadcastState", BasicTypeInfo.STRING_TYPE_INFO, tupleTypeInfo);
+*//*
+
 
     @Override
     public void processBroadcastElement(Tuple2<Integer, List<Integer>> broadcastElement, Context ctx, Collector<Tuple2<Integer, List<Integer>>> out) throws Exception {
@@ -31,9 +41,10 @@ public class MatchFunctionRule extends KeyedBroadcastProcessFunction<Integer, Ed
             //ctx.getBroadcastState(broadcastStateDescriptor).put("Entry_" + counter++, broadcastElement);
             for (Map.Entry<String, Tuple2<Integer, List<Integer>>> stateEntry : ctx.getBroadcastState(broadcastStateDescriptor).entries()) {
                 if (stateEntry.getValue().f0 == broadcastElement.f0) {
+                    //System.out.println("Current State entry " + stateEntry.getValue().f0 + " --- Current BroadcastElement entry: " + broadcastElement.f0);
+                    //System.out.println("found existing -- id from entry: " + stateEntry.getValue().f0 + " -- id from broadcast " + broadcastElement.f0);
                     inList = true;
                 }
-
             }
             //System.out.println("In List is "+ inList + " for broadcastelement " + broadcastElement.f0);
             if (inList == false) {
@@ -52,7 +63,7 @@ public class MatchFunctionRule extends KeyedBroadcastProcessFunction<Integer, Ed
 
         List<Integer> currentPartitions = new ArrayList<>();
         boolean addToList;
-            // Iterate through both vertices of the current edge and compare it with the existing entries from the state table
+        // Iterate through both vertices of the current edge and compare it with the existing entries from the state table
         for (Integer currentVertex: currentEdge.getVertices()) {
             addToList = true;
             stateLoop:
@@ -82,3 +93,4 @@ public class MatchFunctionRule extends KeyedBroadcastProcessFunction<Integer, Ed
 
 }
 
+*/
