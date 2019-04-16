@@ -10,8 +10,11 @@ import org.apache.flink.api.java.typeutils.GenericTypeInfo;
 import org.apache.flink.api.java.typeutils.TupleTypeInfo;
 import org.apache.flink.streaming.api.datastream.BroadcastStream;
 import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.datastream.DataStreamUtils;
 import org.apache.flink.streaming.api.datastream.KeyedStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
+import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.util.Collector;
 import org.apache.flink.util.OutputTag;
 import scala.Int;
@@ -36,7 +39,7 @@ public class BroadcastPartitionerSimple {
         env.setParallelism(2);
 
         // Generate "random" edges as input for stream
-        List<EdgeSimple> keyedInput = getGraph();
+        List<EdgeSimple> keyedInput = getLargerGraph();
 
         // MapState Descriptor (as from data artisans)
         MapStateDescriptor<String, Tuple2<Integer, ArrayList<Integer>>> rulesStateDescriptor = new MapStateDescriptor<>(
@@ -67,7 +70,7 @@ public class BroadcastPartitionerSimple {
                 .broadcast(rulesStateDescriptor);
 
         // Stream of with window-sized amount of edges
-        KeyedStream<EdgeSimple, Integer> edgeKeyedStream = env.fromCollection(keyedInput.subList(0,4))
+        KeyedStream<EdgeSimple, Integer> edgeKeyedStream = env.fromCollection(keyedInput.subList(0,20))
                 //.rebalance()                               // needed to increase the parallelism
                 .map(edgeSimple -> edgeSimple)
                 .setParallelism(2)
@@ -77,11 +80,25 @@ public class BroadcastPartitionerSimple {
                 .connect(broadcastRulesStream)
                 .process(matchRules);
 
+        Iterator<Tuple2<Integer, List<Integer>>> streamOutput = DataStreamUtils.collect(outputRules);
+        ArrayList<Tuple2<Integer, List<Integer>>> currentState = new ArrayList<>();
+
+        while (streamOutput.hasNext()) {
+            currentState.add(streamOutput.next());
+        }
+
+/*
+        for (Tuple2<Integer, List<Integer>> tuple: currentState) {
+            System.out.println("Collected: " + tuple.f0 + tuple.f0.toString());
+        }
+*/
+
 
         // ##### ROUND 2 #####
 
 
-        BroadcastStream<Tuple2<Integer, List<Integer>>> broadcastRulesStream2 = outputRules
+        BroadcastStream<Tuple2<Integer, List<Integer>>> broadcastRulesStream2 = env.fromCollection(currentState)
+        //BroadcastStream<Tuple2<Integer, List<Integer>>> broadcastRulesStream2 = outputRules
             .flatMap(new FlatMapFunction<Tuple2<Integer, List<Integer>>, Tuple2<Integer, List<Integer>>>() {
                 @Override
                 public void flatMap(Tuple2<Integer, List<Integer>> value, Collector<Tuple2<Integer, List<Integer>>> out) {
@@ -91,7 +108,7 @@ public class BroadcastPartitionerSimple {
             .setParallelism(2)
             .broadcast(rulesStateDescriptor);
 
-        KeyedStream<EdgeSimple, Integer> edgeKeyedStream2 = env.fromCollection(keyedInput.subList(4,8))
+        KeyedStream<EdgeSimple, Integer> edgeKeyedStream2 = env.fromCollection(keyedInput.subList(20,40))
             .rebalance()                               // needed to increase the parallelism
             .map(edgeSimple -> edgeSimple)
             .setParallelism(2)
@@ -102,6 +119,8 @@ public class BroadcastPartitionerSimple {
             .process(matchRules);
 
         outputRules2.print();
+
+        //Iterator<Tuple2<Integer, List<Integer>>> streamOutput = DataStreamUtils.collect(outputRules2);
 
 
 
@@ -174,6 +193,16 @@ public class BroadcastPartitionerSimple {
         keyedInput.add(new EdgeSimple(1,32));
         keyedInput.add(new EdgeSimple(1,33));
 
+        return keyedInput;
+    }
+
+    public static List<EdgeSimple> getLargerGraph() {
+
+        List<EdgeSimple> keyedInput = new ArrayList<>();
+        Random rand = new Random();
+        for (int i = 0; i < 50; i++) {
+            keyedInput.add(new EdgeSimple(1,i%10));
+        }
         return keyedInput;
     }
 
