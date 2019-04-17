@@ -5,6 +5,8 @@ import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.functions.co.KeyedBroadcastProcessFunction;
 import org.apache.flink.util.Collector;
+import org.apache.kafka.common.protocol.types.Field;
+
 import java.util.*;
 
 import static org.myorg.quickstart.sharedState.PartitionWithBroadcast.tupleTypeInfo;
@@ -13,15 +15,19 @@ public class MatchFunctionRule extends KeyedBroadcastProcessFunction<Integer, Ed
 
     private int counter = 0;
     private String testText = "Visited by: ";
+    private int round;
+    private List<String> printLog = new ArrayList<>();
+    public void setRound(int round) {
+        this.round = round;
+    }
 
     private final MapStateDescriptor<String, Tuple2<Integer, List<Integer>>> broadcastStateDescriptor =
             new MapStateDescriptor<>("RulesBroadcastState", BasicTypeInfo.STRING_TYPE_INFO, tupleTypeInfo);
 
     @Override
     public void processBroadcastElement(Tuple2<Integer, List<Integer>> broadcastElement, Context ctx, Collector<Tuple2<Integer, List<Integer>>> out) throws Exception {
-        //Instant instant = Instant.now();
-        //System.out.println("Broadcasting " + broadcastElement.f0 + " now");
-        //System.out.println("Entries: " + counter + " --> " + ctx.getBroadcastState(broadcastStateDescriptor).entries());
+
+        System.out.println("R_"+ round + ": Broadcasting Vertex " + broadcastElement.f0);
 
         if (broadcastElement.f0 != -1) {
             boolean inList = false;
@@ -32,13 +38,12 @@ public class MatchFunctionRule extends KeyedBroadcastProcessFunction<Integer, Ed
                 }
 
             }
-            //System.out.println("In List is "+ inList + " for broadcastelement " + broadcastElement.f0);
             if (inList == false) {
                 //ctx.getBroadcastState(broadcastStateDescriptor).put("Entry_" + counter++, broadcastElement);
                 ctx.getBroadcastState(broadcastStateDescriptor).put(broadcastElement.f0.toString(), broadcastElement);
-                System.out.println("Add RULE: Vertex " + broadcastElement.f0 + " to state table");
+                System.out.println("R_"+ round +": RULE: Vertex " + broadcastElement.f0 + " to state table");
                 counter++;
-                System.out.println("State Table after processing Vertex " + broadcastElement.f0 + " --> " + ctx.getBroadcastState(broadcastStateDescriptor).entries());
+                System.out.println("R_"+ round +": State Table after processing Vertex " + broadcastElement.f0 + " --> " + ctx.getBroadcastState(broadcastStateDescriptor).entries());
             }
         }
 
@@ -47,19 +52,21 @@ public class MatchFunctionRule extends KeyedBroadcastProcessFunction<Integer, Ed
     @Override
     public void processElement(EdgeSimple currentEdge, ReadOnlyContext ctx, Collector<Tuple2<Integer, List<Integer>>> out) throws Exception {
 
-        System.out.println(testText);
+        System.out.println("R_"+ round +": Processing EDGE: " + currentEdge.getOriginVertex() + " " + currentEdge.getDestinVertex());
+        //System.out.println("R_"+ round +": " + testText);
         testText = testText + currentEdge.getOriginVertex() + "," + currentEdge.getDestinVertex() + "--";
 
         List<Integer> currentPartitions = new ArrayList<>();
         boolean addToList;
-            // Iterate through both vertices of the current edge and compare it with the existing entries from the state table
+
+        // Iterate through both vertices of the current edge and compare it with the existing entries from the state table
         for (Integer currentVertex: currentEdge.getVertices()) {
             addToList = true;
             stateLoop:
             for (Map.Entry<String, Tuple2<Integer, List<Integer>>> stateEntry: ctx.getBroadcastState(broadcastStateDescriptor).immutableEntries()) {
                 //System.out.println(stateEntry.getValue().f0 + " < stateF0 --- currentVertex > " + currentVertex);
                 if (stateEntry.getValue().f0 == currentVertex) {
-                    System.out.println("current vertex: " + currentVertex);
+                    System.out.println("R_"+ round +": current vertex: " + currentVertex);
                     addToList = false;
                     break stateLoop;
                 }
@@ -72,7 +79,6 @@ public class MatchFunctionRule extends KeyedBroadcastProcessFunction<Integer, Ed
                 //System.out.println("Added vertex " + currentVertex + " to partition: " + partitions.get(0));
             }
         }
-        System.out.println("EDGE: " + currentEdge.getOriginVertex() + " " + currentEdge.getDestinVertex());
 
     }
 
