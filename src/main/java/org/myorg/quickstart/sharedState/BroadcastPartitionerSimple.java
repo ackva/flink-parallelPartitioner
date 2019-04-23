@@ -76,13 +76,16 @@ public class BroadcastPartitionerSimple {
                 .setParallelism(2)
                 .keyBy(EdgeSimple::getOriginVertex);
 
+        edgeKeyedStream.print();
+
         DataStream<Tuple2<Integer, List<Integer>>> outputRules = edgeKeyedStream
                 .connect(broadcastRulesStream)
                 .process(matchRules);
 
         //outputRules.print();
 
-/*        KeySelector abc = new KeySelector<Tuple2<Integer, List<Integer>>, Integer>() {
+/*
+       KeySelector abc = new KeySelector<Tuple2<Integer, List<Integer>>, Integer>() {
             @Override
             public Integer getKey(Tuple2<Integer, List<Integer>> value) throws Exception {
                 return value.f0;
@@ -94,6 +97,7 @@ public class BroadcastPartitionerSimple {
         DataStream<Tuple2<Integer, List<Integer>>> streamOutput = DataStreamUtils
                 .reinterpretAsKeyedStream(outputRules, abc);
 */
+
 
         // ##### ROUND 1 #####
         MatchFunctionRule matchRules2 = new MatchFunctionRule();
@@ -154,7 +158,7 @@ public class BroadcastPartitionerSimple {
         //outputRules3.print();
 
 
-        System.out.println(env.getExecutionPlan());
+        //System.out.println(env.getExecutionPlan());
         env.execute();
     }
 

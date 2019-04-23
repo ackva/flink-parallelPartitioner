@@ -26,7 +26,7 @@ private List<EdgeSimple> edges;
 
         List<EdgeSimple> edgeList = new ArrayList<>();
         for (int i = 0; i < numbEdges; i++) {
-            edgeList.add(new EdgeSimple(1,i%10));
+            edgeList.add(new EdgeSimple(1,i%remainder + 2));
         }
         this.edges = edgeList;
     }
@@ -41,10 +41,13 @@ private List<EdgeSimple> edges;
     }
 
     public void printGraph() {
+        System.out.println("This is the graph with its edges: ");
         for (EdgeSimple e: this.edges) {
-            System.out.println(e.getOriginVertex() + "," + e.getDestinVertex());
+            System.out.print(e.getOriginVertex() + "," + e.getDestinVertex() + " || ");
         }
+        System.out.println();
         System.out.println("Total number of edges: " + this.edges.size());
+        System.out.println("------------------");
     }
 
 }
