@@ -22,6 +22,17 @@ private List<EdgeSimple> edges;
         this.edges = edgeList;
     }
 
+    public void generateGraphOneTwoToAny(int numbEdges) {
+        List<EdgeSimple> edgeList = new ArrayList<>();
+        for (int i = 1; i < numbEdges/2+1; i++) {
+            edgeList.add(new EdgeSimple(1,i+1));
+        }
+        for (int i = numbEdges/2+1; i < numbEdges+1; i++) {
+            edgeList.add(new EdgeSimple(2,i+1));
+        }
+        this.edges = edgeList;
+    }
+
     public void generateGraphTenRandomRemainder(int numbEdges, int remainder) {
 
         List<EdgeSimple> edgeList = new ArrayList<>();
