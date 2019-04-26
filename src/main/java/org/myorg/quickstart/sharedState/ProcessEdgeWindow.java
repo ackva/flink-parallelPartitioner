@@ -31,6 +31,8 @@ import java.util.List;
 
 public class ProcessEdgeWindow extends ProcessWindowFunction<EdgeEvent, Tuple2<List<EdgeEvent>, Integer>, Integer, TimeWindow> {
 
+    //    private static ClassLoader
+
     final static Class<Tuple2<Integer, ArrayList<Integer>>> typedTuple = (Class<Tuple2<Integer, ArrayList<Integer>>>) (Class<?>) Tuple2.class;
 
     final static TupleTypeInfo tupleTypeInfo = new TupleTypeInfo<>(
@@ -41,12 +43,24 @@ public class ProcessEdgeWindow extends ProcessWindowFunction<EdgeEvent, Tuple2<L
 
     List<Tuple2<Integer, List<Integer>>> stateList = new ArrayList<>();
     List<Integer> stateArray = new ArrayList<>();
+    List<EdgeEvent> edgesInWindow = new ArrayList<>();
+    BroadcastStream<Tuple2<Integer,List<Integer>>> broadcastStream;
+    StreamExecutionEnvironment env;
 
-    public ProcessEdgeWindow() {
+    public ProcessEdgeWindow(BroadcastStream<Tuple2<Integer,List<Integer>>> broadcastStream, StreamExecutionEnvironment env) {
         stateArray.add(-1);
         stateArray.add(-1);
         stateList.add(new Tuple2<>(new Integer(-1), stateArray));
+        this.broadcastStream = broadcastStream;
+        this.env = env;
+    }
 
+
+    public ProcessEdgeWindow(StreamExecutionEnvironment env) {
+        stateArray.add(-1);
+        stateArray.add(-1);
+        stateList.add(new Tuple2<>(new Integer(-1), stateArray));
+        this.env = env;
     }
     //HashMap placedEdges = new HashMap();
     //HashMap vertexTable = new HashMap();
@@ -57,7 +71,6 @@ public class ProcessEdgeWindow extends ProcessWindowFunction<EdgeEvent, Tuple2<L
 //      int counter = 0;
 
         // Print current Window (edges)
-        List<EdgeEvent> edgesInWindow = new ArrayList<>();
         edgeIterable.forEach(edgesInWindow::add);
         String printString = "Current Window: ";
         List<EdgeSimple> fakeList = new ArrayList<>();
@@ -65,12 +78,10 @@ public class ProcessEdgeWindow extends ProcessWindowFunction<EdgeEvent, Tuple2<L
             printString = printString + "; " + e.getEdge().getOriginVertex() + " " + e.getEdge().getDestinVertex();
             fakeList.add(e.getEdge());
         }
-        System.out.println(printString);
-        out.collect(new Tuple2<>(edgesInWindow, edgesInWindow.size()));
-        // edgesInWindow.clear();
 
 
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+
+       // StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         // MapState Descriptor (as from data artisans)
         MapStateDescriptor<String, Tuple2<Integer, ArrayList<Integer>>> rulesStateDescriptor = new MapStateDescriptor<>(
                 "RulesBroadcastState",
@@ -103,11 +114,11 @@ public class ProcessEdgeWindow extends ProcessWindowFunction<EdgeEvent, Tuple2<L
                 .connect(broadcastRulesStream)
                 .process(matchRules2);
 
-        System.out.println("TEST TEST");
-        outputRules.print();
 
         env.execute();
+                System.out.println(printString);
 
+        //System.out.println("TEST TEST");
 
     }
 }

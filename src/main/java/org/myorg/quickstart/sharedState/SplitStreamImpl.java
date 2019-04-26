@@ -1,25 +1,23 @@
 package org.myorg.quickstart.sharedState;
 
-import org.apache.commons.lang3.SerializationUtils;
-import org.apache.flink.api.common.functions.FlatMapFunction;
-import org.apache.flink.api.common.state.MapStateDescriptor;
-import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
-import org.apache.flink.api.java.functions.KeySelector;
-import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.api.java.typeutils.GenericTypeInfo;
-import org.apache.flink.api.java.typeutils.TupleTypeInfo;
-import org.apache.flink.streaming.api.TimeCharacteristic;
-import org.apache.flink.streaming.api.datastream.*;
-import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExtractor;
-import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
-import org.apache.flink.streaming.api.windowing.time.Time;
-import org.apache.flink.streaming.api.windowing.triggers.CountTrigger;
-import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
-import org.apache.flink.util.Collector;
-import java.util.*;
+        import org.apache.flink.api.common.functions.FlatMapFunction;
+        import org.apache.flink.api.common.state.MapStateDescriptor;
+        import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
+        import org.apache.flink.api.java.functions.KeySelector;
+        import org.apache.flink.api.java.tuple.Tuple2;
+        import org.apache.flink.api.java.typeutils.GenericTypeInfo;
+        import org.apache.flink.api.java.typeutils.TupleTypeInfo;
+        import org.apache.flink.streaming.api.TimeCharacteristic;
+        import org.apache.flink.streaming.api.collector.selector.OutputSelector;
+        import org.apache.flink.streaming.api.datastream.*;
+        import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+        import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExtractor;
+        import org.apache.flink.streaming.api.windowing.time.Time;
+        import org.apache.flink.streaming.api.windowing.triggers.CountTrigger;
+        import org.apache.flink.util.Collector;
+        import java.util.*;
 
-public class BroadcastPartitionerWindowed {
+public class SplitStreamImpl {
 
     final static Class<Tuple2<Integer, ArrayList<Integer>>> typedTuple = (Class<Tuple2<Integer, ArrayList<Integer>>>) (Class<?>) Tuple2.class;
 
@@ -29,17 +27,16 @@ public class BroadcastPartitionerWindowed {
             new GenericTypeInfo<>(Integer.class)
     );
 
-    public static StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-
     public static void main(String[] args) throws Exception {
 
         // Argument fetching
         int graphSize = 100;
 
         // Environment setup
-        //StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setParallelism(2);
         env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
+
 
         // MapState Descriptor (as from data artisans)
         MapStateDescriptor<String, Tuple2<Integer, ArrayList<Integer>>> rulesStateDescriptor = new MapStateDescriptor<>(
@@ -48,8 +45,6 @@ public class BroadcastPartitionerWindowed {
                 tupleTypeInfo
         );
 
-
-/*
         // SHOULD BE TEMPORARY
         // #### Create 1 sample "state" for Vertex 1, appearing in partition 1
         List<Integer> stateArray = new ArrayList<>();
@@ -69,7 +64,6 @@ public class BroadcastPartitionerWindowed {
                 .setParallelism(2)
                 .broadcast(rulesStateDescriptor);
         // END -- SHOULD BE TEMPORARY
-*/
 
 
         // ### Generate graph and make "fake events" (for window processing)
@@ -96,6 +90,32 @@ public class BroadcastPartitionerWindowed {
                     }
                 });
 
+
+        ArrayList<Integer> testListIntegers = new ArrayList<>();
+        for (int i = 0; i < graphSize; i++)
+            testListIntegers.add(i);
+
+        DataStream<Integer> integerStream = env.fromCollection(testListIntegers);
+
+        SplitStream<Integer> split = integerStream.split(new OutputSelector<Integer>() {
+            @Override
+            public Iterable<String> select(Integer value) {
+                List<String> output = new ArrayList<String>();
+                if (value % 2 == 0) {
+                    output.add("even");
+                }
+                else {
+                    output.add("odd");
+                }
+                return output;
+            }
+        });
+
+        DataStream<Integer> even = split.select("even");
+        DataStream<Integer> odd = split.select("odd");
+        DataStream<Integer> all = split.select("even","odd");
+
+        /*
         // Window Edge Stream, by time
         WindowedStream windowedEdgeStream = edgeEventStream
                 .keyBy(new KeySelector<EdgeEvent, Integer>() {
@@ -110,8 +130,9 @@ public class BroadcastPartitionerWindowed {
         DataStream<Tuple2<List<EdgeEvent>, Integer>> processedWindowedEdges = windowedEdgeStream
                 //.trigger(CountTrigger.of(5))
                 .process(new ProcessEdgeWindow() {
-                //.process(new ProcessEdgeWindow(broadcastRulesStream, env) {
                 });
+
+        //processedWindowedEdges.print();
 
         KeyedStream<EdgeSimple, Integer> edgeStreamForPartitioning = processedWindowedEdges
                 .flatMap(new FlatMapFunction<Tuple2<List<EdgeEvent>, Integer>, EdgeSimple>() {
@@ -127,25 +148,19 @@ public class BroadcastPartitionerWindowed {
                 .setParallelism(2)
                 .keyBy(EdgeSimple::getOriginVertex);
 
-
-
-        //processedWindowedEdges.print();
-
-
-/*
-        // Match Function to connect broadcast (state) and edges
+*//*        // Match Function to connect broadcast (state) and edges
         MatchFunctionEdgeEvents matchRules = new MatchFunctionEdgeEvents();
         matchRules.setRound(1);
 
         DataStream<Tuple2<Integer, List<Integer>>> outputRules = edgeStreamForPartitioning
                 .connect(broadcastRulesStream)
-                .process(matchRules);*/
+                .process(matchRules);*//*
 
         //outputRules.print();
 
 
 
-/*
+*//*
         // "Testing" function to see how window processing behaves
         DataStream<Tuple2<EdgeEvent, Integer>> test123 = processedWindowedEdges
                 .flatMap(new FlatMapFunction<Tuple2<List<EdgeEvent>, Integer>, Tuple2<EdgeEvent, Integer>>() {
@@ -156,99 +171,14 @@ public class BroadcastPartitionerWindowed {
                         }
                     }
                 });
-        test123.print();*/
+        test123.print();*//*
 
 
 
-        // ### Finally, execute the job in Flink
+        // ### Finally, execute the job in Flink*/
         env.execute();
 
     } // close main method
-
-    public static class ProcessEdgeWindow extends ProcessWindowFunction<EdgeEvent, Tuple2<List<EdgeEvent>, Integer>, Integer, TimeWindow> {
-
-        //    private static ClassLoader
-
-        final static Class<Tuple2<Integer, ArrayList<Integer>>> typedTuple = (Class<Tuple2<Integer, ArrayList<Integer>>>) (Class<?>) Tuple2.class;
-
-        final static TupleTypeInfo tupleTypeInfo = new TupleTypeInfo<>(
-                typedTuple,
-                new GenericTypeInfo<>(Integer.class),
-                new GenericTypeInfo<>(Integer.class)
-        );
-
-        List<Tuple2<Integer, List<Integer>>> stateList = new ArrayList<>();
-        List<Integer> stateArray = new ArrayList<>();
-        List<EdgeEvent> edgesInWindow = new ArrayList<>();
-        BroadcastStream<Tuple2<Integer,List<Integer>>> broadcastStream;
-        StreamExecutionEnvironment env;
-
-        //HashMap placedEdges = new HashMap();
-        //HashMap vertexTable = new HashMap();
-
-
-
-        public void process(Integer key, Context context, Iterable<EdgeEvent> edgeIterable, Collector<Tuple2<List<EdgeEvent>, Integer>> out) throws Exception {
-//      int counter = 0;
-
-            // Print current Window (edges)
-            edgeIterable.forEach(edgesInWindow::add);
-            String printString = "Current Window: ";
-            List<EdgeSimple> fakeList = new ArrayList<>();
-            for(EdgeEvent e: edgesInWindow) {
-                printString = printString + "; " + e.getEdge().getOriginVertex() + " " + e.getEdge().getDestinVertex();
-                fakeList.add(e.getEdge());
-            }
-
-
-
-            // StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-            // MapState Descriptor (as from data artisans)
-            MapStateDescriptor<String, Tuple2<Integer, ArrayList<Integer>>> rulesStateDescriptor = new MapStateDescriptor<>(
-                    "RulesBroadcastState",
-                    BasicTypeInfo.STRING_TYPE_INFO,
-                    tupleTypeInfo
-            );
-
-            stateArray.add(-1);
-            stateArray.add(-1);
-            stateList.add(new Tuple2<>(new Integer(-1), stateArray));
-
-            // SHOULD BE TEMPORARY
-            BroadcastStream<Tuple2<Integer,List<Integer>>> broadcastRulesStream = env.fromCollection(stateList)
-                    //BroadcastStream<Tuple2<Integer, List<Integer>>> broadcastRulesStream2 = outputRules
-                    .flatMap(new FlatMapFunction<Tuple2<Integer, List<Integer>>, Tuple2<Integer, List<Integer>>>() {
-                        @Override
-                        public void flatMap(Tuple2<Integer, List<Integer>> value, Collector<Tuple2<Integer, List<Integer>>> out) {
-                            out.collect(value);
-                        }
-                    })
-                    .setParallelism(2)
-                    .broadcast(rulesStateDescriptor);
-            // END -- SHOULD BE TEMPORARY
-
-            DataStream<EdgeSimple> edgeStreamForPartitioning = env.fromCollection(fakeList)
-                    .map(edgeSimple -> edgeSimple)
-                    .keyBy(EdgeSimple::getDestinVertex);
-
-            // Match Function to connect broadcast (state) and edges
-            MatchFunctionEdgeEvents matchRules2 = new MatchFunctionEdgeEvents();
-            matchRules2.setRound(2);
-
-            DataStream<Tuple2<Integer, List<Integer>>> outputRules = edgeStreamForPartitioning
-                    .connect(broadcastRulesStream)
-                    .process(matchRules2);
-
-
-            env.execute();
-            System.out.println(printString);
-
-            //System.out.println("TEST TEST");
-
-        }
-    }
-
-
 
 
 }
