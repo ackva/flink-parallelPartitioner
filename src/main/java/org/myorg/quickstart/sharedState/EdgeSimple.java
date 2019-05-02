@@ -27,7 +27,6 @@ public class EdgeSimple {
         return this.originVertex;
     }
 
-
     @Override
     public String toString() {
         return "Edge{" +

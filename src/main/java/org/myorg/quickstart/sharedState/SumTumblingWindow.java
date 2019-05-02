@@ -7,6 +7,10 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExtractor;
 import org.apache.flink.streaming.api.windowing.time.Time;
+import org.myorg.quickstart.sharedState.EdgeEvent;
+import org.myorg.quickstart.sharedState.EdgeSimple;
+import org.myorg.quickstart.sharedState.TestingGraph;
+
 import java.util.ArrayList;
 import java.util.List;
 
