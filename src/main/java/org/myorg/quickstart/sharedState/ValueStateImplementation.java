@@ -40,7 +40,7 @@ public class ValueStateImplementation {
     public static void main(String[] args) throws Exception {
 
         // Argument fetching
-        int graphSize = 100;
+        int graphSize = 10000;
 
         // Environment setup
         env.setParallelism(2);
@@ -76,7 +76,7 @@ public class ValueStateImplementation {
 
         SingleOutputStreamOperator windowedEdgeStream = keyedEdgeStream
                 .timeWindow(Time.milliseconds(1))
-                .trigger(CountTrigger.of(5)) // --> used to show that behavior within same window is similar
+                //.trigger(CountTrigger.of(5)) // --> used to show that behavior within same window is similar
                 .process(new ProcessEdgeWindowWithSideOutput() {
                     //.process(new ProcessEdgeWindow(broadcastRulesStream, env) {
                 });

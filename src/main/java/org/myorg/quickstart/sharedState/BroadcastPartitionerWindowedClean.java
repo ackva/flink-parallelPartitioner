@@ -71,7 +71,7 @@ public class BroadcastPartitionerWindowedClean {
 
         SingleOutputStreamOperator windowedEdgeStream = keyedEdgeStream
                 .timeWindow(Time.milliseconds(1))
-                .trigger(CountTrigger.of(5)) // --> used to show that behavior within same window is similar
+                .trigger(CountTrigger.of(5))// --> used to show that behavior within same window is similar
                 .process(new ProcessEdgeWindowWithSideOutput() {
                     //.process(new ProcessEdgeWindow(broadcastRulesStream, env) {
                 });
