@@ -45,7 +45,7 @@ public class ModelBuilder implements Serializable {
 
         int partitionId = -1;
 
-        if (this.algorithm == "byOrigin") {
+        if (this.algorithm.equals("byOrigin")) {
             partitionId = edge.getEdge().getOriginVertex();
         } else {
             // TODO: Actual algorithm here

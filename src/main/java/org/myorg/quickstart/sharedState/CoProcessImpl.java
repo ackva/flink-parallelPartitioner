@@ -114,7 +114,7 @@ public class CoProcessImpl {
                                  for (Integer i : value.f1) {
                                      state = state + " " + i;
                                  }
-                                 out.collect(value.f0 + " in: " + state + " -- counter = " + counter2);
+                                 out.collect(value.f0 + " in: " + state + " -- counterBroadcast = " + counter2);
 
                                  // Whenever the fake "window" is full, a broadcast is done --- This does not work. See line 140ff
                                  if (stateListSink.size() % 2 == 0) {

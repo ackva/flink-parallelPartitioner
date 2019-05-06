@@ -40,16 +40,12 @@ public class PhasePartitioner {
     public static void main(String[] args) throws Exception {
 
         // Argument fetching
-        int graphSize = 3;
+        int graphSize = 5;
         int windowSizeInMs = 500;
 
         // Environment setup
         env.setParallelism(4);
         env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
-
-        // Sideoutput
-        final OutputTag<List<EdgeEvent>> outputTag = new OutputTag<List<EdgeEvent>>("edgesInWindow"){};
-
 
         // MapState Descriptor (as from data artisans)
         MapStateDescriptor<String, Tuple2<Integer, ArrayList<Integer>>> rulesStateDescriptor = new MapStateDescriptor<>(
@@ -60,9 +56,10 @@ public class PhasePartitioner {
 
         // Generate a new synthetic of edges
         TestingGraph edgeGraph = new TestingGraph("byOrigin",graphSize);
+        edgeGraph.printGraph();
         DataStream<EdgeEvent> edgeSteam = edgeGraph.getEdgeStream(env);
 
-        SingleOutputStreamOperator<HashMap> phaseOneStream = edgeSteam
+        DataStream<HashMap> phaseOneStream = edgeSteam
                 .keyBy(new KeySelector<EdgeEvent, Integer>() {
                     @Override
                     public Integer getKey(EdgeEvent value) throws Exception {
@@ -74,22 +71,12 @@ public class PhasePartitioner {
                 });
         //phaseOneStream.print();
 
-        DataStream<List<EdgeEvent>> sideOutputStream = phaseOneStream.getSideOutput(outputTag);
-
         MatchFunctionEdges matchRules = new MatchFunctionEdges();
-        //MatchFunctionEdgeList matchRules2 = new MatchFunctionEdgeList();
 
         BroadcastStream<HashMap> broadcastFrequency = phaseOneStream
                 .broadcast(rulesStateDescriptor);
 
-        DataStream<Tuple2<EdgeEvent,Integer>> phaseTwoStream = sideOutputStream
-                .flatMap(new FlatMapFunction<List<EdgeEvent>, EdgeEvent>() {
-                    @Override
-                    public void flatMap(List<EdgeEvent> value, Collector<EdgeEvent> out) throws Exception {
-                            for (EdgeEvent e: value)
-                                out.collect(e);
-                    }
-                })
+        DataStream<Tuple2<EdgeEvent,Integer>> phaseTwoStream = edgeSteam
                 .keyBy(new KeySelector<EdgeEvent, Integer>() {
                     @Override
                     public Integer getKey(EdgeEvent value) throws Exception {
@@ -99,32 +86,15 @@ public class PhasePartitioner {
                 .connect(broadcastFrequency)
                 .process(matchRules);
 
-        phaseTwoStream.print();
-/*
-        DataStream<Tuple2<EdgeEvent,Integer>> phaseTwoStream = phaseOneStream
-                .keyBy(new KeySelector<EdgeEvent, Integer>() {
-                    @Override
-                    public Integer getKey(EdgeEvent value) throws Exception {
-                        return value.getEdge().getOriginVertex();
-                    }
-                })
-                .connect(broadcastFrequency)
-                .process(matchRules);
-*/
+        //phaseTwoStream.print();
 
 
-
-/*
-
-        sideOutputStream.print();
-
-        // Print result as Tuple3 (Vertex, Vertex, Partition) --> e.g. (4,2,0) is Edge(4,2) located in Parttition 0
+/*        //Print result as Tuple3 (Vertex, Vertex, Partition) --> e.g. (4,2,0) is Edge(4,2) located in Parttition 0
         phaseTwoStream.map(new MapFunction<Tuple2<EdgeEvent, Integer>, Tuple3<Integer, Integer, Integer>>() {
             public Tuple3<Integer, Integer, Integer> map(Tuple2<EdgeEvent, Integer> input) {
                 return new Tuple3<>(input.f0.getEdge().getOriginVertex(), input.f0.getEdge().getDestinVertex(), input.f1);
             }
-        }).print();
-*/
+        }).print();*/
 
         // ### Finally, execute the job in Flink
         env.execute();

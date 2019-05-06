@@ -101,10 +101,10 @@ public class BroadcastPartitionerIterative {
         while (myOutput.hasNext())
             allSubStreams.add(myOutput.next());
 
-        int counter=0;
+        int counterBroadcast=0;
         for (Tuple2 t : allSubStreams) {
-            counter++;
-            System.out.println(counter + " test --- " + t);
+            counterBroadcast++;
+            System.out.println(counterBroadcast + " test --- " + t);
         }
 */
 

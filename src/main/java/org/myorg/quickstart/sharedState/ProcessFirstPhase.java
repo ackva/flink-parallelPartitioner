@@ -3,36 +3,36 @@ package org.myorg.quickstart.sharedState;
 import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
-import org.apache.flink.util.OutputTag;
 
 import java.util.*;
 
 
 public class ProcessFirstPhase extends ProcessWindowFunction<EdgeEvent, HashMap, Integer, TimeWindow> {
 
-    int counter = 0;
-    final OutputTag<String> outputTag = new OutputTag<String>("side-output"){};
+    int windowCounter = 0;
+    int edgeCounter = 0;
 
     public void process(Integer key, Context context, Iterable<EdgeEvent> edgeIterable, Collector<HashMap> out) throws Exception {
-
-        // Sideoutput
-        final OutputTag<String> outputTag = new OutputTag<String>("side-output"){};
 
         HashMap<Integer, HashSet<Integer>> vertexToPartitionMap = new HashMap<>();
 
         // Store all edges of current window
         List<EdgeEvent> edgesInWindow = storeElementsOfWindow(edgeIterable);
-        printWindowElements(edgesInWindow);
+        //printWindowElements(edgesInWindow);
 
-        // Build local model and find a partition for all edges
-        ModelBuilder mb = new ModelBuilder("byOrigin", vertexToPartitionMap);
+        // For every edge, choose partition based on algorithm
+        ModelBuilder modelBuilder = new ModelBuilder("byOrigin", vertexToPartitionMap);
 
         for(EdgeEvent e: edgesInWindow) {
-            int partitionId = mb.choosePartition(e);
+            modelBuilder.choosePartition(e);
+            edgeCounter++;
         }
 
-        context.output(outputTag, "hallo");
-        out.collect(mb.getVertexToPartitionMap());
+        // Emit local model for next phase
+        out.collect(modelBuilder.getVertexToPartitionMap());
+
+        // Print for debugging
+        //System.out.println(windowCounter++ + " windows on this worker -- " + edgeCounter + " edges ");
 
     }
 
@@ -48,12 +48,11 @@ public class ProcessFirstPhase extends ProcessWindowFunction<EdgeEvent, HashMap,
     public void printWindowElements(List<EdgeEvent> edgeEventList) {
 
         // Create human-readable String with current window
-        String printString = "1st Phase Window [" + counter++ + "]: ";
+        String printString = "1st Phase Window [" + windowCounter++ + "]: ";
         for(EdgeEvent e: edgeEventList) {
             printString = printString + "; " + e.getEdge().getOriginVertex() + " " + e.getEdge().getDestinVertex();
         }
-        // Optionally: Print
-        //System.out.println(printString);
+        System.out.println(printString);
 
     }
 
@@ -72,7 +71,6 @@ public class ProcessFirstPhase extends ProcessWindowFunction<EdgeEvent, HashMap,
             }
         }
     }
-
 
     public void getFrequency(EdgeEvent e, HashMap<Integer, Integer> frequencyTable) {
         Integer[] vertices = new Integer[2];

@@ -41,7 +41,7 @@ public class MatchFunctionEdgeEvents extends KeyedBroadcastProcessFunction<Integ
 
         if (broadcastElement.f0 != -1) {
             boolean inList = false;
-            //ctx.getBroadcastState(broadcastStateDescriptor).put("Entry_" + counter++, broadcastElement);
+            //ctx.getBroadcastState(broadcastStateDescriptor).put("Entry_" + counterBroadcast++, broadcastElement);
             for (Map.Entry<String, Tuple2<Integer, List<Integer>>> stateEntry : ctx.getBroadcastState(broadcastStateDescriptor).entries()) {
                 if (stateEntry.getValue().f0 == broadcastElement.f0) {
                     inList = true;
@@ -49,7 +49,7 @@ public class MatchFunctionEdgeEvents extends KeyedBroadcastProcessFunction<Integ
 
             }
             if (inList == false) {
-                //ctx.getBroadcastState(broadcastStateDescriptor).put("Entry_" + counter++, broadcastElement);
+                //ctx.getBroadcastState(broadcastStateDescriptor).put("Entry_" + counterBroadcast++, broadcastElement);
                 ctx.getBroadcastState(broadcastStateDescriptor).put(broadcastElement.f0.toString(), broadcastElement);
                 //System.out.println("R_"+ round +":: RULE: Vertex " + broadcastElement.f0 + " to state table");
                 counter++;

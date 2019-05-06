@@ -68,7 +68,7 @@ public class ProcessEdgeWindow extends ProcessWindowFunction<EdgeEvent, Tuple2<L
 
 
     public void process(Integer key, Context context, Iterable<EdgeEvent> edgeIterable, Collector<Tuple2<List<EdgeEvent>, Integer>> out) throws Exception {
-//      int counter = 0;
+//      int counterBroadcast = 0;
 
         // Print current Window (edges)
         edgeIterable.forEach(edgesInWindow::add);

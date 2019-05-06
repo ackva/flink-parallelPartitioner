@@ -21,7 +21,7 @@ import static org.myorg.quickstart.sharedState.PartitionWithBroadcast.tupleTypeI
 
 public class MergeCurrentState {
 
-    private int counter = 0;
+    private int counterBroadcast = 0;
 
 */
 /*
@@ -34,11 +34,11 @@ public class MergeCurrentState {
     public void processBroadcastElement(Tuple2<Integer, List<Integer>> broadcastElement, Context ctx, Collector<Tuple2<Integer, List<Integer>>> out) throws Exception {
         //Instant instant = Instant.now();
         System.out.println("Broadcasting " + broadcastElement.f0 + " now");
-        //System.out.println("Entries: " + counter + " --> " + ctx.getBroadcastState(broadcastStateDescriptor).entries());
+        //System.out.println("Entries: " + counterBroadcast + " --> " + ctx.getBroadcastState(broadcastStateDescriptor).entries());
 
         if (broadcastElement.f0 != -1) {
             boolean inList = false;
-            //ctx.getBroadcastState(broadcastStateDescriptor).put("Entry_" + counter++, broadcastElement);
+            //ctx.getBroadcastState(broadcastStateDescriptor).put("Entry_" + counterBroadcast++, broadcastElement);
             for (Map.Entry<String, Tuple2<Integer, List<Integer>>> stateEntry : ctx.getBroadcastState(broadcastStateDescriptor).entries()) {
                 if (stateEntry.getValue().f0 == broadcastElement.f0) {
                     //System.out.println("Current State entry " + stateEntry.getValue().f0 + " --- Current BroadcastElement entry: " + broadcastElement.f0);
@@ -48,10 +48,10 @@ public class MergeCurrentState {
             }
             //System.out.println("In List is "+ inList + " for broadcastelement " + broadcastElement.f0);
             if (inList == false) {
-                //ctx.getBroadcastState(broadcastStateDescriptor).put("Entry_" + counter++, broadcastElement);
+                //ctx.getBroadcastState(broadcastStateDescriptor).put("Entry_" + counterBroadcast++, broadcastElement);
                 ctx.getBroadcastState(broadcastStateDescriptor).put(broadcastElement.f0.toString(), broadcastElement);
                 System.out.println("Add RULE: Vertex " + broadcastElement.f0 + " to state table");
-                counter++;
+                counterBroadcast++;
                 System.out.println("State Table after processing " + broadcastElement.f0 + " --> " + ctx.getBroadcastState(broadcastStateDescriptor).entries());
             }
         }
