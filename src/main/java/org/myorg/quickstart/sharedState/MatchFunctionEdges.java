@@ -16,15 +16,7 @@ public class MatchFunctionEdges extends KeyedBroadcastProcessFunction<Integer, E
     int counterEdges = 0;
     HashMap<Integer, HashSet<Integer>> vertexPartition = new HashMap<>();
     HashMap<EdgeEvent, Integer> edgeInPartition = new HashMap<>();
-    private String processedEdges = "Edges processed by: ";
-    private String processedBroadcastElements = "BroadcastRules processed by: ";
-    private int round;
     ModelBuilder modelBuilder = new ModelBuilder("byOrigin", vertexPartition);
-
-
-    public void setRound(int round) {
-        this.round = round;
-    }
 
     private final MapStateDescriptor<String, Tuple2<Integer, HashSet<Integer>>> broadcastStateDescriptor =
             new MapStateDescriptor<>("RulesBroadcastState", BasicTypeInfo.STRING_TYPE_INFO, tupleTypeInfo);
@@ -48,32 +40,7 @@ public class MatchFunctionEdges extends KeyedBroadcastProcessFunction<Integer, E
                 }
             }
 
-        //System.out.println("BROAD: " + counterEdges + " Edges processed -- " + ++counterBroadcast + " state entries");
-
-
-        /*
-        // NOT SURE IF NEEDED
-        Integer[] vertices = new Integer[2];
-        vertices[0] = currentEdge.getEdge().getOriginVertex();
-        vertices[1] = currentEdge.getEdge().getDestinVertex();
-
-        for (int i = 0; i < 2; i++) {
-            HashSet<Integer> partitionSet = new HashSet<>();
-            if (vertexPartition.containsKey(vertices[i])) {
-                String partitionsString = vertices[i] + " in: ";
-                for(Integer partition: vertexPartition.get(vertices[0])) {
-                    partitionSet.add(partition);
-                    partitionsString = partitionsString + ", ";
-                }
-                partitionSet.add(partitionId);
-                vertexPartition.put(vertices[i], partitionSet);
-            } else {
-                partitionSet.add(partitionId);
-                vertexPartition.put(vertices[i], partitionSet);
-            }
-        }
-        */
-
+        System.out.println("BROAD: " + counterEdges + " Edges processed -- " + ++counterBroadcast + " state entries");
 
     }
 

@@ -1,6 +1,5 @@
 package org.myorg.quickstart.sharedState;
 
-import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.state.MapStateDescriptor;
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
@@ -12,18 +11,12 @@ import org.apache.flink.api.java.typeutils.TupleTypeInfo;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.BroadcastStream;
 import org.apache.flink.streaming.api.datastream.DataStream;
-import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExtractor;
 import org.apache.flink.streaming.api.windowing.time.Time;
-import org.apache.flink.util.Collector;
-import org.apache.flink.util.OutputTag;
-import scala.Int;
+import org.apache.flink.streaming.api.windowing.triggers.CountTrigger;
 
-import javax.xml.crypto.Data;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 
 public class PhasePartitioner {
 
@@ -48,11 +41,7 @@ public class PhasePartitioner {
         env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
 
         // MapState Descriptor (as from data artisans)
-        MapStateDescriptor<String, Tuple2<Integer, ArrayList<Integer>>> rulesStateDescriptor = new MapStateDescriptor<>(
-                "RulesBroadcastState",
-                BasicTypeInfo.STRING_TYPE_INFO,
-                tupleTypeInfo
-        );
+        MapStateDescriptor<String, Tuple2<Integer, ArrayList<Integer>>> rulesStateDescriptor = new MapStateDescriptor<>("RulesBroadcastState", BasicTypeInfo.STRING_TYPE_INFO,tupleTypeInfo);
 
         // Generate a new synthetic of edges
         TestingGraph edgeGraph = new TestingGraph("byOrigin",graphSize);
@@ -71,12 +60,25 @@ public class PhasePartitioner {
                 });
         //phaseOneStream.print();
 
+        DataStream<EdgeEvent> edgesWindowed = edgeSteam
+                .keyBy(new KeySelector<EdgeEvent, Integer>() {
+                    @Override
+                    public Integer getKey(EdgeEvent value) throws Exception {
+                        return value.getEdge().getOriginVertex();
+                    }
+                })
+                .timeWindow(Time.milliseconds(windowSizeInMs))
+                //.trigger(CountTrigger.of(1))
+                .process(new ProcessWindow() {
+                });
+        //phaseOneStream.print();
+
         MatchFunctionEdges matchRules = new MatchFunctionEdges();
 
         BroadcastStream<HashMap> broadcastFrequency = phaseOneStream
                 .broadcast(rulesStateDescriptor);
 
-        DataStream<Tuple2<EdgeEvent,Integer>> phaseTwoStream = edgeSteam
+        DataStream<Tuple2<EdgeEvent,Integer>> phaseTwoStream = edgesWindowed
                 .keyBy(new KeySelector<EdgeEvent, Integer>() {
                     @Override
                     public Integer getKey(EdgeEvent value) throws Exception {
@@ -89,12 +91,13 @@ public class PhasePartitioner {
         //phaseTwoStream.print();
 
 
-/*        //Print result as Tuple3 (Vertex, Vertex, Partition) --> e.g. (4,2,0) is Edge(4,2) located in Parttition 0
+
+        //Print result as Tuple3 (Vertex, Vertex, Partition) --> e.g. (4,2,0) is Edge(4,2) located in Parttition 0
         phaseTwoStream.map(new MapFunction<Tuple2<EdgeEvent, Integer>, Tuple3<Integer, Integer, Integer>>() {
             public Tuple3<Integer, Integer, Integer> map(Tuple2<EdgeEvent, Integer> input) {
                 return new Tuple3<>(input.f0.getEdge().getOriginVertex(), input.f0.getEdge().getDestinVertex(), input.f1);
             }
-        }).print();*/
+        }).print();
 
         // ### Finally, execute the job in Flink
         env.execute();
