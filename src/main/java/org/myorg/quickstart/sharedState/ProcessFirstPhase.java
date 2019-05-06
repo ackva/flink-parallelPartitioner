@@ -14,6 +14,11 @@ public class ProcessFirstPhase extends ProcessWindowFunction<EdgeEvent, HashMap,
 
     public void process(Integer key, Context context, Iterable<EdgeEvent> edgeIterable, Collector<HashMap> out) throws Exception {
 
+        windowCounter++;
+        int edgeCounter2 = 0;
+
+
+        String printString = " - ";
         HashMap<Integer, HashSet<Integer>> vertexToPartitionMap = new HashMap<>();
 
         // Store all edges of current window
@@ -25,8 +30,11 @@ public class ProcessFirstPhase extends ProcessWindowFunction<EdgeEvent, HashMap,
 
         for(EdgeEvent e: edgesInWindow) {
             modelBuilder.choosePartition(e);
-            edgeCounter++;
+            printString = printString + e.getEdge().getOriginVertex() + " " + e.getEdge().getDestinVertex() + ", ";
         }
+
+        printString = "P1: window # " + windowCounter + " -- edges: " + edgesInWindow.size() + printString + " --(Model)";
+        System.out.println(printString);
 
         // Emit local model for next phase
         out.collect(modelBuilder.getVertexToPartitionMap());

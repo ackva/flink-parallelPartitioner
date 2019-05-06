@@ -36,8 +36,8 @@ public class PhasePartitioner {
     public static void main(String[] args) throws Exception {
 
         // Argument fetching
-        int graphSize = 5;
-        int windowSizeInMs = 500;
+        int graphSize = 20;
+        int windowSizeInMs = 1000;
 
         // Environment setup
         env.setParallelism(4);
@@ -98,11 +98,11 @@ public class PhasePartitioner {
 
         //Print result in human-readable way
              // Tuple3 (Vertex, Vertex, Partition) --> e.g. (4,2,0) is Edge(4,2) located in Parttition 0
-        phaseTwoStream.map(new MapFunction<Tuple2<EdgeEvent, Integer>, Tuple3<Integer, Integer, Integer>>() {
+ /*       phaseTwoStream.map(new MapFunction<Tuple2<EdgeEvent, Integer>, Tuple3<Integer, Integer, Integer>>() {
             public Tuple3<Integer, Integer, Integer> map(Tuple2<EdgeEvent, Integer> input) {
                 return new Tuple3<>(input.f0.getEdge().getOriginVertex(), input.f0.getEdge().getDestinVertex(), input.f1);
             }
-        }).print();
+        }).print();*/
 
 
 

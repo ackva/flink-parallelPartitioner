@@ -40,7 +40,7 @@ public class MatchFunctionEdges extends KeyedBroadcastProcessFunction<Integer, E
                 }
             }
 
-        System.out.println("BROAD: " + counterEdges + " Edges processed -- " + ++counterBroadcast + " state entries");
+        //System.out.println("BROAD: " + counterEdges + " Edges processed -- " + ++counterBroadcast + " state entries");
 
     }
 
@@ -55,7 +55,7 @@ public class MatchFunctionEdges extends KeyedBroadcastProcessFunction<Integer, E
 
         out.collect(new Tuple2<>(currentEdge,partitionId));
 
-        System.out.println("EDGES: " + ++counterEdges + " Edges processed -- " + counterBroadcast + " Broadcast entries");
+        //System.out.println("EDGES: " + ++counterEdges + " Edges processed -- " + counterBroadcast + " Broadcast entries");
 
     }
 

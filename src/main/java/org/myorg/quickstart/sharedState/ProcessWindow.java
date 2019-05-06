@@ -13,23 +13,22 @@ import java.util.List;
 public class ProcessWindow extends ProcessWindowFunction<EdgeEvent, EdgeEvent, Integer, TimeWindow> {
 
     int windowCounter = 0;
-    int edgeCounter = 0;
 
     public void process(Integer key, Context context, Iterable<EdgeEvent> edgeIterable, Collector<EdgeEvent> out) throws Exception {
 
-        HashMap<Integer, HashSet<Integer>> vertexToPartitionMap = new HashMap<>();
+        String printString = " - ";
+        windowCounter++;
 
         // Store all edges of current window
         List<EdgeEvent> edgesInWindow = storeElementsOfWindow(edgeIterable);
         //printWindowElements(edgesInWindow);
 
-        // For every edge, choose partition based on algorithm
-        ModelBuilder modelBuilder = new ModelBuilder("byOrigin", vertexToPartitionMap);
-
         for(EdgeEvent e: edgesInWindow) {
             out.collect(e);
-            System.out.println(++edgeCounter + " edges processed in P1");
+            printString = printString + e.getEdge().getOriginVertex() + " " + e.getEdge().getDestinVertex() + ", ";
         }
+        printString = "P1: window # " + windowCounter + " -- edges: " + edgesInWindow.size() + printString + " --(Edges)";
+        System.out.println(printString);
 
     }
 
