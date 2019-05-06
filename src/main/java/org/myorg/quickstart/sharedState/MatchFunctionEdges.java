@@ -74,7 +74,6 @@ public class MatchFunctionEdges extends KeyedBroadcastProcessFunction<Integer, E
         }
         */
 
-        //System.out.println("Updated Map after broadcast of: " + broadcastElement + " --- " + vertexPartition);
 
     }
 
