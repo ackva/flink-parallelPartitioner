@@ -3,6 +3,7 @@ package org.myorg.quickstart.sharedState;
 import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
+import org.apache.flink.util.OutputTag;
 
 import java.util.*;
 
@@ -10,19 +11,28 @@ import java.util.*;
 public class ProcessFirstPhase extends ProcessWindowFunction<EdgeEvent, HashMap, Integer, TimeWindow> {
 
     int counter = 0;
-    HashMap<Integer, Integer> frequencyTable = new HashMap<>();
+    final OutputTag<String> outputTag = new OutputTag<String>("side-output"){};
 
     public void process(Integer key, Context context, Iterable<EdgeEvent> edgeIterable, Collector<HashMap> out) throws Exception {
+
+        // Sideoutput
+        final OutputTag<String> outputTag = new OutputTag<String>("side-output"){};
+
+        HashMap<Integer, HashSet<Integer>> vertexToPartitionMap = new HashMap<>();
 
         // Store all edges of current window
         List<EdgeEvent> edgesInWindow = storeElementsOfWindow(edgeIterable);
         printWindowElements(edgesInWindow);
 
+        // Build local model and find a partition for all edges
+        ModelBuilder mb = new ModelBuilder("byOrigin", vertexToPartitionMap);
+
         for(EdgeEvent e: edgesInWindow) {
-            getFrequency(e);
+            int partitionId = mb.choosePartition(e);
         }
 
-        out.collect(frequencyTable);
+        context.output(outputTag, "hallo");
+        out.collect(mb.getVertexToPartitionMap());
 
     }
 
@@ -47,16 +57,27 @@ public class ProcessFirstPhase extends ProcessWindowFunction<EdgeEvent, HashMap,
 
     }
 
-    public void getFrequency(EdgeEvent e) {
+    public void buildLocalModel(EdgeEvent e, HashMap<Integer, Integer> vertexToPartitionMap) {
         Integer[] vertices = new Integer[2];
         vertices[0] = e.getEdge().getOriginVertex();
         vertices[1] = e.getEdge().getDestinVertex();
-        Long highest = 0L;
 
-        // Delete if "tag" is used
-        int mostFreq = vertices[0];
+        // Loop over both vertices and see which one has the higher degree (if equal, the left vertex "wins").
+        for (int i = 0; i < 2; i++) {
+            if (vertexToPartitionMap.containsKey(vertices[i])) {
+                int currentCount = vertexToPartitionMap.get(vertices[i]) + 1;
+                vertexToPartitionMap.put(vertices[i], currentCount);
+            } else {
+                vertexToPartitionMap.put(vertices[i], 1);
+            }
+        }
+    }
 
-        // Tagging for partitions
+
+    public void getFrequency(EdgeEvent e, HashMap<Integer, Integer> frequencyTable) {
+        Integer[] vertices = new Integer[2];
+        vertices[0] = e.getEdge().getOriginVertex();
+        vertices[1] = e.getEdge().getDestinVertex();
 
         // Loop over both vertices and see which one has the higher degree (if equal, the left vertex "wins").
         for (int i = 0; i < 2; i++) {

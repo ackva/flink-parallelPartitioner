@@ -27,6 +27,9 @@ public class TestingGraph {
             case "modulo10":
                 generateGraphModulo10(graphSize);
                 break;
+            case "byOrigin":
+                generateGraphForOriginPartitioning(graphSize);
+                break;
             default:
                 generateRandomGraph(graphSize);
                 break;
@@ -83,6 +86,17 @@ public class TestingGraph {
             if (i %10 == 0)
                 originEdge++;
             edgeList.add(new EdgeSimple(originEdge,originEdge + i));
+        }
+        this.edges = edgeList;
+    }
+
+    public void generateGraphForOriginPartitioning(int numbEdges) throws Exception {
+        List<EdgeSimple> edgeList = new ArrayList<>();
+        for (int i = 1; i < numbEdges; i++) {
+            edgeList.add(new EdgeSimple(1,i+1));
+            edgeList.add(new EdgeSimple(2,i+1));
+            edgeList.add(new EdgeSimple(3,i+1));
+            edgeList.add(new EdgeSimple(4,i+1));
         }
         this.edges = edgeList;
     }

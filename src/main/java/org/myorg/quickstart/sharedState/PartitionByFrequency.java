@@ -38,7 +38,7 @@ History:
     public static void main(String[] args) throws Exception {
 
         // Initialize state table (Columns: Vertex, Occurrence)
-        HashMap<String, Long> stateTable = new HashMap<>();
+        HashMap<String, Long> vertexTable = new HashMap<>();
 
         // Tag edges (results from FlatMap) by constructing a state table (hash map) that keeps track of vertices and their occurrences
         SingleOutputStreamOperator taggedEdges = edges.map(new MapFunction<Tuple2<String, String>, Tuple3<String, String, Integer>>() {
@@ -56,12 +56,12 @@ History:
                 Long count;
                 // Loop over both vertices and see which one has the higher degree (if equal, the left vertex "wins").
                 for (int i = 0; i < 2; i++) {
-                    if (stateTable.containsKey(vertices[i])) {
-                        count = stateTable.get(vertices[i]);
+                    if (vertexTable.containsKey(vertices[i])) {
+                        count = vertexTable.get(vertices[i]);
                         count++;
-                        stateTable.put(vertices[i], count);
+                        vertexTable.put(vertices[i], count);
                     } else {
-                        stateTable.put(vertices[i], 1L);
+                        vertexTable.put(vertices[i], 1L);
                         count = 1L;
                     }
                     if (count > highest) {
@@ -71,8 +71,8 @@ History:
                     }
                 }
 
-                //out.println(stateTable);
-                Files.write(Paths.get("logFile.txt"), (stateTable + ";"+ System.lineSeparator()).getBytes(),
+                //out.println(vertexTable);
+                Files.write(Paths.get("logFile.txt"), (vertexTable + ";"+ System.lineSeparator()).getBytes(),
                         StandardOpenOption.CREATE, StandardOpenOption.APPEND);
 
                 return new Tuple3<>(tuple.f0,tuple.f1,mostFreq);

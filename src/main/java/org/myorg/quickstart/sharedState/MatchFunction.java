@@ -47,7 +47,7 @@ public class MatchFunction extends KeyedBroadcastProcessFunction<Vertex, Edge, T
 
         System.out.println("EDGE: " + currentEdge.getOriginVertex().getId() + " " + currentEdge.getDestinVertex().getId());
 
-        // Iterate through all "stateTable" rows
+        // Iterate through all "vertexTable" rows
         for (Map.Entry<String, Tuple2<Vertex, List<Integer>>> entry: ctx.getBroadcastState(broadcastStateDescriptor).immutableEntries()) {
 
             // Get all "partitions" that this vertex (row) is partitioned to ## yes, ugly way of doing it
@@ -55,7 +55,7 @@ public class MatchFunction extends KeyedBroadcastProcessFunction<Vertex, Edge, T
 
             for (Vertex v: currentEdge.getVertices()) {
                 if (entry.getValue().f0.getId() == v.getId()) {
-                    System.out.println("OLD Vertex " + v.getId() + " already in stateTable (partitions: " + currentPartitions + ")");
+                    System.out.println("OLD Vertex " + v.getId() + " already in vertexTable (partitions: " + currentPartitions + ")");
                 } else {
                     StringBuilder sb = new StringBuilder();
                     sb.append(v.getId());
