@@ -4,18 +4,23 @@ import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+
+import static java.time.Instant.now;
 
 
 public class ProcessWindow extends ProcessWindowFunction<EdgeEvent, EdgeEvent, Integer, TimeWindow> {
 
     int windowCounter = 0;
 
+
     public void process(Integer key, Context context, Iterable<EdgeEvent> edgeIterable, Collector<EdgeEvent> out) throws Exception {
 
+        // Temporary variables
         String printString = " - ";
         windowCounter++;
 
@@ -27,8 +32,11 @@ public class ProcessWindow extends ProcessWindowFunction<EdgeEvent, EdgeEvent, I
             out.collect(e);
             printString = printString + e.getEdge().getOriginVertex() + " " + e.getEdge().getDestinVertex() + ", ";
         }
-        printString = "P1: window # " + windowCounter + " -- edges: " + edgesInWindow.size() + printString + " --(Edges)";
-        System.out.println(printString);
+
+        if (PhasePartitioner.print == true) {
+            printString = now() + "P1: window # " + windowCounter + " -- edges: " + edgesInWindow.size() + printString + " --(Edges)";
+            System.out.println(printString);
+        }
 
     }
 

@@ -3,8 +3,13 @@ package org.myorg.quickstart.sharedState;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExtractor;
+import org.myorg.quickstart.sharedState.EdgeEvent;
+import org.myorg.quickstart.sharedState.EdgeSimple;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Random;
 
@@ -39,7 +44,7 @@ public class TestingGraph {
         for (EdgeSimple e: this.getEdges()) {
 //            System.out.println(e);
             edgeEventList.add(new EdgeEvent(e));
-            Thread.sleep(100);
+            Thread.sleep(PhasePartitioner.sleep);
         }
         this.edgeEvents = edgeEventList;
     }
@@ -54,6 +59,13 @@ public class TestingGraph {
 
     public List<EdgeEvent> getEdgeEvents() {
         return edgeEvents;
+    }
+
+    public void printEdgeEventsWithTimestamp() {
+        for (EdgeEvent e: this.edgeEvents) {
+            System.out.println(e.getEdge().getOriginVertex() + " " + e.getEdge().getDestinVertex() + " "
+                    + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date(e.getEventTime())));
+        }
     }
 
     public void generateGraphOneToAny(int numbEdges) {

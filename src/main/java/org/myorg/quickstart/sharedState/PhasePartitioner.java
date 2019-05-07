@@ -1,46 +1,42 @@
 package org.myorg.quickstart.sharedState;
 
-import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.state.MapStateDescriptor;
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.typeutils.GenericTypeInfo;
 import org.apache.flink.api.java.typeutils.TupleTypeInfo;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.BroadcastStream;
 import org.apache.flink.streaming.api.datastream.DataStream;
-import org.apache.flink.streaming.api.datastream.WindowedStream;
+import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.functions.sink.SinkFunction;
 import org.apache.flink.streaming.api.windowing.time.Time;
-import org.apache.flink.streaming.api.windowing.triggers.CountTrigger;
+import org.apache.flink.util.OutputTag;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 
 public class PhasePartitioner {
 
+    public static final OutputTag<String> outputTag = new OutputTag<String>("side-output"){};
+
     public static StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-
     final static Class<Tuple2<Integer, ArrayList<Integer>>> typedTuple = (Class<Tuple2<Integer, ArrayList<Integer>>>) (Class<?>) Tuple2.class;
+    final static TupleTypeInfo tupleTypeInfo = new TupleTypeInfo<>(typedTuple,new GenericTypeInfo<>(Integer.class),new GenericTypeInfo<>(Integer.class));
 
-    final static TupleTypeInfo tupleTypeInfo = new TupleTypeInfo<>(
-            typedTuple,
-            new GenericTypeInfo<>(Integer.class),
-            new GenericTypeInfo<>(Integer.class)
-    );
+    // Static variables for debugging, testing, etc.
+    public static boolean print = true;
+    public static long windowSizeInMs = 2000;
+    public static long sleep = windowSizeInMs/100;
 
     public static void main(String[] args) throws Exception {
 
         // Argument fetching
         int graphSize = 20;
-        int windowSizeInMs = 1000;
 
         // Environment setup
-        env.setParallelism(4);
+        env.setParallelism(2);
         env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
 
         // MapState Descriptor (as from data artisans)
@@ -76,7 +72,6 @@ public class PhasePartitioner {
                     }
                 })
                 .timeWindow(Time.milliseconds(windowSizeInMs))
-                //.trigger(CountTrigger.of(1))
                 .process(new ProcessWindow() {
                 });
 
@@ -86,7 +81,7 @@ public class PhasePartitioner {
                 .broadcast(rulesStateDescriptor);
 
         // Connect Broadcast Stream and Edge Stream to build global model
-        DataStream<Tuple2<EdgeEvent,Integer>> phaseTwoStream = edgesWindowed
+        SingleOutputStreamOperator<Tuple2<EdgeEvent,Integer>> phaseTwoStream = edgesWindowed
                 .keyBy(new KeySelector<EdgeEvent, Integer>() {
                     @Override
                     public Integer getKey(EdgeEvent value) throws Exception {
@@ -95,6 +90,9 @@ public class PhasePartitioner {
                 })
                 .connect(broadcastFrequency)
                 .process(new MatchFunctionEdges());
+
+        DataStream<String> sideOutputStream = phaseTwoStream.getSideOutput(outputTag);
+        sideOutputStream.print();
 
         //Print result in human-readable way
              // Tuple3 (Vertex, Vertex, Partition) --> e.g. (4,2,0) is Edge(4,2) located in Parttition 0

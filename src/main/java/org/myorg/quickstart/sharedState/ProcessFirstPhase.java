@@ -4,7 +4,10 @@ import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
 
+import java.time.Instant;
 import java.util.*;
+
+import static java.time.Instant.now;
 
 
 public class ProcessFirstPhase extends ProcessWindowFunction<EdgeEvent, HashMap, Integer, TimeWindow> {
@@ -33,9 +36,10 @@ public class ProcessFirstPhase extends ProcessWindowFunction<EdgeEvent, HashMap,
             printString = printString + e.getEdge().getOriginVertex() + " " + e.getEdge().getDestinVertex() + ", ";
         }
 
-        printString = "P1: window # " + windowCounter + " -- edges: " + edgesInWindow.size() + printString + " --(Model)";
-        System.out.println(printString);
-
+        if (PhasePartitioner.print == true) {
+            printString = now() + "P1: window # " + windowCounter + " -- edges: " + edgesInWindow.size() + printString + " --(Model)";
+            //System.out.println(printString);
+        }
         // Emit local model for next phase
         out.collect(modelBuilder.getVertexToPartitionMap());
 
