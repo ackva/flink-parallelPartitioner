@@ -55,7 +55,7 @@ History:
 0.2 | 06/02/2019 - custom Partitioner which partitions based on tagged value
  */
 
-public class SmartPartitioner {
+public class SmartPartitionerOld {
 
 
 	public static void main(String[] args) throws Exception {
@@ -148,7 +148,7 @@ public class SmartPartitioner {
 
 		// Emit results
 		edges.print();
-		//taggedEdges.print();
+		//taggedEdges.printPhaseOne();
 		partitionedEdges.print();
 
 		// write results to log file on local disk

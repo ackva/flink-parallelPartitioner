@@ -111,7 +111,7 @@ public class CoProcessImpl {
                              // Broadcast Elements
                              public void processElement2(Tuple2<Integer, List<Integer>> value, Context ctx, Collector<String> out) throws Exception {
 
-                                 // Add state element to state list and print it
+                                 // Add state element to state list and printPhaseOne it
                                  stateListSink.add(value);
                                  counter2++;
                                  String state = "";
@@ -173,7 +173,7 @@ public class CoProcessImpl {
         TestingGraph tgraph = new TestingGraph();
         tgraph.generateGraphOneToAny(graphSize);
         List<EdgeSimple> edgeList = tgraph.getEdges();
-        // Assign event time (=now) for every edge and print this list
+        // Assign event time (=now) for every edge and printPhaseOne this list
         List<EdgeEvent> edgeEvents = new ArrayList<>();
         for (int i = 0; i < graphSize; i++)
             edgeEvents.add(new EdgeEvent(edgeList.get(i)));

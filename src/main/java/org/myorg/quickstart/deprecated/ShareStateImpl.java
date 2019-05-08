@@ -118,7 +118,7 @@ public class ShareStateImpl {
         // key the shapes by color
         KeyedStream<Edge, DestinVertex> colorPartitionedStream = streamInput.keyBy(Edge::getDestinVertex);
         //keyBy(new KeySelector<OriginVertex, DestinVertex>(){});
-        //streamInput.print();
+        //streamInput.printPhaseOne();
 
         // a map descriptor to store the name of the rule (string) and the rule itself.
         MapStateDescriptor<String, Rule> ruleStateDescriptor = new MapStateDescriptor<>(
@@ -292,11 +292,11 @@ public class ShareStateImpl {
 
     DataStream partitionedEdges = taggedEdges.partitionCustom(new PartitionByTag(),2);
 
-        partitionedEdges.print();
+        partitionedEdges.printPhaseOne();
 
                 // KEY BY (field 1) --> destination vertex
                 //KeyedStream<String, String> keyedInput = partitionedEdges.keyBy(1);
-                //keyedInput.print();
+                //keyedInput.printPhaseOne();
 
                 MapStateDescriptor<String, String> stateDescriptor = new MapStateDescriptor<>
                 ("TestBroadCastState", BasicTypeInfo.STRING_TYPE_INFO, TypeInformation.of(new TypeHint<String>() {}));

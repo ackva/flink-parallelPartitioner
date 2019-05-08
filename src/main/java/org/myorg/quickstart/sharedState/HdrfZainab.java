@@ -1,14 +1,10 @@
-/*
-package org.myorg.quickstart.partitioners;
+package org.myorg.quickstart.sharedState;
 
 import org.apache.flink.api.common.JobExecutionResult;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.Partitioner;
 import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.graph.Edge;
-import org.apache.flink.graph.streaming.partitioner.edgepartitioners.keyselector.CustomKeySelector;
-import org.apache.flink.graph.streaming.partitioner.object.StoredObject;
-import org.apache.flink.graph.streaming.partitioner.object.StoredState;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.types.NullValue;
@@ -18,12 +14,11 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
-*/
+
 /**
  * Created by zainababbas on 05/02/2017.
- *//*
-
-public class Hdrf {
+ */
+public class HdrfZainab {
 
 
     public static void main(String[] args) throws Exception {
@@ -36,11 +31,9 @@ public class Hdrf {
         env.setParallelism(1);
         DataStream<Edge<Long, NullValue>> edges = getGraphStream(env);
 
-
         edges.partitionCustom(new HDRF<>(new CustomKeySelector(0),k,lamda), new CustomKeySelector<>(0)).writeAsCsv(outputPath, FileSystem.WriteMode.OVERWRITE).setParallelism(k);
         //edges.partitionCustom(new HDRF<>(new CustomKeySelector(0),k,lamda), new CustomKeySelector<>(0))
         //		.addSink(new TimestampingSink(outputPath)).setParallelism(k);
-
 
         JobExecutionResult result = env.execute("My Flink Job");
 
@@ -217,11 +210,9 @@ public class Hdrf {
             //System.out.printPhaseOne("source" + source);
             //System.out.printPhaseOne(target);
             //System.out.println(machine_id);
-				*/
-/*System.out.printPhaseOne("source"+source);
+				/*System.out.printPhaseOne("source"+source);
 				System.out.println("target"+target);
-				System.out.println("machineid"+machine_id);*//*
-
+				System.out.println("machineid"+machine_id);*/
 
             return machine_id;
 
@@ -245,4 +236,4 @@ public class Hdrf {
     }
 
 
-}*/
+}

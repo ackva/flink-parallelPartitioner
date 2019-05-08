@@ -78,7 +78,7 @@ public class BroadcastPartitionerSimple {
                 .connect(broadcastRulesStream)
                 .process(matchRules);
 
-        //outputRules.print();
+        //outputRules.printPhaseOne();
 
 /*
        KeySelector abc = new KeySelector<Tuple2<Integer, List<Integer>>, Integer>() {
@@ -121,7 +121,7 @@ public class BroadcastPartitionerSimple {
             .connect(broadcastRulesStream2)
             .process(matchRules2);
 
-        //outputRules2.print();
+        //outputRules2.printPhaseOne();
 
 /*        DataStream<Tuple2<Integer, List<Integer>>> streamOutput2 = DataStreamUtils
                 .reinterpretAsKeyedStream(outputRules2, abc);*/
@@ -151,7 +151,7 @@ public class BroadcastPartitionerSimple {
             .connect(broadcastRulesStream3)
             .process(matchRules3);
 
-        //outputRules3.print();
+        //outputRules3.printPhaseOne();
 
 
         //System.out.println(env.getExecutionPlan());
@@ -188,5 +188,5 @@ public class BroadcastPartitionerSimple {
                 .process(matchFunction);
 
         //DataStream<String> sideOutputStream = output.getSideOutput(outputTag);
-        //output.print();
-        outputRules.print();*/
+        //output.printPhaseOne();
+        outputRules.printPhaseOne();*/

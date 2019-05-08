@@ -78,8 +78,8 @@ public class BroadcastPartitionerIterative {
         //SingleOutputStreamOperator<Integer> mainDataStream = ...;
 
         DataStream<String> sideOutputStream = windowedEdgeStream.getSideOutput(outputTag);
-        //windowedEdgeStream.print();
-        //sideOutputStream.print();
+        //windowedEdgeStream.printPhaseOne();
+        //sideOutputStream.printPhaseOne();
 
         KeySelector abc = new KeySelector<Tuple2<DataStream<EdgeEvent>,Integer>, Integer>() {
             @Override
@@ -122,7 +122,7 @@ public class BroadcastPartitionerIterative {
         TestingGraph tgraph = new TestingGraph();
         tgraph.generateGraphOneTwoToAny(graphSize);
         List<EdgeSimple> edgeList = tgraph.getEdges();
-        // Assign event time (=now) for every edge and print this list
+        // Assign event time (=now) for every edge and printPhaseOne this list
         List<EdgeEvent> edgeEvents = new ArrayList<>();
         for (int i = 0; i < graphSize; i++)
             edgeEvents.add(new EdgeEvent(edgeList.get(i)));

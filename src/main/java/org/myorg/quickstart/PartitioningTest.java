@@ -10,11 +10,9 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.util.Collector;
-import org.myorg.quickstart.SmartPartitioner;
 import org.myorg.quickstart.jobstatistics.JobStatistics;
 import org.myorg.quickstart.jobstatistics.JobSubtask;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
@@ -24,7 +22,6 @@ import java.util.Date;
 import java.util.HashMap;
 
 import static java.lang.System.out;
-import static java.lang.System.setOut;
 
 public class PartitioningTest {
 
@@ -85,10 +82,10 @@ public class PartitioningTest {
             }
         });
 
-        DataStream partitionedEdges = taggedEdges.partitionCustom(new SmartPartitioner.PartitionByTag(), 2);
+        DataStream partitionedEdges = taggedEdges.partitionCustom(new SmartPartitionerOld.PartitionByTag(), 2);
         //DataStream keyedEdges = partitionedEdges.keyBy(2);
 
-        //edges.print();
+        //edges.printPhaseOne();
         partitionedEdges.print();
 
         // Execute program

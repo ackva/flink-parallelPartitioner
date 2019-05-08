@@ -42,7 +42,7 @@ Use the "Program arguments":
 --input input/streamInput.txt --output output/result
 
 History:
--- originally created as SmartPartitioner
+-- originally created as SmartPartitionerOld
 0.1 | 05/02/2019 - simple hash table and tagging based on "more frequent" vertex in hash table
 0.2 | 06/02/2019 - custom Partitioner which partitions based on tagged value
 0.3 | 11/02/2019 - under construction

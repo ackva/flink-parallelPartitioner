@@ -59,7 +59,7 @@ public class SumTumblingWindow {
         tgraph.generateGraphOneToAny(graphSize);
         edges = tgraph.getEdges();
 
-        // Assign event time (=now) for every edge and print this list
+        // Assign event time (=now) for every edge and printPhaseOne this list
         List<EdgeEvent> edgeEvents = new ArrayList<>();
         for (int i = 0; i < graphSize; i++) {
             edgeEvents.add(new EdgeEvent(edges.get(i)));

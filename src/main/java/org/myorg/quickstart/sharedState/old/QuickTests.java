@@ -43,7 +43,7 @@ public class QuickTests {
                         }
                     });
             DataStream<String> sideOutputStream = mainDataStream.getSideOutput(outputTag);
-            sideOutputStream.print();
+            sideOutputStream.printPhaseOne();
             env.execute();
         }
 

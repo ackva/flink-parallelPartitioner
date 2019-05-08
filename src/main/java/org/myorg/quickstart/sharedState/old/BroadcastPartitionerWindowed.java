@@ -80,7 +80,7 @@ public class BroadcastPartitionerWindowed {
         TestingGraph tgraph = new TestingGraph();
         tgraph.generateGraphOneTwoToAny(graphSize);
         List<EdgeSimple> edgeList = tgraph.getEdges();
-        // Assign event time (=now) for every edge and print this list
+        // Assign event time (=now) for every edge and printPhaseOne this list
         List<EdgeEvent> edgeEvents = new ArrayList<>();
         for (int i = 0; i < graphSize; i++) {
             edgeEvents.add(new EdgeEvent(edgeList.get(i)));
@@ -131,7 +131,7 @@ public class BroadcastPartitionerWindowed {
 
 
 
-        //processedWindowedEdges.print();
+        //processedWindowedEdges.printPhaseOne();
 
 
 /*
@@ -143,7 +143,7 @@ public class BroadcastPartitionerWindowed {
                 .connect(broadcastRulesStream)
                 .process(matchRules);*/
 
-        //outputRules.print();
+        //outputRules.printPhaseOne();
 
 
 
@@ -158,7 +158,7 @@ public class BroadcastPartitionerWindowed {
                         }
                     }
                 });
-        test123.print();*/
+        test123.printPhaseOne();*/
 
 
 

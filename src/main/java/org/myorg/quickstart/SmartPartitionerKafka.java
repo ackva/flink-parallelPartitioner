@@ -162,8 +162,8 @@ public class SmartPartitionerKafka {
 		DataStream partitionedEdges = taggedEdges.partitionCustom(new PartitionByTag(),2);
 
 		// Emit results
-		//edges.print();
-		//taggedEdges.print();
+		//edges.printPhaseOne();
+		//taggedEdges.printPhaseOne();
 		partitionedEdges.print();
 
 		// write results to log file on local disk

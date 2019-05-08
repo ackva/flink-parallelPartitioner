@@ -26,7 +26,8 @@ public class PhasePartitioner {
     final static TupleTypeInfo tupleTypeInfo = new TupleTypeInfo<>(typedTuple,new GenericTypeInfo<>(Integer.class),new GenericTypeInfo<>(Integer.class));
 
     // Static variables for debugging, testing, etc.
-    public static boolean print = true;
+    public static boolean printPhaseOne = false;
+    public static boolean printPhaseTwo = false;
     public static long windowSizeInMs = 2000;
     public static long sleep = windowSizeInMs/100;
 

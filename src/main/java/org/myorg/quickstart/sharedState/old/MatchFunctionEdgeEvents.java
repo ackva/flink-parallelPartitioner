@@ -146,7 +146,7 @@ public class MatchFunctionEdgeEvents extends KeyedBroadcastProcessFunction<Integ
                 .process(matchRules2);
 
         System.out.println("TEST TEST");
-        outputRules.print();*/
+        outputRules.printPhaseOne();*/
 
     }
 

@@ -16,6 +16,7 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 /**
  * Created by zainababbas on 05/02/2017.
+ * Modified by ackva on 07/05/2019
  */
 public class Hdrf {
 
@@ -30,7 +31,7 @@ public class Hdrf {
         env.setParallelism(1);
         DataStream<Edge<Long, NullValue>> edges = getGraphStream(env);
 
-        edges.partitionCustom(new HDRF<>(new CustomKeySelector(0),k,lamda), new CustomKeySelector<>(0)).writeAsCsv(outputPath, FileSystem.WriteMode.OVERWRITE).setParallelism(k);
+        edges.partitionCustom(new HDRF<>(new CustomKeySelector(0),k,lamda), new CustomKeySelector<>(0)).print().setParallelism(k);
         //edges.partitionCustom(new HDRF<>(new CustomKeySelector(0),k,lamda), new CustomKeySelector<>(0))
         //		.addSink(new TimestampingSink(outputPath)).setParallelism(k);
 
@@ -206,10 +207,10 @@ public class Hdrf {
             //3-UPDATE DEGREES
             first_vertex.incrementDegree();
             second_vertex.incrementDegree();
-            //System.out.print("source" + source);
-            //System.out.print(target);
+            //System.out.printPhaseOne("source" + source);
+            //System.out.printPhaseOne(target);
             //System.out.println(machine_id);
-				/*System.out.print("source"+source);
+				/*System.out.printPhaseOne("source"+source);
 				System.out.println("target"+target);
 				System.out.println("machineid"+machine_id);*/
 

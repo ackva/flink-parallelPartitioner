@@ -82,12 +82,12 @@ History:
         // Partition edges
         int partitions = env.getConfig().getParallelism();
 
-        DataStream partitionedEdges = taggedEdges.partitionCustom(new org.myorg.quickstart.SmartPartitioner.PartitionByTag(),2);
+        DataStream partitionedEdges = taggedEdges.partitionCustom(new org.myorg.quickstart.SmartPartitionerOld.PartitionByTag(),2);
 
         // Emit results
-        edges.print();
-        //taggedEdges.print();
-        partitionedEdges.print();
+        edges.printPhaseOne();
+        //taggedEdges.printPhaseOne();
+        partitionedEdges.printPhaseOne();
 
         // write results to log file on local disk
         Files.write(Paths.get("logFile.txt"), ("job_" + timeStamp + System.lineSeparator()).getBytes(),

@@ -4,10 +4,8 @@ import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 
 import static java.time.Instant.now;
@@ -33,7 +31,7 @@ public class ProcessWindow extends ProcessWindowFunction<EdgeEvent, EdgeEvent, I
             printString = printString + e.getEdge().getOriginVertex() + " " + e.getEdge().getDestinVertex() + ", ";
         }
 
-        if (PhasePartitioner.print == true) {
+        if (PhasePartitioner.printPhaseOne == true) {
             printString = now() + "P1: window # " + windowCounter + " -- edges: " + edgesInWindow.size() + printString + " --(Edges)";
             System.out.println(printString);
         }
