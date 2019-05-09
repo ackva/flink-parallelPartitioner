@@ -1,6 +1,8 @@
 package org.myorg.quickstart.ForGelly;
 
+import org.apache.flink.api.common.JobExecutionResult;
 import org.apache.flink.api.common.functions.MapFunction;
+import org.apache.flink.api.common.functions.Partitioner;
 import org.apache.flink.api.common.state.MapStateDescriptor;
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.java.functions.KeySelector;
@@ -8,6 +10,7 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.typeutils.GenericTypeInfo;
 import org.apache.flink.api.java.typeutils.TupleTypeInfo;
+import org.apache.flink.runtime.jobmaster.JobResult;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.BroadcastStream;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -21,6 +24,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.concurrent.TimeUnit;
 
 /**
  *
@@ -139,8 +143,6 @@ public class PhasePartitionerGelly {
                 .process(new ProcessWindowGelly() {
                 });
 
-        //edges.partitionCustom(new Hdrf<>(new CustomKeySelector(0),k,lambda), new CustomKeySelector<>(0)).print();
-
         // *** Phase 2 ***
         // Broadcast local state from Phase 1 to all Task Managers
         BroadcastStream<HashMap> broadcastStateStream = phaseOneStream
@@ -156,30 +158,26 @@ public class PhasePartitionerGelly {
                 })
                 .connect(broadcastStateStream)
                 .process(new MatchFunctionEdgesGelly(algorithm));
+        //DataStream<String> sideOutputStream = phaseTwoStream.getSideOutput(outputTag);
+        //sideOutputStream.print();
 
-        DataStream<String> sideOutputStream = phaseTwoStream.getSideOutput(outputTag);
-        sideOutputStream.print();
-
-
+        // Final Step -- Custom Partition, based on pre-calculated ID
+        DataStream partitionedEdges = phaseTwoStream.partitionCustom(new PartitionByTag(),1);
 
         //Print result in human-readable way
-        /*
         // Tuple3 (Vertex, Vertex, Partition) --> e.g. (4,2,0) is Edge(4,2) located in Parttition 0
-        phaseTwoStream.map(new MapFunction<Tuple2<EdgeEventGelly, Integer>, Tuple3<Integer, Integer, Integer>>() {
+        partitionedEdges.map(new MapFunction<Tuple2<EdgeEventGelly, Integer>, Tuple3<Integer, Integer, Integer>>() {
             public Tuple3<Integer, Integer, Integer> map(Tuple2<EdgeEventGelly, Integer> input) {
                 return new Tuple3<>(Integer.parseInt(input.f0.getEdge().f0.toString()), Integer.parseInt(input.f0.getEdge().f1.toString()), input.f1);
             }
         }).print();
-*/
-
-
-        // *** Job Analytics
-        /** t.b.d. **/
-
 
         // ### Finally, execute the job in Flink
             //System.out.println(env.getExecutionPlan());
-        env.execute(createJobName(algorithm,k,generateGraph));
+        JobExecutionResult result = env.execute(createJobName(algorithm,k,generateGraph));
+
+        System.out.println("The job took " + result.getNetRuntime(TimeUnit.SECONDS) + " seconds to execute"+"\n");//appends the string to the file
+        System.out.println("The job took " + result.getNetRuntime(TimeUnit.NANOSECONDS) + " nanoseconds to execute"+"\n");
 
     }
 
@@ -224,5 +222,11 @@ public class PhasePartitionerGelly {
         return true;
     }
 
+    public static class PartitionByTag implements Partitioner<Integer> {
+        @Override
+        public int partition(Integer key, int numPartitions) {
+            return key % numPartitions;
+        }
+    }
 
 }

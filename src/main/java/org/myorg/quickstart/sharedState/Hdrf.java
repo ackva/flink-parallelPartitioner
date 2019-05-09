@@ -144,6 +144,7 @@ public class Hdrf<T> implements Partitioner<T> {
             return machine_id;
         }
 
+    // NOT USED
         @Override
         public int partition(Object key,  int numPartitions) {
 

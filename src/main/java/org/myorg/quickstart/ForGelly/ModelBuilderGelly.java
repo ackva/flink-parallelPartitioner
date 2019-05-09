@@ -1,5 +1,6 @@
 package org.myorg.quickstart.ForGelly;
 
+import org.apache.flink.graph.Edge;
 import org.myorg.quickstart.sharedState.CustomKeySelector;
 import org.myorg.quickstart.sharedState.Hdrf;
 import org.myorg.quickstart.sharedState.PhasePartitioner;
@@ -14,6 +15,7 @@ public class ModelBuilderGelly implements Serializable {
     private HashMap <Integer, HashSet<Integer>> vertexToPartitionMap;
     private String algorithm;
     private Hdrf hdrf;
+    private HashPartitioner hashPartitioner;
     private CustomKeySelector keySelector;
 
     public ModelBuilderGelly(HashMap<Integer, HashSet<Integer>> vertexToPartitionMap) {
@@ -32,6 +34,8 @@ public class ModelBuilderGelly implements Serializable {
                 break;
             case "hash":
                 this.algorithm = "hash";
+                this.keySelector = new CustomKeySelector(0);
+                this.hashPartitioner = new HashPartitioner(this.keySelector,PhasePartitionerGelly.k);
                 break;
             case "deterministic":
                 this.algorithm = "deterministic";
@@ -56,6 +60,8 @@ public class ModelBuilderGelly implements Serializable {
 
         if (this.algorithm.equals("byOrigin")) {
             partitionId = Integer.parseInt(edge.getEdge().f0.toString());
+        } else if (this.algorithm.equals("hash")) {
+            partitionId = hashPartitioner.selectPartition(edge.getEdge());
         } else if (this.algorithm.equals("hdrf")) {
             partitionId = hdrf.selectPartition(edge.getEdge(),PhasePartitionerGelly.k);
         } else {
