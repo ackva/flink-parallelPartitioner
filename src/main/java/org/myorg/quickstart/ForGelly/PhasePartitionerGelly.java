@@ -51,7 +51,7 @@ public class PhasePartitionerGelly {
     // Static variables for debugging, testing, etc.
     public static boolean printPhaseOne = false;
     public static boolean printPhaseTwo = false;
-    public static long windowSizeInMs = 10000;
+    public static long windowSizeInMs = 1000;
     //public static long sleep = windowSizeInMs/100;
     public static long sleep = 0;
 
