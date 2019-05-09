@@ -1,5 +1,6 @@
 package org.myorg.quickstart.ForGelly;
 
+import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.state.MapStateDescriptor;
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.java.functions.KeySelector;
@@ -13,7 +14,9 @@ import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.util.OutputTag;
 
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 
 /**
@@ -45,17 +48,18 @@ public class PhasePartitionerGelly {
     // Static variables for debugging, testing, etc.
     public static boolean printPhaseOne = false;
     public static boolean printPhaseTwo = false;
-    public static long windowSizeInMs = 1000;
-    public static long sleep = windowSizeInMs/100;
+    public static long windowSizeInMs = 10000;
+    //public static long sleep = windowSizeInMs/100;
+    public static long sleep = 0;
 
     // arguments
     private static int graphType = 0;
     private static String inputPath = null;
     private static String generateGraph = null;
+    private static String algorithm = "";
 
     private static int outputType = 0;
     private static String outputPath = null;
-    private static String algorithm = null;
     public static int k = 2; // parallelism - partitions
     public static double lambda = 1.0;
 
@@ -63,7 +67,7 @@ public class PhasePartitionerGelly {
 
         generateGraph = args[0]; // 0 = synthetic || 1 = from File
         inputPath = args[1];
-
+        algorithm = args[2];
 
         // Argument fetching
         int graphSize = 20;
@@ -77,27 +81,20 @@ public class PhasePartitionerGelly {
         // MapState Descriptor (as from data artisans)
         MapStateDescriptor<String, Tuple2<Integer, ArrayList<Integer>>> rulesStateDescriptor = new MapStateDescriptor<>("RulesBroadcastState", BasicTypeInfo.STRING_TYPE_INFO,tupleTypeInfo);
 
-        DataStream<EdgeEventGelly> edgeStream;
-
+        // Generate OR FileRead graph
+        GraphCreatorGelly edgeGraph;
         if (generateGraph.equals("0")) {
             // GENERATE GRAPH
-            GraphCreatorGelly edgeGraph = new GraphCreatorGelly("two",20);
-            edgeStream = edgeGraph.getEdgeStream(env);
-            edgeGraph.printGraph();
+            edgeGraph = new GraphCreatorGelly("two",20, env);
         } else if (generateGraph.equals("1")) {
             // READ GRAPH FROM FILE
-            GraphCreatorGelly edgeGraph = new GraphCreatorGelly(env);
-            edgeStream = edgeGraph.getGraphFromFile(inputPath);
-            edgeGraph.printGraph();
+            edgeGraph = new GraphCreatorGelly("file", inputPath, env);
         } else throw new Exception("check the input for generate graph");
 
-        // GENERATE GRAPH
-        //GraphCreatorGelly edgeGraph = new GraphCreatorGelly("two",20);
-        //DataStream<EdgeEventGelly> edgeStream = edgeGraph.getEdgeStream(env);
-        //edgeGraph.printGraph();
+        DataStream<EdgeEventGelly>edgeStream = edgeGraph.getEdgeStream(env);
 
-
-/*        DataStream<Tuple2<EdgeEventGelly, String>> edgeTime = edgeStream
+        //Print Edge Events with TimeStamps
+        /*        DataStream<Tuple2<EdgeEventGelly, String>> edgeTime = edgeStream
                 .map(new MapFunction<EdgeEventGelly, Tuple2<EdgeEventGelly, String>>() {
                     @Override
                     public Tuple2<EdgeEventGelly, String> map(EdgeEventGelly value) throws Exception {
@@ -106,12 +103,16 @@ public class PhasePartitionerGelly {
                 });
         edgeTime.print();*/
 
+        // Print plain edges
         /*edges.map(new MapFunction<Edge<Long, NullValue>, Tuple2<Integer, Integer>>() {
             public Tuple2<Integer, Integer> map(Edge<Long, NullValue> input) {
                 return new Tuple2<>(Integer.parseInt(input.f0.toString()), Integer.parseInt(input.f0.toString()));
             }
         }).print();*/
 
+
+        // *** PHASE 1 ***
+        //Process edges to build the local model for broadcast
         DataStream<HashMap> phaseOneStream = edgeStream
                 .keyBy(new KeySelector<EdgeEventGelly, Integer>() {
                     @Override
@@ -120,26 +121,14 @@ public class PhasePartitionerGelly {
                     }
                 })
                 .timeWindow(Time.milliseconds(windowSizeInMs))
-                .process(new ProcessFirstPhaseGelly() {
+                .process(new ProcessFirstPhaseGelly(algorithm) {
                 });
         phaseOneStream.print();
 
-
         //edges.partitionCustom(new Hdrf<>(new CustomKeySelector(0),k,lambda), new CustomKeySelector<>(0)).print();
         //edges.partitionCustom()
-        // *** PHASE 1 ***
-         //Process edges to build the local model
-/*        DataStream<HashMap> phaseOneStream = edgeStream
-                .keyBy(new KeySelector<EdgeEventGelly, Integer>() {
-                    @Override
-                    public Integer getKey(EdgeEventGelly value) throws Exception {
-                        return Integer.parseInt(value.getEdge().f0.toString());
-                    }
-                })
-                .timeWindow(Time.milliseconds(windowSizeInMs))
-                .process(new ProcessFirstPhaseGelly() {
-                });
-        phaseOneStream.print();*/
+
+
 
         /**
 

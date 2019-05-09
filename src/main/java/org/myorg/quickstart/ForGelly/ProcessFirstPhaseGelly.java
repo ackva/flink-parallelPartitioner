@@ -16,8 +16,13 @@ import static java.time.Instant.now;
 
 public class ProcessFirstPhaseGelly extends ProcessWindowFunction<EdgeEventGelly, HashMap, Integer, TimeWindow> {
 
+    private String algorithm;
     int windowCounter = 0;
     int edgeCounter = 0;
+
+    public ProcessFirstPhaseGelly(String algorithm) {
+        this.algorithm = algorithm;
+    }
 
     public void process(Integer key, Context context, Iterable<EdgeEventGelly> edgeIterable, Collector<HashMap> out) throws Exception {
 
@@ -33,7 +38,7 @@ public class ProcessFirstPhaseGelly extends ProcessWindowFunction<EdgeEventGelly
         printWindowElements(edgesInWindow);
 
         // For every edge, choose partition based on algorithm
-        ModelBuilderGelly modelBuilder = new ModelBuilderGelly("hdrf", vertexToPartitionMap);
+        ModelBuilderGelly modelBuilder = new ModelBuilderGelly(algorithm, vertexToPartitionMap);
 
         for(EdgeEventGelly e: edgesInWindow) {
             modelBuilder.choosePartition(e);

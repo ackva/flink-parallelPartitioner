@@ -27,7 +27,10 @@ public class GraphCreatorGelly {
     private List<EdgeEventGelly> edgeEvents;
     private StreamExecutionEnvironment env;
 
-    public GraphCreatorGelly(String characteristic, int graphSize) throws Exception {
+    public GraphCreatorGelly(String characteristic, int graphSize, StreamExecutionEnvironment env) throws Exception {
+
+        this.env = env;
+
         switch (characteristic) {
             case "one":
                 generateGraphOneToAny(graphSize);
@@ -49,6 +52,20 @@ public class GraphCreatorGelly {
                 break;
         }
 
+        generateEdgeEvents();
+
+    }
+
+    public GraphCreatorGelly(String characteristic, String inputPath, StreamExecutionEnvironment env) throws Exception {
+        if (!characteristic.equals("file")) {
+            throw new Exception("WRONG GRAPH TYPE");
+        }
+        this.env = env;
+        readGraphFromFile(inputPath);
+        generateEdgeEvents();
+    }
+
+    public void generateEdgeEvents() throws InterruptedException {
         ArrayList<EdgeEventGelly> edgeEventList = new ArrayList<>();
         for (Edge e: this.getEdges()) {
 //            System.out.println(e);
@@ -58,8 +75,35 @@ public class GraphCreatorGelly {
         this.edgeEvents = edgeEventList;
     }
 
-    public GraphCreatorGelly(StreamExecutionEnvironment env) throws Exception {
-        this.env = env;
+    public void readGraphFromFile(String inputPath) throws IOException {
+        List<Edge> edgeList = new ArrayList<>();
+
+        String line = null;
+
+        try {
+            // FileReader reads text files in the default encoding.
+            FileReader fileReader =
+                    new FileReader(inputPath);
+            // Always wrap FileReader in BufferedReader.
+            BufferedReader bufferedReader =
+                    new BufferedReader(fileReader);
+
+            while((line = bufferedReader.readLine()) != null) {
+                String[] lineArray = line.split(",");
+                long src = Long.parseLong(lineArray[0]);
+                long trg = Long.parseLong(lineArray[1]);
+                edgeList.add(new Edge<>(src,trg,NullValue.getInstance()));
+            }
+            // Always close files.
+            bufferedReader.close();
+        }
+        catch(FileNotFoundException ex) {
+            System.out.println(
+                    "Unable to open file '" +
+                            inputPath + "'");
+        }
+        this.edges = edgeList;
+
     }
 
     // empty graph -- needs to call a "generate" functions after

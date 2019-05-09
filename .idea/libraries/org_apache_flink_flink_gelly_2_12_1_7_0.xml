@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="org.apache.flink:flink-gelly_2.12:1.7.0" type="repository">
+    <properties maven-id="org.apache.flink:flink-gelly_2.12:1.7.0" />
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/org/apache/flink/flink-gelly_2.12/1.7.0/flink-gelly_2.12-1.7.0.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/apache/flink/force-shading/1.7.0/force-shading-1.7.0.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

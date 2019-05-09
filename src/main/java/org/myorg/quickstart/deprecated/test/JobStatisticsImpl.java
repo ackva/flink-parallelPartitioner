@@ -1,4 +1,4 @@
-package org.myorg.quickstart.test;
+package org.myorg.quickstart.deprecated.test;
 
 import org.myorg.quickstart.jobstatistics.JobStatistics;
 import org.myorg.quickstart.jobstatistics.JobSubtask;

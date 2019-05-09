@@ -1,8 +1,10 @@
+/*
 
 
 // THE IMPORT OF "FLINKKAFKACONSUMER" failed. Commmented out verything!
 // 12.03.2019 -- after switching IDE from Linux to Windows
 
+*/
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -19,7 +21,8 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- **/
+ **//*
+
 
 
 
@@ -53,6 +56,7 @@ import java.util.Properties;
 
 import static java.lang.System.out;
 
+*/
 /*
 Work is under construction
 Use the "Program arguments":
@@ -60,7 +64,8 @@ Use the "Program arguments":
 History:
 0.1 | 05/02/2019 - simple hash table and tagging based on "more frequent" vertex in hash table
 0.2 | 06/02/2019 - custom Partitioner which partitions based on tagged value
- */
+ *//*
+
 
 
 
@@ -197,3 +202,4 @@ public class SmartPartitionerKafka {
 
 
 }
+*/

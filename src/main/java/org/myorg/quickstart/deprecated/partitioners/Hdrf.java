@@ -1,5 +1,5 @@
 /*
-package org.myorg.quickstart.partitioners;
+package org.myorg.quickstart.deprecated.partitioners;
 
 import org.apache.flink.api.common.JobExecutionResult;
 import org.apache.flink.api.common.functions.MapFunction;
