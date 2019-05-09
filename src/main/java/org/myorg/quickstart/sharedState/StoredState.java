@@ -35,7 +35,7 @@ public class StoredState implements Serializable{
         //		out = new DatWriter(GLOBALS.OUTPUT_FILE_NAME+".edges");
         //	}
 
-        System.out.print("created");
+        //System.out.print("created");
     }
 
     public void incrementMachineLoadVertices(int m) {

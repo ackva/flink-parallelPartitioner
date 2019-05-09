@@ -3,6 +3,7 @@ package org.myorg.quickstart.ForGelly;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.functions.co.KeyedBroadcastProcessFunction;
 import org.apache.flink.util.Collector;
+import org.myorg.quickstart.sharedState.PhasePartitioner;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -15,16 +16,22 @@ import static java.time.Instant.now;
 
 public class MatchFunctionEdgesGelly extends KeyedBroadcastProcessFunction<Integer, EdgeEventGelly, HashMap, Tuple2<EdgeEventGelly,Integer>> {
 
-    int counterBroadcastInstance = 0;
+    int countBroadcastsOnWorker = 0;
     int counterEdgesInstance = 0;
     HashMap<Integer, HashSet<Integer>> vertexPartition = new HashMap<>();
     HashMap<EdgeEventGelly, Integer> edgeInPartition = new HashMap<>();
-    ModelBuilderGelly modelBuilder = new ModelBuilderGelly("hdrf", vertexPartition);
+    ModelBuilderGelly modelBuilder;
 
+    public MatchFunctionEdgesGelly(String algorithm) {
+        this.modelBuilder = new ModelBuilderGelly(algorithm, vertexPartition);
+    }
+
+
+    // This function is called every time when a broadcast state is processed from the previous phase
     @Override
     public void processBroadcastElement(HashMap broadcastElement, Context ctx, Collector<Tuple2<EdgeEventGelly,Integer>> out) throws Exception {
 
-        counterBroadcastInstance++;
+        countBroadcastsOnWorker++;
         //System.out.println("Phase 2: Broadcasting HashMap " + broadcastElement);
 
         // ### Merge local model from Phase 1 with global model, here in Phase 2
@@ -41,16 +48,13 @@ public class MatchFunctionEdgesGelly extends KeyedBroadcastProcessFunction<Integ
                 }
             }
 
+        //System.out.println("Current Vertex Partitioning Table: " + vertexPartition);
 
-/*        String printString = " - ";
-        printString = printString + e.getEdge().getOriginVertex() + " " + e.getEdge().getDestinVertex() + ", ";
+        if (PhasePartitionerGelly.printPhaseTwo == true) {
+            //System.out.println(printString);
+        }
 
-        if (PhasePartitioner.printPhaseOne == true) {
-            printString = now() + "P1: window # " + windowCounter + " -- edges: " + edgesInWindow.size() + printString + " --(Edges)";
-            System.out.println(printString);
-        }*/
-
-        //ctx.output(PhasePartitioner.outputTag, "Phase 2: Broadcasting HashMap " + broadcastElement + " " + now() + " - " + counterBroadcastInstance);
+        //ctx.output(PhasePartitioner.outputTag, "Phase 2: Broadcasting HashMap " + broadcastElement + " " + now() + " - " + countBroadcastsOnWorker);
         //System.out.println("BROAD: " + counterEdges + " Edges processed -- " + ++counterBroadcast + " state entries");
 
     }
@@ -58,7 +62,7 @@ public class MatchFunctionEdgesGelly extends KeyedBroadcastProcessFunction<Integ
     @Override
     public void processElement(EdgeEventGelly currentEdge, ReadOnlyContext ctx, Collector<Tuple2<EdgeEventGelly,Integer>> out) throws Exception {
 
-        //String checkInside = checkIfEarlyArrival(currentEdge);
+        String checkInside = checkIfEarlyArrival(currentEdge);
 
         counterEdgesInstance++;
         int partitionId = modelBuilder.choosePartition(currentEdge);
@@ -70,7 +74,7 @@ public class MatchFunctionEdgesGelly extends KeyedBroadcastProcessFunction<Integ
 
         out.collect(new Tuple2<>(currentEdge,partitionId));
 
-        //ctx.output(PhasePartitioner.outputTag, checkInside);
+        ctx.output(PhasePartitioner.outputTag, checkInside);
         //System.out.println("EDGES: " + ++counterEdges + " Edges processed -- " + counterBroadcast + " Broadcast entries");
 
     }
@@ -79,7 +83,7 @@ public class MatchFunctionEdgesGelly extends KeyedBroadcastProcessFunction<Integ
         String returnString = "Edge (" + currentEdge.getEdge().f0 + " " + currentEdge.getEdge().f1 + "): ";
         String vertexPartitionString = vertexPartition.toString();
         if (!vertexPartition.containsKey(currentEdge.getEdge().f0)) {
-            returnString = returnString + "Vertex: " + currentEdge.getEdge().f1 + " outside -- ";
+            returnString = returnString + "Vertex: " + currentEdge.getEdge().f0 + " outside -- ";
         }
         else {
             returnString = returnString + "Vertex: " + currentEdge.getEdge().f0 + " inside  -- ";

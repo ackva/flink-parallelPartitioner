@@ -140,7 +140,7 @@ public class Hdrf<T> implements Partitioner<T> {
 				/*System.out.printPhaseOne("source"+source);
 				System.out.println("target"+target);
 				System.out.println("machineid"+machine_id);*/
-            System.out.println("source = " + source + " --- target = " + target + " --> TM " + machine_id);
+            //System.out.println("source = " + source + " --- target = " + target + " --> TM " + machine_id);
             return machine_id;
         }
 

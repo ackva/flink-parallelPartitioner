@@ -5,10 +5,13 @@ import org.apache.flink.api.common.state.MapStateDescriptor;
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.typeutils.GenericTypeInfo;
 import org.apache.flink.api.java.typeutils.TupleTypeInfo;
 import org.apache.flink.streaming.api.TimeCharacteristic;
+import org.apache.flink.streaming.api.datastream.BroadcastStream;
 import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.util.OutputTag;
@@ -110,7 +113,6 @@ public class PhasePartitionerGelly {
             }
         }).print();*/
 
-
         // *** PHASE 1 ***
         //Process edges to build the local model for broadcast
         DataStream<HashMap> phaseOneStream = edgeStream
@@ -123,14 +125,7 @@ public class PhasePartitionerGelly {
                 .timeWindow(Time.milliseconds(windowSizeInMs))
                 .process(new ProcessFirstPhaseGelly(algorithm) {
                 });
-        phaseOneStream.print();
-
-        //edges.partitionCustom(new Hdrf<>(new CustomKeySelector(0),k,lambda), new CustomKeySelector<>(0)).print();
-        //edges.partitionCustom()
-
-
-
-        /**
+        //phaseOneStream.print();
 
         // Process edges in the similar time windows to "wait" for phase 2
         DataStream<EdgeEventGelly> edgesWindowed = edgeStream
@@ -144,9 +139,11 @@ public class PhasePartitionerGelly {
                 .process(new ProcessWindowGelly() {
                 });
 
+        //edges.partitionCustom(new Hdrf<>(new CustomKeySelector(0),k,lambda), new CustomKeySelector<>(0)).print();
+
         // *** Phase 2 ***
         // Broadcast local state from Phase 1 to all Task Managers
-        BroadcastStream<HashMap> broadcastFrequency = phaseOneStream
+        BroadcastStream<HashMap> broadcastStateStream = phaseOneStream
                 .broadcast(rulesStateDescriptor);
 
         // Connect Broadcast Stream and Edge Stream to build global model
@@ -157,8 +154,8 @@ public class PhasePartitionerGelly {
                         return Integer.parseInt(value.getEdge().f0.toString());
                     }
                 })
-                .connect(broadcastFrequency)
-                .process(new MatchFunctionEdgesGelly());
+                .connect(broadcastStateStream)
+                .process(new MatchFunctionEdgesGelly(algorithm));
 
         DataStream<String> sideOutputStream = phaseTwoStream.getSideOutput(outputTag);
         sideOutputStream.print();
@@ -166,24 +163,38 @@ public class PhasePartitionerGelly {
 
 
         //Print result in human-readable way
-             // Tuple3 (Vertex, Vertex, Partition) --> e.g. (4,2,0) is Edge(4,2) located in Parttition 0
+        /*
+        // Tuple3 (Vertex, Vertex, Partition) --> e.g. (4,2,0) is Edge(4,2) located in Parttition 0
         phaseTwoStream.map(new MapFunction<Tuple2<EdgeEventGelly, Integer>, Tuple3<Integer, Integer, Integer>>() {
             public Tuple3<Integer, Integer, Integer> map(Tuple2<EdgeEventGelly, Integer> input) {
                 return new Tuple3<>(Integer.parseInt(input.f0.getEdge().f0.toString()), Integer.parseInt(input.f0.getEdge().f1.toString()), input.f1);
             }
         }).print();
-
 */
 
-        // *** Job Analytics
 
+        // *** Job Analytics
+        /** t.b.d. **/
 
 
         // ### Finally, execute the job in Flink
-        System.out.println(env.getExecutionPlan());
+            //System.out.println(env.getExecutionPlan());
+        env.execute(createJobName(algorithm,k,generateGraph));
 
-        env.execute();
+    }
 
+    private static String createJobName(String algorithm, int k, String generateGraph) {
+        String jobName = "Flink Job Name not determined";
+        if (generateGraph.equals("0")) {
+            jobName = "Runtime-generated Graph";
+        } else if (generateGraph.equals("1")) {
+            // READ GRAPH FROM FILE
+            jobName = "File-Read Graph";
+        } else {
+            jobName = "Undefined Graph";
+        }
+
+        return jobName + " Partitioning with " + algorithm + ". parallelism " + k;
     }
 
 

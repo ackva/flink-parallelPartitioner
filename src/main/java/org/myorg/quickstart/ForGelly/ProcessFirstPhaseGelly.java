@@ -35,7 +35,6 @@ public class ProcessFirstPhaseGelly extends ProcessWindowFunction<EdgeEventGelly
 
         // Store all edges of current window
         List<EdgeEventGelly> edgesInWindow = storeElementsOfWindow(edgeIterable);
-        printWindowElements(edgesInWindow);
 
         // For every edge, choose partition based on algorithm
         ModelBuilderGelly modelBuilder = new ModelBuilderGelly(algorithm, vertexToPartitionMap);
@@ -47,7 +46,8 @@ public class ProcessFirstPhaseGelly extends ProcessWindowFunction<EdgeEventGelly
 
         if (PhasePartitioner.printPhaseOne == true) {
             printString = now() + "P1: window # " + windowCounter + " -- edges: " + edgesInWindow.size() + printString + " --(Model)";
-            //System.out.println(printString);
+            printWindowElements(edgesInWindow);
+            System.out.println(printString);
         }
         // Emit local model for next phase
         out.collect(modelBuilder.getVertexToPartitionMap());
