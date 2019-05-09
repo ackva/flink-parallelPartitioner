@@ -9,7 +9,7 @@ import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExt
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.myorg.quickstart.sharedState.EdgeEvent;
 import org.myorg.quickstart.sharedState.EdgeSimple;
-import org.myorg.quickstart.sharedState.TestingGraph;
+import org.myorg.quickstart.sharedState.GraphCreator;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -55,7 +55,7 @@ public class SumTumblingWindow {
         int graphSize = 5000;
         // Generate a list of tuples with field ID and field CarCount Tuple2<SENSOR; CARS>
         List<EdgeSimple> edges = new ArrayList<>();
-        TestingGraph tgraph = new TestingGraph();
+        GraphCreator tgraph = new GraphCreator();
         tgraph.generateGraphOneToAny(graphSize);
         edges = tgraph.getEdges();
 

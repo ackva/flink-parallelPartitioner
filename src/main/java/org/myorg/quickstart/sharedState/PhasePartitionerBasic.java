@@ -19,23 +19,11 @@ import java.util.HashMap;
 
 /**
  *
- * @Arguments:
- *      1) graphSource:
- *           "1": generated on Runtime
- *           "2": from file
- *      2) input path
- *           - will be ignored, if GraphSource == 1
- *      3) output type
- *           - "1": printed on screen
- *           - "2": written to file
- *      4) output path
- *           - will be ignored, if output type == 1
- *      5)  Algorithm (Optional)
- *           - hrdf - default lambda
- *           - greedy
- *           - hash
+ * This is the version that "works" without arguments, etc.
+ * Most options (algo, graphSize, printLevel, etc.) are semi-hardcoded.
+ *
  */
-public class PhasePartitioner {
+public class PhasePartitionerBasic {
 
     public static final OutputTag<String> outputTag = new OutputTag<String>("side-output"){};
 
@@ -50,12 +38,6 @@ public class PhasePartitioner {
     public static long sleep = windowSizeInMs/100;
 
     public static void main(String[] args) throws Exception {
-
-/*
-        if (!parseParameters(args)) {
-            return;
-        }
-*/
 
         // Argument fetching
         int graphSize = 20;
@@ -137,38 +119,4 @@ public class PhasePartitioner {
         env.execute();
 
     }
-
-    private static int graphType = 0;
-    private static String inputPath = null;
-    private static int outputType = 0;
-    private static String outputPath = null;
-    private static String algorithm = null;
-
-    // for later
-    //private static double lamda = 0.0;
-
-    private static boolean parseParameters(String[] args) {
-
-        if (args.length > 0) {
-            if (args.length != 5) {
-                System.err.println("Usage: hdrf <input edges path> <output path> <log> <partitions> <lamda> ");
-                return false;
-            }
-
-            graphType = Integer.valueOf(args[0]);
-            inputPath = args[1];
-            outputType = Integer.valueOf(args[2]);
-            outputPath = args[3];
-            algorithm = args[4];
-            //k = (int) Long.parseLong(args[3]);
-            //lamda = Double.parseDouble(args[4]);
-        } else {
-            System.out.println("Executing example with default parameters and built-in default data.");
-            System.out.println("Provide parameters to read input data from files.");
-            System.out.println(" --> Usage: PhasePartitioner <graphType> <inputPath> <outputType> <outputPath> <algorithm>");
-        }
-        return true;
-    }
-
-
 }

@@ -5,7 +5,7 @@ package org.myorg.quickstart.sharedState.old;
         import org.apache.flink.streaming.api.datastream.*;
         import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
         import org.myorg.quickstart.sharedState.EdgeSimple;
-        import org.myorg.quickstart.sharedState.TestingGraph;
+        import org.myorg.quickstart.sharedState.GraphCreator;
 
         import java.util.*;
 
@@ -24,7 +24,7 @@ public class SplitStreamImpl {
         // ### Generate graph and make "fake events" (for window processing)
         // Generate a graph
         System.out.println("Number of edges: " + graphSize);
-        TestingGraph tgraph = new TestingGraph();
+        GraphCreator tgraph = new GraphCreator();
         tgraph.generateGraphOneTwoToAny(graphSize);
         List<EdgeSimple> edgeList = tgraph.getEdges();
         // Assign event time (=now) for every edge and printPhaseOne this list

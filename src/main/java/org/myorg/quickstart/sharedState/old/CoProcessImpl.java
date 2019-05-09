@@ -15,7 +15,7 @@ import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExt
 import org.apache.flink.util.Collector;
 import org.myorg.quickstart.sharedState.EdgeEvent;
 import org.myorg.quickstart.sharedState.EdgeSimple;
-import org.myorg.quickstart.sharedState.TestingGraph;
+import org.myorg.quickstart.sharedState.GraphCreator;
 
 import java.util.*;
 
@@ -170,7 +170,7 @@ public class CoProcessImpl {
 
     public static List<EdgeEvent> getGraph(int graphSize) {
         System.out.println("Number of edges: " + graphSize);
-        TestingGraph tgraph = new TestingGraph();
+        GraphCreator tgraph = new GraphCreator();
         tgraph.generateGraphOneToAny(graphSize);
         List<EdgeSimple> edgeList = tgraph.getEdges();
         // Assign event time (=now) for every edge and printPhaseOne this list

@@ -15,7 +15,6 @@ public class CustomKeySelector<K, EV> implements KeySelector<Edge<K, EV>, K> {
 
     public CustomKeySelector(int k) {
         this.key1 = k;
-
     }
 
     public K getKey(Edge<K, EV> edge) throws Exception {

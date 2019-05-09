@@ -5,7 +5,7 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.myorg.quickstart.sharedState.EdgeEvent;
 import org.myorg.quickstart.sharedState.EdgeSimple;
-import org.myorg.quickstart.sharedState.TestingGraph;
+import org.myorg.quickstart.sharedState.GraphCreator;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,7 +36,7 @@ public class SimpleFlinkJobCaller {
 
     public static List<EdgeEvent> getGraph(int graphSize) {
         System.out.println("Number of edges: " + graphSize);
-        TestingGraph tgraph = new TestingGraph();
+        GraphCreator tgraph = new GraphCreator();
         tgraph.generateGraphOneTwoToAny(graphSize);
         List<EdgeSimple> edgeList = tgraph.getEdges();
         // Assign event time (=now) for every edge and printPhaseOne this list

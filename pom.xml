@@ -58,13 +58,13 @@ under the License.
 			<groupId>org.apache.flink</groupId>
 			<artifactId>flink-java</artifactId>
 			<version>${flink.version}</version>
-			<scope>provided</scope>
+			<scope>compile</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.flink</groupId>
 			<artifactId>flink-streaming-java_${scala.binary.version}</artifactId>
 			<version>${flink.version}</version>
-			<scope>provided</scope>
+			<scope>compile</scope>
 		</dependency>
 
 		<!-- https://mvnrepository.com/artifact/org.apache.flink/flink-gelly -->
@@ -72,6 +72,7 @@ under the License.
 			<groupId>org.apache.flink</groupId>
 			<artifactId>flink-gelly_2.12</artifactId>
 			<version>1.8.0</version>
+			<scope>compile</scope>
 		</dependency>
 
 		<!-- Add connector dependencies here. They must be in the default scope (compile). -->

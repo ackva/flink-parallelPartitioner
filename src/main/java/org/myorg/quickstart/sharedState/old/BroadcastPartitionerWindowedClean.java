@@ -10,7 +10,7 @@ import org.apache.flink.streaming.api.windowing.triggers.CountTrigger;
 import org.apache.flink.util.OutputTag;
 import org.myorg.quickstart.sharedState.EdgeEvent;
 import org.myorg.quickstart.sharedState.EdgeSimple;
-import org.myorg.quickstart.sharedState.TestingGraph;
+import org.myorg.quickstart.sharedState.GraphCreator;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,7 +37,7 @@ public class BroadcastPartitionerWindowedClean {
         // ### Generate graph and make "fake events" (for window processing)
         // Generate a graph
         System.out.println("Number of edges: " + graphSize);
-        TestingGraph tgraph = new TestingGraph();
+        GraphCreator tgraph = new GraphCreator();
         tgraph.generateGraphOneTwoToAny(graphSize);
         List<EdgeSimple> edgeList = tgraph.getEdges();
         // Assign event time (=now) for every edge and printPhaseOne this list

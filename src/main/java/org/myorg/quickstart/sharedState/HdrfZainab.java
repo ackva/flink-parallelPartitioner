@@ -37,14 +37,14 @@ public class HdrfZainab {
 
         JobExecutionResult result = env.execute("My Flink Job");
 
-        try {
+/*        try {
             FileWriter fw = new FileWriter(log, true); //the true will append the new data
             fw.write("The job took " + result.getNetRuntime(TimeUnit.SECONDS) + " seconds to execute"+"\n");//appends the string to the file
             fw.write("The job took " + result.getNetRuntime(TimeUnit.NANOSECONDS) + " nanoseconds to execute"+"\n");
             fw.close();
         } catch (IOException ioe) {
             System.err.println("IOException: " + ioe.getMessage());
-        }
+        }*/
 
         System.out.println("abc");
     }

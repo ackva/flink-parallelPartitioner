@@ -12,7 +12,7 @@ import org.apache.flink.streaming.api.datastream.KeyedStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.util.Collector;
 import org.myorg.quickstart.sharedState.EdgeSimple;
-import org.myorg.quickstart.sharedState.TestingGraph;
+import org.myorg.quickstart.sharedState.GraphCreator;
 
 import java.util.*;
 
@@ -32,7 +32,7 @@ public class BroadcastPartitionerSimple {
         env.setParallelism(2);
 
         // Generate a graph
-        TestingGraph graph = new TestingGraph();
+        GraphCreator graph = new GraphCreator();
         graph.generateGraphOneToAny(15);
         List<EdgeSimple> keyedInput = graph.getEdges();
         graph.printGraph();

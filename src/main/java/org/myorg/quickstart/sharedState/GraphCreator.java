@@ -1,11 +1,15 @@
 package org.myorg.quickstart.sharedState;
 
+import org.apache.flink.api.common.functions.MapFunction;
+import org.apache.flink.graph.Edge;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExtractor;
+import org.apache.flink.types.NullValue;
 import org.myorg.quickstart.sharedState.EdgeEvent;
 import org.myorg.quickstart.sharedState.EdgeSimple;
 
+import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -13,12 +17,12 @@ import java.util.Date;
 import java.util.List;
 import java.util.Random;
 
-public class TestingGraph {
+public class GraphCreator {
 
     private List<EdgeSimple> edges;
     private List<EdgeEvent> edgeEvents;
 
-    public TestingGraph(String characteristic, int graphSize) throws Exception {
+    public GraphCreator(String characteristic, int graphSize) throws Exception {
         switch (characteristic) {
             case "one":
                 generateGraphOneToAny(graphSize);
@@ -50,7 +54,7 @@ public class TestingGraph {
     }
 
     // empty graph -- needs to call a "generate" functions after
-    public TestingGraph() {
+    public GraphCreator() {
         }
 
     public List<EdgeSimple> getEdges() {
@@ -183,6 +187,22 @@ public class TestingGraph {
 
         return edgeEventStream;
     }
+
+    // FROM ZAINAB'S CODE FOR HDRF
+/*    public DataStream<Edge<Long, NullValue>> getGraphStream(StreamExecutionEnvironment env) throws IOException {
+
+        return env.readTextFile(inputPath)
+                .map(new MapFunction<String, Edge<Long, NullValue>>() {
+                    @Override
+                    public Edge<Long, NullValue> map(String s) throws Exception {
+                        String[] fields = s.split("\\,");
+                        long src = Long.parseLong(fields[0]);
+                        long trg = Long.parseLong(fields[1]);
+                        return new Edge<>(src, trg, NullValue.getInstance());
+                    }
+        });
+
+    }*/
 
 }
 
