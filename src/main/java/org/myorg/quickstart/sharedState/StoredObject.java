@@ -17,6 +17,11 @@ public class StoredObject implements Serializable {
         degree = 0;
     }
 
+    public StoredObject(int degree) {
+        partitions = new TreeSet<Byte>();
+        this.degree = degree;
+    }
+
 
     public Iterator<Byte> getPartitions(){
         return partitions.iterator();
@@ -44,6 +49,10 @@ public class StoredObject implements Serializable {
 
     public int getDegree() {
         return degree;
+    }
+
+    public void setDegree(int degree) {
+        this.degree = degree;
     }
 
     public void incrementDegree() {

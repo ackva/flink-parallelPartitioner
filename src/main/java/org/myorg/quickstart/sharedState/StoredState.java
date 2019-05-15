@@ -1,11 +1,10 @@
 package org.myorg.quickstart.sharedState;
 
+import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.graph.Edge;
 
 import java.io.Serializable;
-import java.util.HashMap;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -50,9 +49,35 @@ public class StoredState implements Serializable{
         return result;
     }
 
+    // TODO: this is a change, compared to Zainab's version!! She adds the object if not existing
     public StoredObject getRecord(Long x){
+        return record_map.get(x);
+    }
+
+    // TODO: this is a change, compared to Zainab's version!! She adds the object if not existing
+    public StoredObject getRecordOld(Long x){
         if (!record_map.containsKey(x)){
             record_map.put(x, new StoredObject());
+        }
+        return record_map.get(x);
+    }
+
+    public boolean checkIfRecordExits(Long x){
+        if (!record_map.containsKey(x))
+            return false;
+        else
+            return true;
+    }
+
+    public int getDegree (StoredObject o) {
+        return record_map.get(o).getDegree();
+    }
+
+    public StoredObject addRecordWithDegree(Long x, int degree) throws Exception {
+        if (!record_map.containsKey(x)){
+            record_map.put(x, new StoredObject(degree));
+        } else {
+            throw new Exception("Entry already exists in state");
         }
         return record_map.get(x);
     }
@@ -125,6 +150,19 @@ public class StoredState implements Serializable{
     public SortedSet<Long> getVertexIds() {
         //if (GLOBALS.OUTPUT_FILE_NAME!=null){ out.close(); }
         return new TreeSet<Long>(record_map.keySet());
+    }
+
+    public List<Tuple3> printState() {
+        List<Tuple3> stateList = new ArrayList<>();
+        for (Map.Entry<Long,StoredObject> entry: record_map.entrySet()) {
+            Iterator<Byte> partitions = record_map.get(entry.getKey()).getPartitions();
+            String partitionString = "";
+            while(partitions.hasNext()) {
+                partitionString = partitionString + partitions.next() + ";";
+            }
+            stateList.add(new Tuple3<>(entry.getKey(),record_map.get(entry.getKey()).getDegree(),partitionString));
+        }
+        return stateList;
     }
 
 }

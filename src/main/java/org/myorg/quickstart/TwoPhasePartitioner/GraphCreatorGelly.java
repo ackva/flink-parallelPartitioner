@@ -1,4 +1,4 @@
-package org.myorg.quickstart.ForGelly;
+package org.myorg.quickstart.TwoPhasePartitioner;
 
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.graph.Edge;
@@ -6,10 +6,7 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExtractor;
 import org.apache.flink.types.NullValue;
-import org.myorg.quickstart.sharedState.EdgeEvent;
-import org.myorg.quickstart.sharedState.EdgeSimple;
 import org.myorg.quickstart.sharedState.PhasePartitioner;
-import scala.Array;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -136,10 +133,10 @@ public class GraphCreatorGelly {
     public void generateGraphOneTwoToAny(int numbEdges) {
         List<Edge> edgeList = new ArrayList<>();
         for (long i = 1; i < numbEdges/2+1; i++) {
-            edgeList.add(new Edge<>(1,i+1,null));
+            edgeList.add(new Edge<>(1L,i+1,null));
         }
         for (long i = numbEdges/2+1; i < numbEdges+1; i++) {
-            edgeList.add(new Edge<>(2,i+1,null));
+            edgeList.add(new Edge<>(2L,i+1,null));
         }
         this.edges = edgeList;
     }
@@ -162,10 +159,10 @@ public class GraphCreatorGelly {
     public void generateGraphForOriginPartitioning(int numbEdges) throws Exception {
         List<Edge> edgeList = new ArrayList<>();
         for (long i = 1; i < numbEdges; i++) {
-            edgeList.add(new Edge<>(1,i+1,null));
-            edgeList.add(new Edge<>(2,i+1,null));
-            edgeList.add(new Edge<>(3,i+1,null));
-            edgeList.add(new Edge<>(4,i+1,null));
+            edgeList.add(new Edge<>(1L,i+1,null));
+            edgeList.add(new Edge<>(2L,i+1,null));
+            edgeList.add(new Edge<>(3L,i+1,null));
+            edgeList.add(new Edge<>(4L,i+1,null));
         }
         this.edges = edgeList;
     }
@@ -173,26 +170,26 @@ public class GraphCreatorGelly {
 
     public void generateGraphOneFiveToFive() {
         List<Edge> edgeList = new ArrayList<>();
-        edgeList.add(new Edge<>(1,6,null));
-        edgeList.add(new Edge<>(1,2,null));
-        edgeList.add(new Edge<>(1,3,null));
-        edgeList.add(new Edge<>(1,4,null));
-        edgeList.add(new Edge<>(1,5,null));
-        edgeList.add(new Edge<>(2,6,null));
-        edgeList.add(new Edge<>(2,7,null));
-        edgeList.add(new Edge<>(2,3,null));
-        edgeList.add(new Edge<>(2,4,null));
-        edgeList.add(new Edge<>(2,5,null));
-        edgeList.add(new Edge<>(3,6,null));
-        edgeList.add(new Edge<>(3,7,null));
-        edgeList.add(new Edge<>(3,8,null));
-        edgeList.add(new Edge<>(3,4,null));
-        edgeList.add(new Edge<>(3,5,null));
-        edgeList.add(new Edge<>(4,6,null));
-        edgeList.add(new Edge<>(4,7,null));
-        edgeList.add(new Edge<>(4,8,null));
-        edgeList.add(new Edge<>(4,9,null));
-        edgeList.add(new Edge<>(4,5,null));
+        edgeList.add(new Edge<>(1L,6L,null));
+        edgeList.add(new Edge<>(1L,2L,null));
+        edgeList.add(new Edge<>(1L,3L,null));
+        edgeList.add(new Edge<>(1L,4L,null));
+        edgeList.add(new Edge<>(1L,5L,null));
+        edgeList.add(new Edge<>(2L,6L,null));
+        edgeList.add(new Edge<>(2L,7L,null));
+        edgeList.add(new Edge<>(2L,3L,null));
+        edgeList.add(new Edge<>(2L,4L,null));
+        edgeList.add(new Edge<>(2L,5L,null));
+        edgeList.add(new Edge<>(3L,6L,null));
+        edgeList.add(new Edge<>(3L,7L,null));
+        edgeList.add(new Edge<>(3L,8L,null));
+        edgeList.add(new Edge<>(3L,4L,null));
+        edgeList.add(new Edge<>(3L,5L,null));
+        edgeList.add(new Edge<>(4L,6L,null));
+        edgeList.add(new Edge<>(4L,7L,null));
+        edgeList.add(new Edge<>(4L,8L,null));
+        edgeList.add(new Edge<>(4L,9L,null));
+        edgeList.add(new Edge<>(4L,5L,null));
         this.edges = edgeList;
     }
 

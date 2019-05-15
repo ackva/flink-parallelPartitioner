@@ -1,4 +1,5 @@
-package org.myorg.quickstart.ForGelly;
+
+package org.myorg.quickstart.TwoPhasePartitioner;
 
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.functions.co.KeyedBroadcastProcessFunction;
@@ -23,7 +24,7 @@ public class MatchFunctionEdgesGelly extends KeyedBroadcastProcessFunction<Integ
     ModelBuilderGelly modelBuilder;
 
     public MatchFunctionEdgesGelly(String algorithm) {
-        this.modelBuilder = new ModelBuilderGelly(algorithm, vertexPartition);
+        //this.modelBuilder = new ModelBuilderGelly(algorithm, vertexPartition);
     }
 
 
@@ -99,4 +100,5 @@ public class MatchFunctionEdgesGelly extends KeyedBroadcastProcessFunction<Integ
     }
 
 }
+
 

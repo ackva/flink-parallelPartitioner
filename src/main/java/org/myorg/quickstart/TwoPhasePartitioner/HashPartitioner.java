@@ -1,4 +1,4 @@
-package org.myorg.quickstart.ForGelly;
+package org.myorg.quickstart.TwoPhasePartitioner;
 
 import org.apache.flink.api.common.functions.Partitioner;
 import org.apache.flink.graph.Edge;

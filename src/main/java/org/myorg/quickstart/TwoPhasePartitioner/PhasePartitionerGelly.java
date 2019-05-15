@@ -1,4 +1,4 @@
-package org.myorg.quickstart.ForGelly;
+package org.myorg.quickstart.TwoPhasePartitioner;
 
 import org.apache.flink.api.common.JobExecutionResult;
 import org.apache.flink.api.common.functions.MapFunction;
@@ -10,7 +10,6 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.typeutils.GenericTypeInfo;
 import org.apache.flink.api.java.typeutils.TupleTypeInfo;
-import org.apache.flink.runtime.jobmaster.JobResult;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.BroadcastStream;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -20,9 +19,7 @@ import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.util.OutputTag;
 
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -53,8 +50,8 @@ public class PhasePartitionerGelly {
     final static TupleTypeInfo tupleTypeInfo = new TupleTypeInfo<>(typedTuple,new GenericTypeInfo<>(Integer.class),new GenericTypeInfo<>(Integer.class));
 
     // Static variables for debugging, testing, etc.
-    public static boolean printPhaseOne = false;
-    public static boolean printPhaseTwo = false;
+    public static boolean printPhaseOne = true;
+    public static boolean printPhaseTwo = true;
     public static long windowSizeInMs = 1000;
     //public static long sleep = windowSizeInMs/100;
     public static long sleep = 0;
@@ -67,7 +64,7 @@ public class PhasePartitionerGelly {
 
     private static int outputType = 0;
     private static String outputPath = null;
-    public static int k = 2; // parallelism - partitions
+    public static int k = 4; // parallelism - partitions
     public static double lambda = 1.0;
 
     public static void main(String[] args) throws Exception {
@@ -76,8 +73,9 @@ public class PhasePartitionerGelly {
         inputPath = args[1];
         algorithm = args[2];
 
+        int graphSize = Integer.parseInt(args[3]);
+
         // Argument fetching
-        int graphSize = 20;
         //int k = 2; // parallelism - partitions
         //double lambda = 1.0;
 
@@ -92,7 +90,7 @@ public class PhasePartitionerGelly {
         GraphCreatorGelly edgeGraph;
         if (generateGraph.equals("0")) {
             // GENERATE GRAPH
-            edgeGraph = new GraphCreatorGelly("two",20, env);
+            edgeGraph = new GraphCreatorGelly("two",graphSize, env);
         } else if (generateGraph.equals("1")) {
             // READ GRAPH FROM FILE
             edgeGraph = new GraphCreatorGelly("file", inputPath, env);
@@ -117,6 +115,7 @@ public class PhasePartitionerGelly {
             }
         }).print();*/
 
+        ProcessFirstPhaseGelly firstPhaseProcessor = new ProcessFirstPhaseGelly(algorithm);
         // *** PHASE 1 ***
         //Process edges to build the local model for broadcast
         DataStream<HashMap> phaseOneStream = edgeStream
@@ -127,8 +126,7 @@ public class PhasePartitionerGelly {
                     }
                 })
                 .timeWindow(Time.milliseconds(windowSizeInMs))
-                .process(new ProcessFirstPhaseGelly(algorithm) {
-                });
+                .process(firstPhaseProcessor);
         //phaseOneStream.print();
 
         // Process edges in the similar time windows to "wait" for phase 2

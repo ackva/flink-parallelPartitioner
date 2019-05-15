@@ -1,9 +1,8 @@
-package org.myorg.quickstart.ForGelly;
+package org.myorg.quickstart.TwoPhasePartitioner;
 
-import org.apache.flink.graph.Edge;
 import org.myorg.quickstart.sharedState.CustomKeySelector;
 import org.myorg.quickstart.sharedState.Hdrf;
-import org.myorg.quickstart.sharedState.PhasePartitioner;
+import org.myorg.quickstart.sharedState.StoredObject;
 
 import java.io.Serializable;
 import java.util.HashMap;
@@ -12,18 +11,14 @@ import java.util.Random;
 
 public class ModelBuilderGelly implements Serializable {
 
-    private HashMap <Integer, HashSet<Integer>> vertexToPartitionMap;
+    private HashMap <Long, Long> vertexDegreeMap;
     private String algorithm;
     private Hdrf hdrf;
     private HashPartitioner hashPartitioner;
     private CustomKeySelector keySelector;
 
-    public ModelBuilderGelly(HashMap<Integer, HashSet<Integer>> vertexToPartitionMap) {
-        this.vertexToPartitionMap = vertexToPartitionMap;
-    }
-
-    public ModelBuilderGelly(String algorithm, HashMap <Integer, HashSet<Integer>> vertexToPartitionMap) {
-        this.vertexToPartitionMap = vertexToPartitionMap;
+    public ModelBuilderGelly(String algorithm, HashMap <Long, Long> vertexDegreeMap) {
+        this.vertexDegreeMap = vertexDegreeMap;
 
         switch (algorithm) {
             case "hdrf":
@@ -49,10 +44,13 @@ public class ModelBuilderGelly implements Serializable {
         }
     }
 
-    public HashMap<Integer, HashSet<Integer>> getVertexToPartitionMap() {
-        return vertexToPartitionMap;
+    public Hdrf getHdrf() {
+        return hdrf;
     }
 
+    public HashMap<Long, Long> getVertexDegreeMap() {
+        return vertexDegreeMap;
+    }
 
     public int choosePartition(EdgeEventGelly edge) throws Exception {
 
@@ -82,14 +80,14 @@ public class ModelBuilderGelly implements Serializable {
         vertices[0] = Integer.parseInt(e.getEdge().f0.toString());
         vertices[1] = Integer.parseInt(e.getEdge().f1.toString());
 
-        // Loop over both vertices and see which one has the higher degree (if equal, the left vertex "wins").
+/*        // Loop over both vertices and see which one has the higher degree (if equal, the left vertex "wins").
         for (int i = 0; i < 2; i++) {
             HashSet<Integer> currentPartitions = new HashSet();
-            if (vertexToPartitionMap.containsKey(vertices[i]))
-                currentPartitions = vertexToPartitionMap.get(vertices[i]);
+            if (vertexDegreeMap.containsKey(vertices[i]))
+                currentPartitions = vertexDegreeMap.get(vertices[i]);
             currentPartitions.add(partitionId);
-            vertexToPartitionMap.put(vertices[i],currentPartitions);
-        }
+            vertexDegreeMap.put(vertices[i],currentPartitions);
+        }*/
 
     }
 }

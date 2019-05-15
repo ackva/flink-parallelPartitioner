@@ -1,4 +1,4 @@
-package org.myorg.quickstart.ForGelly;
+package org.myorg.quickstart.TwoPhasePartitioner;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one

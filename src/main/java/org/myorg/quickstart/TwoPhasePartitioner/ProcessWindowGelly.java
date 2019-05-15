@@ -1,4 +1,4 @@
-package org.myorg.quickstart.ForGelly;
+package org.myorg.quickstart.TwoPhasePartitioner;
 
 import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
@@ -33,10 +33,10 @@ public class ProcessWindowGelly extends ProcessWindowFunction<EdgeEventGelly, Ed
             printString = printString + e.getEdge().f0 + " " + e.getEdge().f0 + ", ";
         }
 
-        if (PhasePartitioner.printPhaseOne == true) {
+        /*if (PhasePartitionerGelly.printPhaseOne == true) {
             printString = now() + "P1: window # " + windowCounter + " -- edges: " + edgesInWindow.size() + printString + " --(Edges)";
             System.out.println(printString);
-        }
+        }*/
 
     }
 

@@ -1,19 +1,11 @@
 package org.myorg.quickstart.sharedState;
 
-import org.apache.flink.api.common.JobExecutionResult;
-import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.Partitioner;
-import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.graph.Edge;
-import org.apache.flink.streaming.api.datastream.DataStream;
-import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.types.NullValue;
-
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.LinkedList;
 import java.util.Random;
-import java.util.concurrent.TimeUnit;
+
 /**
  * Created by zainababbas on 05/02/2017.
  * Modified by ackva on 07/05/2019
@@ -29,11 +21,18 @@ public class Hdrf<T> implements Partitioner<T> {
         private StoredState currentState;
         private int k = 0;
 
-        public Hdrf(CustomKeySelector keySelector, int k ,double lamda) {
+    public Hdrf(CustomKeySelector keySelector, int k , double lamda) {
             this.keySelector = keySelector;
             this.currentState = new StoredState(k);
             this.lamda = lamda;
             this.k=k;
+        }
+
+        public void addToState(Edge edge) {
+            long source = Long.parseLong(edge.f0.toString());
+            long target = Long.parseLong(edge.f1.toString());
+            currentState.getRecord(source);
+            currentState.getRecord(target);
         }
 
         public int selectPartition(Edge edge, int numPartitions) {
@@ -131,9 +130,11 @@ public class Hdrf<T> implements Partitioner<T> {
             //2-UPDATE EDGES
             currentState.incrementMachineLoad(machine_id, e);
 
-            //3-UPDATE DEGREES
-            first_vertex.incrementDegree();
-            second_vertex.incrementDegree();
+            //3-UPDATE DEGREES  ##### SKIPPING THIS BECAUSE DEGREE IS ALREADY MAINTAINED IN MATCHFUNCTION
+            //first_vertex.incrementDegree();
+            //second_vertex.incrementDegree();
+
+
             //System.out.printPhaseOne("source" + source);
             //System.out.printPhaseOne(target);
             //System.out.println(machine_id);
@@ -143,6 +144,11 @@ public class Hdrf<T> implements Partitioner<T> {
             //System.out.println("source = " + source + " --- target = " + target + " --> TM " + machine_id);
             return machine_id;
         }
+
+
+    public StoredState getCurrentState() {
+        return currentState;
+    }
 
     // NOT USED
         @Override

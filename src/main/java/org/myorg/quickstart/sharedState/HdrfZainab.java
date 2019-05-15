@@ -116,8 +116,8 @@ public class HdrfZainab {
 
             int machine_id = -1;
 
-            StoredObject first_vertex = currentState.getRecord(source);
-            StoredObject second_vertex = currentState.getRecord(target);
+            StoredObject first_vertex = currentState.getRecordOld(source);
+            StoredObject second_vertex = currentState.getRecordOld(target);
 
             int min_load = currentState.getMinLoad();
             int max_load = currentState.getMaxLoad();
