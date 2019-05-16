@@ -1,7 +1,9 @@
 package org.myorg.quickstart.TwoPhasePartitioner;
 
 import org.apache.flink.api.common.JobExecutionResult;
-import org.apache.flink.api.common.functions.*;
+import org.apache.flink.api.common.functions.MapFunction;
+import org.apache.flink.api.common.functions.Partitioner;
+import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.common.state.MapStateDescriptor;
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.java.functions.KeySelector;
@@ -9,27 +11,19 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.typeutils.GenericTypeInfo;
 import org.apache.flink.api.java.typeutils.TupleTypeInfo;
-import org.apache.flink.graph.Edge;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.BroadcastStream;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.windowing.time.Time;
-import org.apache.flink.types.NullValue;
-import org.apache.flink.util.Collector;
 import org.apache.flink.util.OutputTag;
-import org.myorg.quickstart.applications.ExactTriangleCount;
-import org.myorg.quickstart.applications.SimpleEdgeStream;
 
-import java.io.FileWriter;
-import java.io.IOException;
 import java.text.SimpleDateFormat;
-import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
-
-import static java.time.LocalDate.now;
 
 /**
  *
@@ -49,7 +43,7 @@ import static java.time.LocalDate.now;
  *           - greedy
  *           - hash
  */
-public class PhasePartitionerDegree {
+public class PhasePartitionerHdrf {
 
     public static final OutputTag<String> outputTag = new OutputTag<String>("side-output"){};
 

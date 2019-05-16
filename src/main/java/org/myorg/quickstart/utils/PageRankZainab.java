@@ -1,4 +1,4 @@
-/*
+
 package org.myorg.quickstart.utils;
 
 import org.apache.flink.api.common.JobExecutionResult;
@@ -19,21 +19,22 @@ import org.apache.flink.types.LongValue;
 import org.apache.flink.types.NullValue;
 import org.apache.flink.util.Collector;
 import org.myorg.quickstart.sharedState.CustomKeySelector3;
+import org.myorg.quickstart.sharedState.CustomKeySelector4;
 import org.myorg.quickstart.sharedState.StoredObject;
 import org.myorg.quickstart.sharedState.StoredState;
 
 import java.util.LinkedList;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 
 public class PageRankZainab {
 
 
 
-*/
 /**
  * Created by zainababbas on 29/06/2017.
- *//*
+ **/
 
 
 
@@ -44,6 +45,8 @@ public class PageRankZainab {
         ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
 
         env.setParallelism(1);
+
+
 
         DataSet<Edge<Double, Double>> data = env.readTextFile(edgesInputPath).map(new MapFunction<String, Edge<Double, Double>>() {
 
@@ -64,10 +67,10 @@ public class PageRankZainab {
 
         env.setParallelism(k);
 
-        DataSet<Tuple2<Double,Double>> newVer = vertexOutDegrees.join(networkWithWeights.getVertices()).where(0).equalTo(0).with(new JoinFunction<Tuple2<Double, LongValue>, Tuple2<Double, Double>, Tuple2<Double, Double>>() {
+        DataSet<Tuple2<Double, Double>> newVer = vertexOutDegrees.join(networkWithWeights.getVertices()).where(0).equalTo(0).with(new JoinFunction<Tuple2<Double, LongValue>, Tuple2<Double, Double>, Tuple2<Double, Double>>() {
             @Override
             public Tuple2<Double, Double> join(Tuple2<Double, LongValue> doubleLongValueTuple2, Tuple2<Double, Double> doubleDoubleTuple2) throws Exception {
-                return new Tuple2<Double, Double>(doubleDoubleTuple2.f0, Double.parseDouble (doubleLongValueTuple2.f1.toString()));
+                return new Tuple2<Double, Double>(doubleDoubleTuple2.f0, Double.parseDouble(doubleLongValueTuple2.f1.toString()));
             }
         });
 
@@ -77,13 +80,11 @@ public class PageRankZainab {
 
         DeltaIteration<Tuple2<Double, Double>, Tuple2<Double, Double>> iteration = newVer.iterateDelta(newVer, maxIterations, 0);
 
-
-
-
-        DataSet<Tuple2<Double,Double>> changes = iteration.getWorkset().join(edges).where(new CustomKeySelector3(0)).equalTo(new CustomKeySelector2(0))
-                .with(new RankMessenger()).withPartitioner(new HDRF<>(new CustomKeySelector3(0),k,1))
+        DataSet<Tuple2<Double, Double>> changes = iteration.getWorkset().join(edges).where(new CustomKeySelector3(0)).equalTo(new CustomKeySelector4(0))
+                .with(new RankMessenger()).withPartitioner(new HDRF<>(new CustomKeySelector3(0), k, 1));
+        changes
                 .groupBy(0)
-                .aggregate(Aggregations.SUM,1)
+                .aggregate(Aggregations.SUM, 1)
                 .join(iteration.getSolutionSet()).where(0).equalTo(0)
                 .with(new VertexRankUpdater());
 
@@ -92,13 +93,14 @@ public class PageRankZainab {
 
 
         result.writeAsCsv(outputPath, FileSystem.WriteMode.OVERWRITE);
-        JobExecutionResult resultLog =	env.execute("Page rank Hdrf");
+        JobExecutionResult resultLog = env.execute("Page rank Hdrf");
+        //env.execute("Page rank Hdrf");
 
+        System.out.println("Execution Time: " + resultLog.getNetRuntime(TimeUnit.MILLISECONDS));
         //} else {
         //System.out.println("Printing result to stdout. Use --output to specify output path.");
         //result.print();
         //
-
 
 
     }
@@ -114,7 +116,7 @@ public class PageRankZainab {
     private static class HDRF<T> implements Partitioner<T> {
         private static final long serialVersionUID = 1L;
         CustomKeySelector3 keySelector;
-        private int epsilon = 1;
+        private double epsilon = 0.0001;
         private double lamda;
         private StoredState currentState;
         private int k = 0;
@@ -124,8 +126,7 @@ public class PageRankZainab {
             this.currentState = new StoredState(k);
             this.lamda = lamda;
             this.k=k;
-            System.out.println("createdsfsfsfsdf");
-
+            //System.out.println("createdsfsfsfsdf");
         }
 
         @Override
@@ -135,7 +136,7 @@ public class PageRankZainab {
             try {
                 target = (long) Double.parseDouble(keySelector.getValue(key).toString());
             } catch (Exception e) {
-                e.printStackTrace();
+                //e.printStackTrace();
                 target = 0l;
             }
 
@@ -143,8 +144,8 @@ public class PageRankZainab {
 
             int machine_id = -1;
 
-            StoredObject first_vertex = currentState.getRecord(source);
-            StoredObject second_vertex = currentState.getRecord(target);
+            StoredObject first_vertex = currentState.getRecordOld(source);
+            StoredObject second_vertex = currentState.getRecordOld(target);
 
             int min_load = currentState.getMinLoad();
             int max_load = currentState.getMaxLoad();
@@ -237,10 +238,12 @@ public class PageRankZainab {
             //System.out.print("source" + source);
             //System.out.print(target);
             //System.out.println(machine_id);
-				*/
-/*System.out.print("source"+source);
+
+/*
+System.out.print("source"+source);
 				System.out.println("target"+target);
-				System.out.println("machineid"+machine_id);*//*
+				System.out.println("machineid"+machine_id);
+*/
 
 
             return machine_id;
@@ -347,4 +350,3 @@ public class PageRankZainab {
 
 
 }
-*/

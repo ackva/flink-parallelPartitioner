@@ -19,6 +19,7 @@ package org.myorg.quickstart.utils;
  */
 
 
+import org.apache.flink.api.common.JobExecutionResult;
 import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.GroupReduceFunction;
@@ -30,11 +31,10 @@ import org.apache.flink.api.java.operators.IterativeDataSet;
 import org.apache.flink.api.java.tuple.Tuple1;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.utils.ParameterTool;
-
-
+import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.util.Collector;
-
 import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
 
 import static org.apache.flink.api.java.aggregation.Aggregations.SUM;
 
@@ -59,7 +59,7 @@ import static org.apache.flink.api.java.aggregation.Aggregations.SUM;
  * </ul>
  *
  * <p>Usage: <code>PageRankBasic --pages &lt;path&gt; --links &lt;path&gt; --output &lt;path&gt; --numPages &lt;n&gt; --iterations &lt;n&gt;</code><br>
- * If no parameters are provided, the program is run with default data from {@link org.apache.flink.examples.java.graph.util.PageRankData} and 10 iterations.
+ * If no parameters are provided, the program is run with default data from { and 10 iterations.
  *
  * <p>This example shows how to use:
  * <ul>
@@ -87,7 +87,7 @@ public class PageRank {
 
         // set up execution environment
         final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
-
+        //env.setParallelism(2);
         // make the parameters available to the web ui
         env.getConfig().setGlobalJobParameters(params);
 
@@ -98,6 +98,7 @@ public class PageRank {
         // assign initial rank to pages
         DataSet<Tuple2<Long, Double>> pagesWithRanks = pagesInput.
                 map(new RankAssigner((1.0d / numPages)));
+        //pagesWithRanks.print();
 
         // build adjacency list from link input
         DataSet<Tuple2<Long, Long[]>> adjacencyListInput =
@@ -120,17 +121,20 @@ public class PageRank {
                         // termination condition
                         .filter(new EpsilonFilter()));
 
+
         // emit result
         if (params.has("output")) {
-            finalPageRanks.writeAsCsv(params.get("output"), "\n", " ");
+            //finalPageRanks.writeAsCsv(params.get("output"), "\n", " ");
+            finalPageRanks.writeAsCsv(params.get("output"), FileSystem.WriteMode.OVERWRITE);
             // execute program
-            env.execute("Basic Page Rank Example");
+            JobExecutionResult result = env.execute("Basic Page Rank Example");
+            System.out.println("Runtime in NS: " + result.getNetRuntime(TimeUnit.NANOSECONDS));
+            System.out.println("Runtime in MS: " + result.getNetRuntime(TimeUnit.MILLISECONDS));
         } else {
             System.out.println("Printing result to stdout. Use --output to specify output path.");
             finalPageRanks.print();
         }
     }
-
     // *************************************************************************
     //     USER FUNCTIONS
     // *************************************************************************
@@ -230,7 +234,7 @@ public class PageRank {
     private static DataSet<Long> getPagesDataSet(ExecutionEnvironment env, ParameterTool params) {
         if (params.has("pages")) {
             return env.readCsvFile(params.get("pages"))
-                    .fieldDelimiter(" ")
+                    .fieldDelimiter(",")
                     .lineDelimiter("\n")
                     .types(Long.class)
                     .map(new MapFunction<Tuple1<Long>, Long>() {
@@ -249,7 +253,7 @@ public class PageRank {
     private static DataSet<Tuple2<Long, Long>> getLinksDataSet(ExecutionEnvironment env, ParameterTool params) {
         if (params.has("links")) {
             return env.readCsvFile(params.get("links"))
-                    .fieldDelimiter(" ")
+                    .fieldDelimiter(",")
                     .lineDelimiter("\n")
                     .types(Long.class, Long.class);
         } else {
