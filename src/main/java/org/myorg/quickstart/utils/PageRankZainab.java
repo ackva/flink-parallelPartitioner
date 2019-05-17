@@ -34,6 +34,11 @@ public class PageRankZainab {
 
 /**
  * Created by zainababbas on 29/06/2017.
+ *
+ * SAMPLE INPUT
+ *  ß        input path             output path             iterations parallelism
+ * 0.85 input/streamInput.txt flinkJobOutput\pageRankZainab 5 2
+ *
  **/
 
 

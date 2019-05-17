@@ -1,8 +1,9 @@
-/*
-package org.myorg.quickstart.TwoPhasePartitioner;
+package org.myorg.quickstart.partitioners;
 
 import org.apache.flink.api.common.JobExecutionResult;
-import org.apache.flink.api.common.functions.*;
+import org.apache.flink.api.common.functions.MapFunction;
+import org.apache.flink.api.common.functions.Partitioner;
+import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.common.state.MapStateDescriptor;
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.java.functions.KeySelector;
@@ -10,29 +11,23 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.typeutils.GenericTypeInfo;
 import org.apache.flink.api.java.typeutils.TupleTypeInfo;
-import org.apache.flink.graph.Edge;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.BroadcastStream;
 import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.datastream.KeyedStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.windowing.time.Time;
-import org.apache.flink.types.NullValue;
-import org.apache.flink.util.Collector;
 import org.apache.flink.util.OutputTag;
-import org.myorg.quickstart.applications.ExactTriangleCount;
-import org.myorg.quickstart.applications.SimpleEdgeStream;
+import org.myorg.quickstart.TwoPhasePartitioner.*;
 
-import java.io.FileWriter;
-import java.io.IOException;
 import java.text.SimpleDateFormat;
-import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
-import static java.time.LocalDate.now;
-
-*/
 /**
  *
  * @Arguments:
@@ -48,11 +43,9 @@ import static java.time.LocalDate.now;
  *           - will be ignored, if output type == 1
  *      5)  Algorithm (Optional)
  *           - hrdf - default lambda
- *           - greedy
  *           - hash
- *//*
-
-public class PhasePartitionerDegree {
+ */
+public class PartitionerHash extends PhasePartitionerHdrf {
 
     public static final OutputTag<String> outputTag = new OutputTag<String>("side-output"){};
 
@@ -85,7 +78,7 @@ public class PhasePartitionerDegree {
 
         int graphSize = Integer.parseInt(args[3]);
         ProcessWindowGelly firstPhaseProcessor = new ProcessWindowGelly();
-        MatchFunctionPartitioner matchFunction = new MatchFunctionPartitioner(algorithm);
+        MatchFunctionPartitioner matchFunction = new MatchFunctionPartitioner(algorithm, k, lambda);
         MapStateDescriptor<String, Tuple2<Integer, ArrayList<Integer>>> rulesStateDescriptor = new MapStateDescriptor<>("RulesBroadcastState", BasicTypeInfo.STRING_TYPE_INFO,tupleTypeInfo);
 
         // Environment setup
@@ -96,48 +89,18 @@ public class PhasePartitionerDegree {
         GraphCreatorGelly edgeGraph = getGraph(graphSource, graphSize);
         DataStream<EdgeEventGelly>edgeStream = edgeGraph.getEdgeStream(env);
 
-        // *** PHASE 1 ***
-        //Process edges to build the local model for broadcast
-        DataStream<HashMap<Long, Long>> phaseOneStream = edgeStream
-                .keyBy(new KeySelector<EdgeEventGelly, Long>() {
+        DataStream<Tuple2<EdgeEventGelly,Integer>> taggedEdges = edgeStream
+                .map(new MapFunction<EdgeEventGelly, Tuple2<EdgeEventGelly, Integer>>() {
                     @Override
-                    public Long getKey(EdgeEventGelly value) throws Exception {
-                        return Long.parseLong(value.getEdge().f0.toString());
-                    }
-                })
-                .timeWindow(Time.milliseconds(windowSizeInMs))
-                .process(new ProcessWindowDegree());
-        //phaseOneStream.print();
+                    public Tuple2<EdgeEventGelly, Integer> map(EdgeEventGelly value) throws Exception {
+                        Random rand = new Random();
 
-        // Process edges in the similar time windows to "wait" for phase 2
-        DataStream<EdgeEventGelly> edgesWindowed = edgeStream
-                .keyBy(new KeySelector<EdgeEventGelly, Integer>() {
-                    @Override
-                    public Integer getKey(EdgeEventGelly value) throws Exception {
-                        return Integer.parseInt(value.getEdge().f0.toString());
+                        return new Tuple2<>(value,rand.nextInt(k));
                     }
-                })
-                .timeWindow(Time.milliseconds(windowSizeInMs))
-                .process(firstPhaseProcessor);
-
-        // *** Phase 2 ***
-        // Broadcast local state from Phase 1 to all Task Managers
-        BroadcastStream<HashMap<Long, Long>> broadcastStateStream = phaseOneStream
-                .broadcast(rulesStateDescriptor);
-
-        // Connect Broadcast Stream and Edge Stream to build global model
-        SingleOutputStreamOperator<Tuple2<EdgeEventGelly,Integer>> phaseTwoStream = edgesWindowed
-                .keyBy(new KeySelector<EdgeEventGelly, Integer>() {
-                    @Override
-                    public Integer getKey(EdgeEventGelly value) throws Exception {
-                        return Integer.parseInt(value.getEdge().f0.toString());
-                    }
-                })
-                .connect(broadcastStateStream)
-                .process(matchFunction);
+                });
 
         // Final Step -- Custom Partition, based on pre-calculated ID
-        DataStream partitionedEdges = phaseTwoStream.partitionCustom(new PartitionByTag(),1);
+        DataStream partitionedEdges = taggedEdges.partitionCustom(new PartitionByTag(),1);
 
         //Print result in human-readable way --> e.g. (4,2,0) means: Edge(4,2) partitioned to machineId 0
 
@@ -147,33 +110,7 @@ public class PhasePartitionerDegree {
             }
         }).writeAsText(outputPathPartitions.replaceAll(":","_"));
 
-        DataStream<String> stateStream = phaseTwoStream.getSideOutput(outputTag)
-                .keyBy(new KeySelector<String, Integer>() {
-                 @Override
-                public Integer getKey(String value) throws Exception {
-                    return 1;
-                 }
-                })
-                .reduce(new ReduceFunction<String>() {
-
-                    int iteration = 0;
-                    int longestString = 0;
-                    @Override
-                    public String reduce(String value1, String value2) throws Exception {
-                        ++iteration;
-                        //System.out.println("Value 1: " + value1.length() + " -- Value 2: " + value2.length());
-                        if (value2.length()>= longestString && iteration > 70) {
-                            longestString = value2.length();
-                            return iteration + " -- " + value2;
-                        } else {
-                            return "ignore";
-                        }
-
-                    }
-                });
-
-        */
-/*
+        /*
         stateStream.
                 filter(new FilterFunction<String>() {
                     @Override
@@ -181,8 +118,7 @@ public class PhasePartitionerDegree {
                         return  ! value.equals("ignore");
                     }
                 }).writeAsText(outputPathLogging.replaceAll(":","_"));
-*//*
-
+*/
 
         // ### Execute the job in Flink
         //System.out.println(env.getExecutionPlan());
@@ -252,4 +188,3 @@ public class PhasePartitionerDegree {
     }
 
 }
-*/

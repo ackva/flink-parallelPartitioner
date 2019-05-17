@@ -3,6 +3,7 @@ package org.myorg.quickstart.TwoPhasePartitioner;
 import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
+import org.myorg.quickstart.partitioners.PhasePartitionerHdrf;
 import org.myorg.quickstart.sharedState.EdgeEvent;
 import org.myorg.quickstart.sharedState.PhasePartitioner;
 import scala.Int;
@@ -54,7 +55,7 @@ public class ProcessWindowDegree extends ProcessWindowFunction<EdgeEventGelly, H
         }
 
         // Print operations for debugging
-        if (PhasePartitionerGelly.printPhaseOne) {
+        if (PhasePartitionerHdrf.printPhaseOne) {
             String printString = " - ";
             printString = now() + "P1: window # " + windowCounter + " -- edges: " + edgesInWindow.size() + printString + " --(Model)";
             printWindowElements(edgesInWindow);
@@ -82,7 +83,7 @@ public class ProcessWindowDegree extends ProcessWindowFunction<EdgeEventGelly, H
         for(EdgeEventGelly e: edgeEventList) {
             printString = printString + "; " + e.getEdge().f0 + " " + e.getEdge().f1;
         }
-        if (PhasePartitionerDegree.printPhaseOne)
+        if (PhasePartitionerHdrf.printPhaseOne)
             System.out.println(printString);
 
     }

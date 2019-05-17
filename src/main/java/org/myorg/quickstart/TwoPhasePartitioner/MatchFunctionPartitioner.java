@@ -6,6 +6,7 @@ import org.apache.flink.graph.Edge;
 import org.apache.flink.streaming.api.functions.co.KeyedBroadcastProcessFunction;
 import org.apache.flink.types.NullValue;
 import org.apache.flink.util.Collector;
+import org.myorg.quickstart.partitioners.PhasePartitionerHdrf;
 import org.myorg.quickstart.sharedState.EdgeEvent;
 import org.myorg.quickstart.sharedState.PhasePartitioner;
 
@@ -22,11 +23,11 @@ public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Inte
     ModelBuilderGelly modelBuilder;
     List<EdgeEventGelly> waitingEdges;
 
-    public MatchFunctionPartitioner(String algorithm) {
+    public MatchFunctionPartitioner(String algorithm, Integer k, double lambda) {
         this.algorithm = algorithm;
         this.waitingEdges = new ArrayList<>();
         if (algorithm.equals("hdrf"))
-            this.modelBuilder = new ModelBuilderGelly(algorithm, vertexDegreeMap);
+            this.modelBuilder = new ModelBuilderGelly(algorithm, vertexDegreeMap, k, lambda);
     }
 
 
@@ -37,7 +38,7 @@ public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Inte
         countBroadcastsOnWorker++;
 
         // Print for debugging
-        if (PhasePartitionerDegree.printPhaseOne)
+        if (PhasePartitionerHdrf.printPhaseOne)
             System.out.println("Phase 2: Broadcasting HashMap " + broadcastElement);
 
         if (this.algorithm.equals("hdrf")) {
@@ -57,7 +58,7 @@ public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Inte
 
         //System.out.println("Current Vertex Partitioning Table: " + vertexPartition);
 
-        if (PhasePartitionerDegree.printPhaseTwo == true) {
+        if (PhasePartitionerHdrf.printPhaseTwo) {
             System.out.println(countBroadcastsOnWorker + ": " + vertexDegreeMap);
         }
 
@@ -78,7 +79,7 @@ public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Inte
             }
             waitingEdges.removeAll(toBeRemoved);
         }
-        ctx.output(PhasePartitionerDegree.outputTag, "1: " + modelBuilder.getHdrf().getCurrentState().printState().toString());
+        ctx.output(PhasePartitionerHdrf.outputTag, "1: " + modelBuilder.getHdrf().getCurrentState().printState().toString());
 
     }
 
@@ -108,7 +109,7 @@ public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Inte
 
         //out.collect(new Tuple2<>(currentEdge,partitionId));
 
-        ctx.output(PhasePartitionerDegree.outputTag, "1: " + modelBuilder.getHdrf().getCurrentState().printState().toString());
+        ctx.output(PhasePartitionerHdrf.outputTag, "1: " + modelBuilder.getHdrf().getCurrentState().printState().toString());
 
     }
 
@@ -121,7 +122,7 @@ public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Inte
         //boolean targetInside = vertexDegreeMap.keySet().contains(currentEdge.getEdge().f1);
 
         // Debugging only
-        if (PhasePartitionerDegree.printPhaseTwo) {
+        if (PhasePartitionerHdrf.printPhaseTwo) {
             List<Tuple3> printState = modelBuilder.getHdrf().getCurrentState().printState();
             System.out.println("Edge (" + currentEdge.getEdge().f0 + " " + currentEdge.getEdge().f1 + "): " + printState);
         }

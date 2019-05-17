@@ -1,4 +1,4 @@
-package org.myorg.quickstart.TwoPhasePartitioner;
+package org.myorg.quickstart.partitioners;
 
 import org.apache.flink.api.common.JobExecutionResult;
 import org.apache.flink.api.common.functions.MapFunction;
@@ -18,6 +18,8 @@ import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.util.OutputTag;
+import org.myorg.quickstart.TwoPhasePartitioner.*;
+import org.myorg.quickstart.sharedState.EdgeEvent;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -32,16 +34,21 @@ import java.util.concurrent.TimeUnit;
  *           "0": generated on Runtime
  *           "1": from file
  *      2) input path
- *           - will be ignored, if GraphSource == 1
- *      3) output type
- *           - "1": printed on screen
- *           - "2": written to file
- *      4) output path
- *           - will be ignored, if output type == 1
- *      5)  Algorithm (Optional)
+ *           - will be ignored, if GraphSource == 0
+ *      3)  Algorithm (Optional)
  *           - hrdf - default lambda
- *           - greedy
  *           - hash
+ *      4) Graph size
+ *          - will be ignored if graphsource == 1
+ *      5) Parallelism in "global model" step --> parallel or non-parallel HDRF
+ *          - 1 (default)
+ *          - X whatever
+ *      6) General parallelism
+ *          - must be > 1
+ *
+ *   Example (local testing in IntelliJ:
+ *   1 C:\flinkJobs\input\streamInput11.txt hdrf 100 1 2
+ *
  */
 public class PhasePartitionerHdrf {
 
@@ -61,6 +68,7 @@ public class PhasePartitionerHdrf {
     private static String inputPath = null;
     private static String graphSource = null;
     private static String algorithm = "";
+    private static int globalPhase = 1;
     private static int outputType = 0;
     private static String outputPath = null;
     public static int k = 2; // parallelism - partitions
@@ -76,7 +84,7 @@ public class PhasePartitionerHdrf {
 
         int graphSize = Integer.parseInt(args[3]);
         ProcessWindowGelly firstPhaseProcessor = new ProcessWindowGelly();
-        MatchFunctionPartitioner matchFunction = new MatchFunctionPartitioner(algorithm);
+        MatchFunctionPartitioner matchFunction = new MatchFunctionPartitioner(algorithm, k, lambda);
         MapStateDescriptor<String, Tuple2<Integer, ArrayList<Integer>>> rulesStateDescriptor = new MapStateDescriptor<>("RulesBroadcastState", BasicTypeInfo.STRING_TYPE_INFO,tupleTypeInfo);
 
         // Environment setup
@@ -98,7 +106,6 @@ public class PhasePartitionerHdrf {
                 })
                 .timeWindow(Time.milliseconds(windowSizeInMs))
                 .process(new ProcessWindowDegree());
-        //phaseOneStream.print();
 
         // Process edges in the similar time windows to "wait" for phase 2
         DataStream<EdgeEventGelly> edgesWindowed = edgeStream
@@ -125,19 +132,27 @@ public class PhasePartitionerHdrf {
                     }
                 })
                 .connect(broadcastStateStream)
-                .process(matchFunction);
+                .process(matchFunction).setParallelism(globalPhase);
+        //phaseTwoStream.print();
 
         // Final Step -- Custom Partition, based on pre-calculated ID
         DataStream partitionedEdges = phaseTwoStream.partitionCustom(new PartitionByTag(),1);
 
         //Print result in human-readable way --> e.g. (4,2,0) means: Edge(4,2) partitioned to machineId 0
-
-        partitionedEdges.map(new MapFunction<Tuple2<EdgeEventGelly, Integer>, Tuple3<Integer, Integer, Integer>>() {
-            public Tuple3<Integer, Integer, Integer> map(Tuple2<EdgeEventGelly, Integer> input) {
-                return new Tuple3<>(Integer.parseInt(input.f0.getEdge().f0.toString()), Integer.parseInt(input.f0.getEdge().f1.toString()), input.f1);
+        partitionedEdges.map(new MapFunction<Tuple2<EdgeEventGelly, Integer>, EdgeEventGelly>() {
+            public EdgeEventGelly map(Tuple2<EdgeEventGelly, Integer> input) {
+                return input.f0;
             }
         }).writeAsText(outputPathPartitions.replaceAll(":","_"));
 
+        // Print result in human-readable way --> e.g. ( 4,2 --> 1 ) means: Edge(4,2) partitioned to partition 1
+        partitionedEdges.map(new MapFunction<Tuple2<EdgeEventGelly, Integer>, String>() {
+            public String map(Tuple2<EdgeEventGelly, Integer> input) {
+                return input.f0 + " --> " + input.f1;
+            }
+        });
+
+        // Attempt to lower the amount of "state" prints -- ignore for now
         DataStream<String> stateStream = phaseTwoStream.getSideOutput(outputTag)
                 .keyBy(new KeySelector<String, Integer>() {
                  @Override
@@ -223,6 +238,7 @@ public class PhasePartitionerHdrf {
             outputType = Integer.valueOf(args[2]);
             outputPath = args[3];
             algorithm = args[4];
+            globalPhase = Integer.valueOf(args[5]);
             //k = (int) Long.parseLong(args[3]);
             //lamda = Double.parseDouble(args[4]);
         } else {

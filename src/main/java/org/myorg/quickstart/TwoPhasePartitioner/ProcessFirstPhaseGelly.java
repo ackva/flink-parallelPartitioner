@@ -1,3 +1,4 @@
+/*
 package org.myorg.quickstart.TwoPhasePartitioner;
 
 import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
@@ -36,7 +37,7 @@ public class ProcessFirstPhaseGelly extends ProcessWindowFunction<EdgeEventGelly
         String printString = " - ";
 
         HashMap<Long, Long> vertexDegreeMap = new HashMap<>();
-        this.modelBuilder = new ModelBuilderGelly(algorithm, vertexDegreeMap);
+        this.modelBuilder = new ModelBuilderGelly(algorithm, vertexDegreeMap, k, lambda);
 
         // Store all edges of current window
         List<EdgeEventGelly> edgesInWindow = storeElementsOfWindow(edgeIterable);
@@ -114,4 +115,4 @@ public class ProcessFirstPhaseGelly extends ProcessWindowFunction<EdgeEventGelly
 
     }
 
-}
+}*/

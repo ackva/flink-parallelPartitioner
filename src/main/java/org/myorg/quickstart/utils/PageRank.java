@@ -39,6 +39,10 @@ import java.util.concurrent.TimeUnit;
 import static org.apache.flink.api.java.aggregation.Aggregations.SUM;
 
 /**
+ *
+ * local (IntelliJ) arguments: --pages input/pages_streamInput.txt --links input/streamInput.txt --output flinkJobOutput/pageRankFlink --iterations 5
+ * on Flink cluster incl call: ../flink/flink/bin/flink run -p 2 -c org.myorg.quickstart.utils.PageRank ~/jobsFlink/flink-parallelPartitioner.jar --links jobsFlink/input/hamsterster.txt --pages jobsFlink/input/pages_hamsterster.txt --output jobsFlink/output/pageRank --iterations 5
+ *
  * A basic implementation of the Page Rank algorithm using a bulk iteration.
  *
  * <p>This implementation requires a set of pages and a set of directed links as input and works as follows. <br>

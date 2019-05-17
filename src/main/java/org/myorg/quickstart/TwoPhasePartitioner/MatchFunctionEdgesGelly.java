@@ -4,6 +4,7 @@ package org.myorg.quickstart.TwoPhasePartitioner;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.functions.co.KeyedBroadcastProcessFunction;
 import org.apache.flink.util.Collector;
+import org.myorg.quickstart.partitioners.PhasePartitionerHdrf;
 import org.myorg.quickstart.sharedState.PhasePartitioner;
 
 import java.util.HashMap;
@@ -51,7 +52,7 @@ public class MatchFunctionEdgesGelly extends KeyedBroadcastProcessFunction<Integ
 
         //System.out.println("Current Vertex Partitioning Table: " + vertexPartition);
 
-        if (PhasePartitionerGelly.printPhaseTwo == true) {
+        if (PhasePartitionerHdrf.printPhaseTwo == true) {
             //System.out.println(printString);
         }
 

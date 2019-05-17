@@ -32,8 +32,10 @@ public class VertexCuts {
                 line = br.readLine();
                 while (line != null) {
                     String[] fields = line.split("\\,");
-                    Long src = Long.parseLong(fields[0]);
-                    Long trg = Long.parseLong(fields[1]);
+                    String f0 = fields[0].replaceAll("\\(","").replaceAll("\\)","");
+                    String f1 = fields[1].replaceAll("\\(","").replaceAll("\\)","");
+                    Long src = Long.parseLong(f0);
+                    Long trg = Long.parseLong(f1);
                     if (!T.containsKey(src)) {
                         T.put(src, new ArrayList<>());
                     }
@@ -61,8 +63,10 @@ public class VertexCuts {
                 line = br.readLine();
                 while (line != null) {
                     String[] fields = line.split("\\,");
-                    Long src = Long.parseLong(fields[0]);
-                    Long trg = Long.parseLong(fields[1]);
+                    String f0 = fields[0].replaceAll("\\(","").replaceAll("\\)","");
+                    String f1 = fields[1].replaceAll("\\(","").replaceAll("\\)","");
+                    Long src = Long.parseLong(f0);
+                    Long trg = Long.parseLong(f1);
                     if (T.containsKey(src)) {
                         List<Long> p = T.get(src);
                         if(!p.contains((long) i))
@@ -97,13 +101,13 @@ public class VertexCuts {
         }
 
         rep = (double) sum/T.size();
-        System.out.println("replication factor:"+rep);
+        System.out.println("Replication Factor:" + rep);
 
         FileWriter fw = new FileWriter(outputPath, true); //the true will append the new data
         fw.write("Replication"+String.valueOf(rep));//appends the string to the file
         fw.write("\n");
         fw.close();
-        System.out.println(env.getParallelism());
+        System.out.println("Parallelism: " + env.getParallelism());
 
 
 

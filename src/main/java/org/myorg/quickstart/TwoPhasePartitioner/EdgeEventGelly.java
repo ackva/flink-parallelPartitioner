@@ -27,4 +27,10 @@ public class EdgeEventGelly {
         System.out.println(this.edge.f0 + " " + this.edge.f1 + " "
                 + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date(this.getEventTime())));
     }
+
+    @Override
+    public String toString() {
+        return this.getEdge().f0 + "," + this.getEdge().f1;
+    }
+
 }

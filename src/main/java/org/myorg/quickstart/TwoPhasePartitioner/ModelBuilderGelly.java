@@ -16,21 +16,23 @@ public class ModelBuilderGelly implements Serializable {
     private Hdrf hdrf;
     private HashPartitioner hashPartitioner;
     private CustomKeySelector keySelector;
+    private int numOfPartitions;
 
-    public ModelBuilderGelly(String algorithm, HashMap <Long, Long> vertexDegreeMap) {
+    public ModelBuilderGelly(String algorithm, HashMap <Long, Long> vertexDegreeMap, Integer k, double lambda) {
         this.vertexDegreeMap = vertexDegreeMap;
 
         switch (algorithm) {
             case "hdrf":
                 this.algorithm = "hdrf";
                 this.keySelector = new CustomKeySelector(0);
-                Hdrf hdrf = new Hdrf<>(this.keySelector, PhasePartitionerGelly.k,PhasePartitionerGelly.lambda);
+                Hdrf hdrf = new Hdrf<>(this.keySelector, k,lambda);
                 this.hdrf = hdrf;
+                this.numOfPartitions = k;
                 break;
             case "hash":
                 this.algorithm = "hash";
                 this.keySelector = new CustomKeySelector(0);
-                this.hashPartitioner = new HashPartitioner(this.keySelector,PhasePartitionerGelly.k);
+                this.hashPartitioner = new HashPartitioner(this.keySelector,k);
                 break;
             case "deterministic":
                 this.algorithm = "deterministic";
@@ -61,7 +63,7 @@ public class ModelBuilderGelly implements Serializable {
         } else if (this.algorithm.equals("hash")) {
             partitionId = hashPartitioner.selectPartition(edge.getEdge());
         } else if (this.algorithm.equals("hdrf")) {
-            partitionId = hdrf.selectPartition(edge.getEdge(),PhasePartitionerGelly.k);
+            partitionId = hdrf.selectPartition(edge.getEdge(),this.numOfPartitions);
         } else {
             // TODO: Actual algorithm here
             Random rand = new Random();

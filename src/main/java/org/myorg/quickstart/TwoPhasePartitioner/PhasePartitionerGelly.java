@@ -1,3 +1,4 @@
+/*
 package org.myorg.quickstart.TwoPhasePartitioner;
 
 import org.apache.flink.api.common.JobExecutionResult;
@@ -23,6 +24,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
 
+*/
 /**
  *
  * @Arguments:
@@ -40,7 +42,8 @@ import java.util.concurrent.TimeUnit;
  *           - hrdf - default lambda
  *           - greedy
  *           - hash
- */
+ *//*
+
 public class PhasePartitionerGelly {
 
     public static final OutputTag<String> outputTag = new OutputTag<String>("side-output"){};
@@ -99,21 +102,25 @@ public class PhasePartitionerGelly {
         DataStream<EdgeEventGelly>edgeStream = edgeGraph.getEdgeStream(env);
 
         //Print Edge Events with TimeStamps
-        /*        DataStream<Tuple2<EdgeEventGelly, String>> edgeTime = edgeStream
+        */
+/*        DataStream<Tuple2<EdgeEventGelly, String>> edgeTime = edgeStream
                 .map(new MapFunction<EdgeEventGelly, Tuple2<EdgeEventGelly, String>>() {
                     @Override
                     public Tuple2<EdgeEventGelly, String> map(EdgeEventGelly value) throws Exception {
                         return new Tuple2<EdgeEventGelly, String>(value,new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date(value.getEventTime())));
                     }
                 });
-        edgeTime.print();*/
+        edgeTime.print();*//*
+
 
         // Print plain edges
-        /*edges.map(new MapFunction<Edge<Long, NullValue>, Tuple2<Integer, Integer>>() {
+        */
+/*edges.map(new MapFunction<Edge<Long, NullValue>, Tuple2<Integer, Integer>>() {
             public Tuple2<Integer, Integer> map(Edge<Long, NullValue> input) {
                 return new Tuple2<>(Integer.parseInt(input.f0.toString()), Integer.parseInt(input.f0.toString()));
             }
-        }).print();*/
+        }).print();*//*
+
 
         ProcessFirstPhaseGelly firstPhaseProcessor = new ProcessFirstPhaseGelly(algorithm);
         // *** PHASE 1 ***
@@ -228,3 +235,4 @@ public class PhasePartitionerGelly {
     }
 
 }
+*/
