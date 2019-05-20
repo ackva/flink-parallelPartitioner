@@ -55,10 +55,12 @@ public class VertexCut {
             }
         }
 
+
         for (int i = 1; i <= parallelism; i++) {
             //2. URI of the file to be read
             FileReader fr = new FileReader(fileList.get(i));
             BufferedReader br = new BufferedReader(fr);
+
             try {
                 String line;
                 line = br.readLine();

@@ -104,7 +104,7 @@ public class VertexCutImpl {
         System.out.println("Replication Factor:" + rep);
 
         FileWriter fw = new FileWriter(outputPath, true); //the true will append the new data
-        fw.write("Replication"+String.valueOf(rep));//appends the string to the file
+        fw.write(InputPath + "," +String.valueOf(rep));//appends the string to the file
         fw.write("\n");
         fw.close();
         System.out.println("Parallelism: " + env.getParallelism());

@@ -21,7 +21,7 @@
     import java.util.List;
 
     /**
-     * Example class
+     * C:\Users\adac0\IdeaProjects\flink-parallelPartitioner\flinkJobOutput\
      */
     public class VertexCutsMultipleJobs {
         //utility method to print a string
