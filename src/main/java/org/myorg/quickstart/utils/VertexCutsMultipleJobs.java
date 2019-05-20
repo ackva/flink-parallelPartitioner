@@ -54,7 +54,7 @@
                         parallelism=+1;
                     }
                     double vertexCut = new VertexCut(parallelism).calculateVertexCut(fileList);
-                    System.out.println("Vertex Cut: " + vertexCut);
+                    System.out.println("Replication Factor: " + vertexCut);
                     System.out.println(" --- ");
                     //print("Directory : " + file.getName());
                 } else {

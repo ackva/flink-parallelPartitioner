@@ -12,6 +12,7 @@ import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.typeutils.GenericTypeInfo;
 import org.apache.flink.api.java.typeutils.TupleTypeInfo;
 import org.apache.flink.core.fs.FileSystem;
+import org.apache.flink.graph.Edge;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.BroadcastStream;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -22,6 +23,7 @@ import org.apache.flink.util.MathUtils;
 import org.apache.flink.util.OutputTag;
 import org.myorg.quickstart.TwoPhasePartitioner.*;
 import org.myorg.quickstart.sharedState.CustomKeySelector;
+import org.myorg.quickstart.sharedState.CustomKeySelector5;
 import org.myorg.quickstart.sharedState.EdgeEvent;
 
 import java.text.SimpleDateFormat;
@@ -84,7 +86,8 @@ public class PhasePartitionerHdrf {
         algorithm = args[2];
         int graphSize = Integer.parseInt(args[3]);
         globalPhase = Integer.valueOf(args[4]);
-        String graphName = args[5];
+        k = Integer.valueOf(args[5]);
+        String graphName = args[6];
         String outputPathPartitions = "flinkJobOutput/job_" + new SimpleDateFormat("MM_dd-HH_mm_ss").format(new Date()) + "_" + algorithm + "_p" + k + "_s" + graphName;
         String outputPathLogging = "flinkJobOutput/job_" + new SimpleDateFormat("MM_dd-HH_mm_ss").format(new Date()) + "_Logging";
 
@@ -99,10 +102,7 @@ public class PhasePartitionerHdrf {
         GraphCreatorGelly edgeGraph = getGraph(graphSource, graphSize);
         DataStream<EdgeEventGelly>edgeStream = edgeGraph.getEdgeStream(env);
 
-
-        DataStream partitionedEdges = null;
-
-        System.out.println("hallo");
+        DataStream<EdgeEventGelly> partitionedEdges = null;
 
         if (algorithm.equals("hdrf") || algorithm.equals("dbh")) {
             // *** PHASE 1 ***
@@ -146,26 +146,23 @@ public class PhasePartitionerHdrf {
             //phaseTwoStream.print();
 
             // Final Step -- Custom Partition, based on pre-calculated ID
-            partitionedEdges = phaseTwoStream.partitionCustom(new PartitionByTag(), 1);
+            partitionedEdges = phaseTwoStream
+                .partitionCustom(new PartitionByTag(), 1)
+                    .map(new MapFunction<Tuple2<EdgeEventGelly, Integer>, EdgeEventGelly>() {
+                        public EdgeEventGelly map(Tuple2<EdgeEventGelly, Integer> input) {
+                            return input.f0;
+                        }});
         } else if (algorithm.equals("hash")) {
-            partitionedEdges = edgeStream.partitionCustom(new HashPartitioner<>(k),new CustomKeySelector(0));
+            partitionedEdges = edgeStream
+                .partitionCustom(new HashPartitioner<>(k),new CustomKeySelector5<>(0));
         } else {
             throw new Exception("WRONG ALGO!!");
         }
 
-/*        //Print result in human-readable way --> e.g. (4,2,0) means: Edge(4,2) partitioned to machineId 0
-        partitionedEdges.map(new MapFunction<Tuple2<EdgeEventGelly, Integer>, EdgeEventGelly>() {
-            public EdgeEventGelly map(Tuple2<EdgeEventGelly, Integer> input) {
-                return input.f0;
-            }
-        }).writeAsText(outputPathPartitions.replaceAll(":","_"));
 
-        // Print result in human-readable way --> e.g. ( 4,2 --> 1 ) means: Edge(4,2) partitioned to partition 1
-        partitionedEdges.map(new MapFunction<Tuple2<EdgeEventGelly, Integer>, String>() {
-            public String map(Tuple2<EdgeEventGelly, Integer> input) {
-                return input.f0 + " --> " + input.f1;
-            }
-        });*/
+        //Print result in human-readable way --> e.g. (4,2,0) means: Edge(4,2) partitioned to machineId 0
+        partitionedEdges.writeAsText(outputPathPartitions.replaceAll(":","_"));
+
 
         // Attempt to lower the amount of "state" prints -- ignore for now
         /*DataStream<String> stateStream = phaseTwoStream.getSideOutput(outputTag)
@@ -248,14 +245,14 @@ public class PhasePartitionerHdrf {
                 return false;
             }
 
-            graphType = Integer.valueOf(args[0]);
+/*            graphType = Integer.valueOf(args[0]);
             inputPath = args[1];
             outputType = Integer.valueOf(args[2]);
             outputPath = args[3];
             algorithm = args[4];
             globalPhase = Integer.valueOf(args[5]);
             //k = (int) Long.parseLong(args[3]);
-            //lamda = Double.parseDouble(args[4]);
+            //lamda = Double.parseDouble(args[4]);*/
         } else {
             System.out.println("Executing example with default parameters and built-in default data.");
             System.out.println("Provide parameters to read input data from files.");
