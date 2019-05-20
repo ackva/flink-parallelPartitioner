@@ -1,6 +1,7 @@
 package org.myorg.quickstart.utils;
 
 import org.apache.flink.api.java.ExecutionEnvironment;
+import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 /*import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;*/
@@ -15,17 +16,20 @@ import java.util.List;
 /**
  * Created by zainababbas on 21/02/2017.
  */
-public class VertexCuts {
+public class VertexCut {
 
-    public static void main(String[] args) throws Exception {
-        if (!parseParameters(args)) {
-            return;
-        }
-        ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
-        env.setParallelism(1);
-        HashMap<Long, List<Long>> T = new HashMap<>();
-        for (int i = 1; i <= k; i++) {
-            FileReader fr=new FileReader(InputPath+"/"+i);
+    private HashMap<Long, List<Long>> vertexMap = new HashMap<>();
+    private double rep = 0.0;
+    private int parallelism;
+
+    public VertexCut(int parallelism) {
+        this.parallelism = parallelism;
+    }
+
+    public double calculateVertexCut(List<File> fileList) throws IOException {
+
+        for (File f : fileList) {
+            FileReader fr = new FileReader(f);
             BufferedReader br = new BufferedReader(fr);
             try {
                 String line;
@@ -36,15 +40,12 @@ public class VertexCuts {
                     String f1 = fields[1].replaceAll("\\(","").replaceAll("\\)","");
                     Long src = Long.parseLong(f0);
                     Long trg = Long.parseLong(f1);
-                    if (!T.containsKey(src)) {
-                        T.put(src, new ArrayList<>());
+                    if (!vertexMap.containsKey(src)) {
+                        vertexMap.put(src, new ArrayList<>());
                     }
-
-                    if (!T.containsKey(trg)) {
-                        T.put(trg, new ArrayList<>());
-
+                    if (!vertexMap.containsKey(trg)) {
+                        vertexMap.put(trg, new ArrayList<>());
                     }
-
                     // be sure to read the next line otherwise you'll get an infinite loop
                     line = br.readLine();
                 }
@@ -54,9 +55,9 @@ public class VertexCuts {
             }
         }
 
-        for (int i = 1; i <= k; i++) {
+        for (int i = 1; i <= parallelism; i++) {
             //2. URI of the file to be read
-            FileReader fr=new FileReader(InputPath+"/"+i);
+            FileReader fr = new FileReader(fileList.get(i));
             BufferedReader br = new BufferedReader(fr);
             try {
                 String line;
@@ -67,18 +68,18 @@ public class VertexCuts {
                     String f1 = fields[1].replaceAll("\\(","").replaceAll("\\)","");
                     Long src = Long.parseLong(f0);
                     Long trg = Long.parseLong(f1);
-                    if (T.containsKey(src)) {
-                        List<Long> p = T.get(src);
+                    if (vertexMap.containsKey(src)) {
+                        List<Long> p = vertexMap.get(src);
                         if(!p.contains((long) i))
                         {p.add((long) i);
-                            T.put(src, p);}
+                            vertexMap.put(src, p);}
 
                     }
-                    if (T.containsKey(trg)) {
-                        List<Long> p = T.get(trg);
+                    if (vertexMap.containsKey(trg)) {
+                        List<Long> p = vertexMap.get(trg);
                         if(!p.contains((long) i))
                         {p.add((long) i);
-                            T.put(trg, p);}
+                            vertexMap.put(trg, p);}
 
                     }
                     // be sure to read the next line otherwise you'll get an infinite loop
@@ -90,52 +91,26 @@ public class VertexCuts {
             }
         }
 
+        long sum = 0;
+        rep = 0.0;
 
+        for (Long key : vertexMap.keySet()) {
 
-        long sum=0;
-        double rep = 0.0;
-
-        for (Long key : T.keySet()) {
-
-            sum=sum+T.get(key).size();
+            sum = sum + vertexMap.get(key).size();
         }
 
-        rep = (double) sum/T.size();
-        System.out.println("Replication Factor:" + rep);
+        rep = (double) sum / vertexMap.size();
+        return rep;
 
+    }
+
+    public void writeReplicationFactorToFile(int parallelism, String outputPath) throws IOException {
         FileWriter fw = new FileWriter(outputPath, true); //the true will append the new data
         fw.write("Replication"+String.valueOf(rep));//appends the string to the file
         fw.write("\n");
         fw.close();
-        System.out.println("Parallelism: " + env.getParallelism());
+        System.out.println("Parallelism: " + parallelism);
 
-
-
-    }
-
-    private static String InputPath = null;
-    private static String outputPath = null;
-    private static int k = 0;
-
-
-    private static boolean parseParameters(String[] args) {
-
-        if (args.length > 0) {
-            if (args.length != 3) {
-                System.err.println("<partitionedEdgesPath> <output path> <k> ");
-                return false;
-            }
-
-            InputPath = args[0];
-            outputPath = args[1];
-            k = (int) Long.parseLong(args[2]);
-
-        } else {
-            System.out.println("Executing example with default parameters and built-in default data.");
-            System.out.println("  Provide parameters to read input data from files.");
-            System.out.println(" Usage: VertexCuts <partitionedEdgesPath> <output path> <k>");
-        }
-        return true;
     }
 
 

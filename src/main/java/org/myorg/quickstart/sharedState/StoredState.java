@@ -62,11 +62,13 @@ public class StoredState implements Serializable{
         return record_map.get(x);
     }
 
-    public boolean checkIfRecordExits(Long x){
-        if (!record_map.containsKey(x))
+    public boolean checkIfRecordExits(Long x) {
+        if (!record_map.containsKey(x)) {
             return false;
-        else
+        }
+        else {
             return true;
+        }
     }
 
     public int getDegree (StoredObject o) {

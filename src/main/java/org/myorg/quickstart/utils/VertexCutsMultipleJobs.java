@@ -15,7 +15,11 @@
      * limitations under the License.
      */
     import java.io.File;
+    import java.io.IOException;
+    import java.util.ArrayList;
     import java.util.Arrays;
+    import java.util.List;
+
     /**
      * Example class
      */
@@ -30,7 +34,7 @@
          * @param dirName : directory name
          * @return : No return value. Sort and print out the result
          */
-        private static void sortAll(String dirName) {
+        private static void sortAll(String dirName) throws IOException {
             File directory = new File(dirName);
             File[] filesArray = directory.listFiles();
             //sort all files
@@ -42,17 +46,23 @@
                 } else if (file.isDirectory() && file.getName().contains("job_")) {
                     File[] jobOutputFiles = file.listFiles();
                     System.out.println( file.getName() + "'s files: ");
+                    List<File> fileList = new ArrayList<>();
+                    int parallelism = 0;
                     for (File f : jobOutputFiles) {
+                        fileList.add(f);
                         System.out.println("File: " + f.getName());
-
+                        parallelism=+1;
                     }
-                    print("Directory : " + file.getName());
+                    double vertexCut = new VertexCut(parallelism).calculateVertexCut(fileList);
+                    System.out.println("Vertex Cut: " + vertexCut);
+                    System.out.println(" --- ");
+                    //print("Directory : " + file.getName());
                 } else {
-                    print("Unknown : " + file.getName());
+                    print("No Job Output Directory found : " + file.getName());
                 }
             }
         }
-        public static void main(String[] args) {
+        public static void main(String[] args) throws IOException {
             //sortAll("C://Programs/");
             sortAll(args[0]);
         }

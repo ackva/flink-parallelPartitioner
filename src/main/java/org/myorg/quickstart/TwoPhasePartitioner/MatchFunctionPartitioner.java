@@ -28,6 +28,8 @@ public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Inte
         this.waitingEdges = new ArrayList<>();
         if (algorithm.equals("hdrf"))
             this.modelBuilder = new ModelBuilderGelly(algorithm, vertexDegreeMap, k, lambda);
+        if (algorithm.equals("dbh"))
+            this.modelBuilder = new ModelBuilderGelly(algorithm, vertexDegreeMap, k);
     }
 
 
@@ -56,6 +58,21 @@ public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Inte
             }
         }
 
+        if (this.algorithm.equals("dbh")) {
+            // ### Merge local model from Phase 1 with global model, here in Phase 2
+            Iterator it = broadcastElement.entrySet().iterator();
+            while (it.hasNext()) {
+                Map.Entry<Long, Long> stateEntry = (Map.Entry)it.next();
+                if(modelBuilder.getDbh().getCurrentState().checkIfRecordExits(stateEntry.getKey())) {
+                    //System.out.println("entry " + stateEntry + " exists: degree before: " + modelBuilder.getHdrf().getCurrentState().getRecord(stateEntry.getKey()).getDegree());
+                    int degree = toIntExact(stateEntry.getValue()) + modelBuilder.getDbh().getCurrentState().getRecord(stateEntry.getKey()).getDegree();
+                    modelBuilder.getDbh().getCurrentState().getRecord(stateEntry.getKey()).setDegree(degree);
+                } else {
+                    modelBuilder.getDbh().getCurrentState().addRecordWithDegree(stateEntry.getKey(), toIntExact(stateEntry.getValue()));
+                }
+            }
+        }
+
         //System.out.println("Current Vertex Partitioning Table: " + vertexPartition);
 
         if (PhasePartitionerHdrf.printPhaseTwo) {
@@ -79,7 +96,7 @@ public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Inte
             }
             waitingEdges.removeAll(toBeRemoved);
         }
-        ctx.output(PhasePartitionerHdrf.outputTag, "1: " + modelBuilder.getHdrf().getCurrentState().printState().toString());
+        //ctx.output(PhasePartitionerHdrf.outputTag, "1: " + modelBuilder.getHdrf().getCurrentState().printState().toString());
 
     }
 
@@ -109,17 +126,22 @@ public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Inte
 
         //out.collect(new Tuple2<>(currentEdge,partitionId));
 
-        ctx.output(PhasePartitionerHdrf.outputTag, "1: " + modelBuilder.getHdrf().getCurrentState().printState().toString());
+        //ctx.output(PhasePartitionerHdrf.outputTag, "1: " + modelBuilder.getHdrf().getCurrentState().printState().toString());
 
     }
 
     private boolean checkIfEarlyArrived(EdgeEventGelly currentEdge) {
 
         //System.out.println(vertexDegreeMap.containsKey(currentEdge.getEdge().f0) + " " + currentEdge.getEdge().f0 + " __ " + currentEdge.getEdge().f1 + vertexDegreeMap.containsKey(currentEdge.getEdge().f1));
-        boolean sourceInside = modelBuilder.getHdrf().getCurrentState().checkIfRecordExits(Long.parseLong(currentEdge.getEdge().f0.toString()));
-        boolean targetInside = modelBuilder.getHdrf().getCurrentState().checkIfRecordExits(Long.parseLong(currentEdge.getEdge().f1.toString()));
-        //boolean sourceInside = vertexDegreeMap.keySet().contains(currentEdge.getEdge().f0);
-        //boolean targetInside = vertexDegreeMap.keySet().contains(currentEdge.getEdge().f1);
+        boolean sourceInside = false;
+        boolean targetInside = false;
+        if (algorithm.equals("hdrf")) {
+            sourceInside = modelBuilder.getHdrf().getCurrentState().checkIfRecordExits(Long.parseLong(currentEdge.getEdge().f0.toString()));
+            targetInside = modelBuilder.getHdrf().getCurrentState().checkIfRecordExits(Long.parseLong(currentEdge.getEdge().f1.toString()));
+        } else if (algorithm.equals("dbh")) {
+            sourceInside = modelBuilder.getDbh().getCurrentState().checkIfRecordExits(Long.parseLong(currentEdge.getEdge().f0.toString()));
+            targetInside = modelBuilder.getDbh().getCurrentState().checkIfRecordExits(Long.parseLong(currentEdge.getEdge().f1.toString()));
+        }
 
         // Debugging only
         if (PhasePartitionerHdrf.printPhaseTwo) {

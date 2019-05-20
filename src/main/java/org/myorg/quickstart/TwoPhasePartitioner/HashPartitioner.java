@@ -19,9 +19,9 @@ public class HashPartitioner<T> implements Partitioner<T> {
         private int shrink;
         private static final int MAX_SHRINK = 100; */
         private int numOfPartitions;
-    public HashPartitioner(CustomKeySelector keySelector, Integer numOfPartitions)
-    {
-        this.keySelector = keySelector;
+
+    public HashPartitioner(Integer numOfPartitions) {
+        //this.keySelector = keySelector;
         //	this.seed = Math.random();
         //	Random r = new Random();
         //	shrink = r.nextInt(MAX_SHRINK);
@@ -34,11 +34,11 @@ public class HashPartitioner<T> implements Partitioner<T> {
         return MathUtils.murmurHash(edge.f0.hashCode()) % this.numOfPartitions;
     }
 
-        @Override
-        public int partition(Object key, int numOfPartitions) {
-        //long source = (long) key;
-        //return Math.abs((int) ( (int) (source)*seed*shrink) % k);
-        return MathUtils.murmurHash(key.hashCode()) % numOfPartitions;
+    @Override
+    public int partition(Object key, int numOfPartitions) {
+    //long source = (long) key;
+    //return Math.abs((int) ( (int) (source)*seed*shrink) % k);
+    return MathUtils.murmurHash(key.hashCode()) % numOfPartitions;
 
 
     }

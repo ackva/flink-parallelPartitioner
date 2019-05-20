@@ -1,6 +1,7 @@
 package org.myorg.quickstart.TwoPhasePartitioner;
 
 import org.myorg.quickstart.sharedState.CustomKeySelector;
+import org.myorg.quickstart.sharedState.Dbh;
 import org.myorg.quickstart.sharedState.Hdrf;
 import org.myorg.quickstart.sharedState.StoredObject;
 
@@ -14,6 +15,7 @@ public class ModelBuilderGelly implements Serializable {
     private HashMap <Long, Long> vertexDegreeMap;
     private String algorithm;
     private Hdrf hdrf;
+    private Dbh dbh;
     private HashPartitioner hashPartitioner;
     private CustomKeySelector keySelector;
     private int numOfPartitions;
@@ -24,30 +26,37 @@ public class ModelBuilderGelly implements Serializable {
         switch (algorithm) {
             case "hdrf":
                 this.algorithm = "hdrf";
-                this.keySelector = new CustomKeySelector(0);
-                Hdrf hdrf = new Hdrf<>(this.keySelector, k,lambda);
+                Hdrf hdrf = new Hdrf(this.keySelector, k,lambda);
                 this.hdrf = hdrf;
                 this.numOfPartitions = k;
                 break;
-            case "hash":
+            // Hash is not used here. It's in the main function of this program
+            /*
+                case "hash":
                 this.algorithm = "hash";
                 this.keySelector = new CustomKeySelector(0);
                 this.hashPartitioner = new HashPartitioner(this.keySelector,k);
-                break;
-            case "deterministic":
-                this.algorithm = "deterministic";
-                break;
-            case "byOrigin":
-                this.algorithm = "byOrigin";
-                break;
+                break;*/
             default:
                 this.algorithm = "random";
                 break;
         }
     }
 
+    public ModelBuilderGelly(String algorithm, HashMap <Long, Long> vertexDegreeMap, Integer k) {
+        this.vertexDegreeMap = vertexDegreeMap;
+        this.algorithm = "dbh";
+        this.keySelector = new CustomKeySelector(0);
+        Dbh dbh = new Dbh(this.keySelector, k);
+        this.dbh = dbh;
+    }
+
     public Hdrf getHdrf() {
         return hdrf;
+    }
+
+    public Dbh getDbh() {
+        return dbh;
     }
 
     public HashMap<Long, Long> getVertexDegreeMap() {
@@ -63,7 +72,9 @@ public class ModelBuilderGelly implements Serializable {
         } else if (this.algorithm.equals("hash")) {
             partitionId = hashPartitioner.selectPartition(edge.getEdge());
         } else if (this.algorithm.equals("hdrf")) {
-            partitionId = hdrf.selectPartition(edge.getEdge(),this.numOfPartitions);
+            partitionId = hdrf.selectPartition(edge.getEdge());
+        } else if (this.algorithm.equals("dbh")) {
+            partitionId = dbh.selectPartition(edge.getEdge());
         } else {
             // TODO: Actual algorithm here
             Random rand = new Random();
