@@ -1,31 +1,38 @@
-package org.myorg.quickstart.partitioners;
+/*
+package org.myorg.quickstart.deprecated.TwoPhasePartitioner;
 
 import org.apache.flink.api.common.JobExecutionResult;
-import org.apache.flink.api.common.functions.MapFunction;
-import org.apache.flink.api.common.functions.Partitioner;
+import org.apache.flink.api.common.functions.*;
 import org.apache.flink.api.common.state.MapStateDescriptor;
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.typeutils.GenericTypeInfo;
 import org.apache.flink.api.java.typeutils.TupleTypeInfo;
+import org.apache.flink.graph.Edge;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.BroadcastStream;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.windowing.time.Time;
+import org.apache.flink.types.NullValue;
+import org.apache.flink.util.Collector;
 import org.apache.flink.util.OutputTag;
-import org.myorg.quickstart.utils.ProcessWindowGelly;
-import org.myorg.quickstart.utils.CustomKeySelector5;
-import org.myorg.quickstart.utils.*;
+import org.myorg.quickstart.applications.ExactTriangleCount;
+import org.myorg.quickstart.applications.SimpleEdgeStream;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
+import java.time.Instant;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
+import static java.time.LocalDate.now;
+
+*/
 /**
  *
  * @Arguments:
@@ -33,23 +40,19 @@ import java.util.concurrent.TimeUnit;
  *           "0": generated on Runtime
  *           "1": from file
  *      2) input path
- *           - will be ignored, if GraphSource == 0
- *      3)  Algorithm (Optional)
+ *           - will be ignored, if GraphSource == 1
+ *      3) output type
+ *           - "1": printed on screen
+ *           - "2": written to file
+ *      4) output path
+ *           - will be ignored, if output type == 1
+ *      5)  Algorithm (Optional)
  *           - hrdf - default lambda
+ *           - greedy
  *           - hash
- *      4) Graph size
- *          - will be ignored if graphsource == 1
- *      5) Parallelism in "global model" step --> parallel or non-parallel HDRF
- *          - 1 (default)
- *          - X whatever
- *      6) General parallelism
- *          - must be > 1
- *
- *   Example (local testing in IntelliJ:
- *   1 C:\flinkJobs\input\streamInput11.txt hdrf 100 1 2
- *
- */
-public class PhasePartitionerHdrf {
+ *//*
+
+public class PhasePartitionerDegree {
 
     public static final OutputTag<String> outputTag = new OutputTag<String>("side-output"){};
 
@@ -65,7 +68,6 @@ public class PhasePartitionerHdrf {
     private static String inputPath = null;
     private static String graphSource = null;
     private static String algorithm = "";
-    private static int globalPhase = 1;
     private static int outputType = 0;
     private static String outputPath = null;
     public static int k = 2; // parallelism - partitions
@@ -76,88 +78,74 @@ public class PhasePartitionerHdrf {
         graphSource = args[0]; // 0 = synthetic || 1 = from File
         inputPath = args[1];
         algorithm = args[2];
-        int graphSize = Integer.parseInt(args[3]);
-        globalPhase = Integer.valueOf(args[4]);
-        k = Integer.valueOf(args[5]);
-        String graphName = args[6];
-        String outputPathPartitions = "flinkJobOutput/job_" + new SimpleDateFormat("MM_dd-HH_mm_ss").format(new Date()) + "_" + algorithm + "_p" + k + "_s" + graphName;
+        String outputPathPartitions = "flinkJobOutput/job_" + new SimpleDateFormat("MM_dd-HH_mm_ss").format(new Date()) + "_" + algorithm + "_p" + k + "_s" + graphSource;
         String outputPathLogging = "flinkJobOutput/job_" + new SimpleDateFormat("MM_dd-HH_mm_ss").format(new Date()) + "_Logging";
 
+        int graphSize = Integer.parseInt(args[3]);
         ProcessWindowGelly firstPhaseProcessor = new ProcessWindowGelly();
-        MatchFunctionPartitioner matchFunction = new MatchFunctionPartitioner(algorithm, k, lambda);
+        MatchFunctionPartitioner matchFunction = new MatchFunctionPartitioner(algorithm);
         MapStateDescriptor<String, Tuple2<Integer, ArrayList<Integer>>> rulesStateDescriptor = new MapStateDescriptor<>("RulesBroadcastState", BasicTypeInfo.STRING_TYPE_INFO,tupleTypeInfo);
 
         // Environment setup
         env.setParallelism(k);
         env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
+
         // Generate OR FileRead graph -- as from arguments
         GraphCreatorGelly edgeGraph = getGraph(graphSource, graphSize);
         DataStream<EdgeEventGelly>edgeStream = edgeGraph.getEdgeStream(env);
 
-        DataStream<EdgeEventGelly> partitionedEdges = null;
+        // *** PHASE 1 ***
+        //Process edges to build the local model for broadcast
+        DataStream<HashMap<Long, Long>> phaseOneStream = edgeStream
+                .keyBy(new KeySelector<EdgeEventGelly, Long>() {
+                    @Override
+                    public Long getKey(EdgeEventGelly value) throws Exception {
+                        return Long.parseLong(value.getEdge().f0.toString());
+                    }
+                })
+                .timeWindow(Time.milliseconds(windowSizeInMs))
+                .process(new ProcessWindowDegree());
+        //phaseOneStream.print();
 
-        if (algorithm.equals("hdrf") || algorithm.equals("dbh")) {
-            // *** PHASE 1 ***
-            //Process edges to build the local model for broadcast
-            DataStream<HashMap<Long, Long>> phaseOneStream = edgeStream
-                    .keyBy(new KeySelector<EdgeEventGelly, Long>() {
-                        @Override
-                        public Long getKey(EdgeEventGelly value) throws Exception {
-                            return Long.parseLong(value.getEdge().f0.toString());
-                        }
-                    })
-                    .timeWindow(Time.milliseconds(windowSizeInMs))
-                    .process(new ProcessWindowDegree());
+        // Process edges in the similar time windows to "wait" for phase 2
+        DataStream<EdgeEventGelly> edgesWindowed = edgeStream
+                .keyBy(new KeySelector<EdgeEventGelly, Integer>() {
+                    @Override
+                    public Integer getKey(EdgeEventGelly value) throws Exception {
+                        return Integer.parseInt(value.getEdge().f0.toString());
+                    }
+                })
+                .timeWindow(Time.milliseconds(windowSizeInMs))
+                .process(firstPhaseProcessor);
 
-            // Process edges in the similar time windows to "wait" for phase 2
-            DataStream<EdgeEventGelly> edgesWindowed = edgeStream
-                    .keyBy(new KeySelector<EdgeEventGelly, Integer>() {
-                        @Override
-                        public Integer getKey(EdgeEventGelly value) throws Exception {
-                            return Integer.parseInt(value.getEdge().f0.toString());
-                        }
-                    })
-                    .timeWindow(Time.milliseconds(windowSizeInMs))
-                    .process(firstPhaseProcessor);
+        // *** Phase 2 ***
+        // Broadcast local state from Phase 1 to all Task Managers
+        BroadcastStream<HashMap<Long, Long>> broadcastStateStream = phaseOneStream
+                .broadcast(rulesStateDescriptor);
 
-            // *** Phase 2 ***
-            // Broadcast local state from Phase 1 to all Task Managers
-            BroadcastStream<HashMap<Long, Long>> broadcastStateStream = phaseOneStream
-                    .broadcast(rulesStateDescriptor);
+        // Connect Broadcast Stream and Edge Stream to build global model
+        SingleOutputStreamOperator<Tuple2<EdgeEventGelly,Integer>> phaseTwoStream = edgesWindowed
+                .keyBy(new KeySelector<EdgeEventGelly, Integer>() {
+                    @Override
+                    public Integer getKey(EdgeEventGelly value) throws Exception {
+                        return Integer.parseInt(value.getEdge().f0.toString());
+                    }
+                })
+                .connect(broadcastStateStream)
+                .process(matchFunction);
 
-            // Connect Broadcast Stream and Edge Stream to build global model
-            SingleOutputStreamOperator<Tuple2<EdgeEventGelly, Integer>> phaseTwoStream = edgesWindowed
-                    .keyBy(new KeySelector<EdgeEventGelly, Integer>() {
-                        @Override
-                        public Integer getKey(EdgeEventGelly value) throws Exception {
-                            return Integer.parseInt(value.getEdge().f0.toString());
-                        }
-                    })
-                    .connect(broadcastStateStream)
-                    .process(matchFunction).setParallelism(globalPhase);
-            //phaseTwoStream.print();
-
-            // Final Step -- Custom Partition, based on pre-calculated ID
-            partitionedEdges = phaseTwoStream
-                .partitionCustom(new PartitionByTag(), 1)
-                    .map(new MapFunction<Tuple2<EdgeEventGelly, Integer>, EdgeEventGelly>() {
-                        public EdgeEventGelly map(Tuple2<EdgeEventGelly, Integer> input) {
-                            return input.f0;
-                        }});
-        } else if (algorithm.equals("hash")) {
-            partitionedEdges = edgeStream
-                .partitionCustom(new HashPartitioner<>(k),new CustomKeySelector5<>(0));
-        } else {
-            throw new Exception("WRONG ALGO!!");
-        }
-
+        // Final Step -- Custom Partition, based on pre-calculated ID
+        DataStream partitionedEdges = phaseTwoStream.partitionCustom(new PartitionByTag(),1);
 
         //Print result in human-readable way --> e.g. (4,2,0) means: Edge(4,2) partitioned to machineId 0
-        partitionedEdges.writeAsText(outputPathPartitions.replaceAll(":","_"));
 
+        partitionedEdges.map(new MapFunction<Tuple2<EdgeEventGelly, Integer>, Tuple3<Integer, Integer, Integer>>() {
+            public Tuple3<Integer, Integer, Integer> map(Tuple2<EdgeEventGelly, Integer> input) {
+                return new Tuple3<>(Integer.parseInt(input.f0.getEdge().f0.toString()), Integer.parseInt(input.f0.getEdge().f1.toString()), input.f1);
+            }
+        }).writeAsText(outputPathPartitions.replaceAll(":","_"));
 
-        // Attempt to lower the amount of "state" prints -- ignore for now
-        /*DataStream<String> stateStream = phaseTwoStream.getSideOutput(outputTag)
+        DataStream<String> stateStream = phaseTwoStream.getSideOutput(outputTag)
                 .keyBy(new KeySelector<String, Integer>() {
                  @Override
                 public Integer getKey(String value) throws Exception {
@@ -180,9 +168,10 @@ public class PhasePartitionerHdrf {
                         }
 
                     }
-                });*/
+                });
 
-        /*
+        */
+/*
         stateStream.
                 filter(new FilterFunction<String>() {
                     @Override
@@ -190,11 +179,12 @@ public class PhasePartitionerHdrf {
                         return  ! value.equals("ignore");
                     }
                 }).writeAsText(outputPathLogging.replaceAll(":","_"));
-*/
+*//*
+
 
         // ### Execute the job in Flink
-        System.out.println(env.getExecutionPlan());
-        JobExecutionResult result = env.execute(createJobName(algorithm,k, graphSource, graphName));
+        //System.out.println(env.getExecutionPlan());
+        JobExecutionResult result = env.execute(createJobName(algorithm,k, graphSource));
 
         System.out.println("The job took " + result.getNetRuntime(TimeUnit.SECONDS) + " seconds to execute"+"\n");//appends the string to the file
         System.out.println("The job took " + result.getNetRuntime(TimeUnit.NANOSECONDS) + " nanoseconds to execute"+"\n");
@@ -215,13 +205,13 @@ public class PhasePartitionerHdrf {
         return edgeGraph;
     }
 
-    private static String createJobName(String algorithm, int k, String generateGraph, String graphName) {
+    private static String createJobName(String algorithm, int k, String generateGraph) {
         String jobName = "Flink Job Name not determined";
         if (generateGraph.equals("0")) {
             jobName = "Runtime-generated Graph";
         } else if (generateGraph.equals("1")) {
             // READ GRAPH FROM FILE
-            jobName = graphName + " Graph";
+            jobName = "File-Read Graph";
         } else {
             jobName = "Undefined Graph";
         }
@@ -237,14 +227,13 @@ public class PhasePartitionerHdrf {
                 return false;
             }
 
-/*            graphType = Integer.valueOf(args[0]);
+            graphType = Integer.valueOf(args[0]);
             inputPath = args[1];
             outputType = Integer.valueOf(args[2]);
             outputPath = args[3];
             algorithm = args[4];
-            globalPhase = Integer.valueOf(args[5]);
             //k = (int) Long.parseLong(args[3]);
-            //lamda = Double.parseDouble(args[4]);*/
+            //lamda = Double.parseDouble(args[4]);
         } else {
             System.out.println("Executing example with default parameters and built-in default data.");
             System.out.println("Provide parameters to read input data from files.");
@@ -261,4 +250,4 @@ public class PhasePartitionerHdrf {
     }
 
 }
-
+*/
