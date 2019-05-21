@@ -57,7 +57,7 @@ public class BroadcastStateGraph11 {
 
         @Override
         public String toString() {
-            return "Edge{" +
+            return "EdgeDepr{" +
                     "originVertex=" + originVertex +
                     ", destinVertex=" + destinVertex +
                     '}';

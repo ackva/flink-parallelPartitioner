@@ -14,9 +14,9 @@ import java.util.Map;
 
 import static org.myorg.quickstart.deprecated.BroadcastState.tupleTypeInfo;
 
-public class MatchFunction extends KeyedBroadcastProcessFunction<BroadcastState.Color, Item, Tuple2<BroadcastState.Shape, BroadcastState.Shape>, String> {
+public class MatchFunctionDepr extends KeyedBroadcastProcessFunction<BroadcastState.Color, Item, Tuple2<BroadcastState.Shape, BroadcastState.Shape>, String> {
 
-    private State state;
+    private StateDepr stateDepr;
     private int counter = 0;
 
     private final MapStateDescriptor<String, List<Item>> matchStateDesc = new MapStateDescriptor<>("items", BasicTypeInfo.STRING_TYPE_INFO, new ListTypeInfo<>(Item.class));
@@ -24,8 +24,8 @@ public class MatchFunction extends KeyedBroadcastProcessFunction<BroadcastState.
     private final MapStateDescriptor<String, Tuple2<BroadcastState.Shape, BroadcastState.Shape>> broadcastStateDescriptor = new MapStateDescriptor<>("RulesBroadcastState", BasicTypeInfo.STRING_TYPE_INFO, tupleTypeInfo);
 
 /*
-    public MatchFunction (State state) {
-        this.state = state;
+    public MatchFunctionDepr (StateDepr stateDepr) {
+        this.stateDepr = stateDepr;
     }*/
 
 

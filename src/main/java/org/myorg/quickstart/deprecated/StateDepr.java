@@ -4,9 +4,9 @@ import org.apache.flink.api.java.tuple.Tuple2;
 
 import java.util.ArrayList;
 
-public class State {
+public class StateDepr {
     private ArrayList<Tuple2<BroadcastState.Shape, BroadcastState.Shape>> rules = new ArrayList<>();
-    public State() {
+    public StateDepr() {
         this.addRule(BroadcastState.Shape.RECTANGLE, BroadcastState.Shape.CIRCLE);
     }
 

@@ -99,7 +99,7 @@ public class PhasePartitionerGelly {
 
         DataStream<EdgeEventGelly>edgeStream = edgeGraph.getEdgeStream(env);
 
-        //Print Edge Events with TimeStamps
+        //Print EdgeDepr Events with TimeStamps
         */
 /*        DataStream<Tuple2<EdgeEventGelly, String>> edgeTime = edgeStream
                 .map(new MapFunction<EdgeEventGelly, Tuple2<EdgeEventGelly, String>>() {
@@ -113,8 +113,8 @@ public class PhasePartitionerGelly {
 
         // Print plain edges
         */
-/*edges.map(new MapFunction<Edge<Long, NullValue>, Tuple2<Integer, Integer>>() {
-            public Tuple2<Integer, Integer> map(Edge<Long, NullValue> input) {
+/*edges.map(new MapFunction<EdgeDepr<Long, NullValue>, Tuple2<Integer, Integer>>() {
+            public Tuple2<Integer, Integer> map(EdgeDepr<Long, NullValue> input) {
                 return new Tuple2<>(Integer.parseInt(input.f0.toString()), Integer.parseInt(input.f0.toString()));
             }
         }).print();*//*
@@ -151,7 +151,7 @@ public class PhasePartitionerGelly {
         BroadcastStream<HashMap> broadcastStateStream = phaseOneStream
                 .broadcast(rulesStateDescriptor);
 
-        // Connect Broadcast Stream and Edge Stream to build global model
+        // Connect Broadcast Stream and EdgeDepr Stream to build global model
         SingleOutputStreamOperator<Tuple2<EdgeEventGelly,Integer>> phaseTwoStream = edgesWindowed
                 .keyBy(new KeySelector<EdgeEventGelly, Integer>() {
                     @Override
@@ -168,7 +168,7 @@ public class PhasePartitionerGelly {
         DataStream partitionedEdges = phaseTwoStream.partitionCustom(new PartitionByTag(),1);
 
         //Print result in human-readable way
-        // Tuple3 (Vertex, Vertex, Partition) --> e.g. (4,2,0) is Edge(4,2) located in Parttition 0
+        // Tuple3 (VertexDepr, VertexDepr, Partition) --> e.g. (4,2,0) is EdgeDepr(4,2) located in Parttition 0
         partitionedEdges.map(new MapFunction<Tuple2<EdgeEventGelly, Integer>, Tuple3<Integer, Integer, Integer>>() {
             public Tuple3<Integer, Integer, Integer> map(Tuple2<EdgeEventGelly, Integer> input) {
                 return new Tuple3<>(Integer.parseInt(input.f0.getEdge().f0.toString()), Integer.parseInt(input.f0.getEdge().f1.toString()), input.f1);

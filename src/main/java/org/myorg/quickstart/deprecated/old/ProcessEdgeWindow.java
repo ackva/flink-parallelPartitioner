@@ -7,7 +7,7 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
-import org.myorg.quickstart.deprecated.EdgeEvent;
+import org.myorg.quickstart.deprecated.EdgeEventDepr;
 import org.myorg.quickstart.deprecated.EdgeSimple;
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.java.typeutils.GenericTypeInfo;
@@ -18,7 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-public class ProcessEdgeWindow extends ProcessWindowFunction<EdgeEvent, Tuple2<List<EdgeEvent>, Integer>, Integer, TimeWindow> {
+public class ProcessEdgeWindow extends ProcessWindowFunction<EdgeEventDepr, Tuple2<List<EdgeEventDepr>, Integer>, Integer, TimeWindow> {
 
     //    private static ClassLoader
 
@@ -32,7 +32,7 @@ public class ProcessEdgeWindow extends ProcessWindowFunction<EdgeEvent, Tuple2<L
 
     List<Tuple2<Integer, List<Integer>>> stateList = new ArrayList<>();
     List<Integer> stateArray = new ArrayList<>();
-    List<EdgeEvent> edgesInWindow = new ArrayList<>();
+    List<EdgeEventDepr> edgesInWindow = new ArrayList<>();
     BroadcastStream<Tuple2<Integer,List<Integer>>> broadcastStream;
     StreamExecutionEnvironment env;
 
@@ -56,14 +56,14 @@ public class ProcessEdgeWindow extends ProcessWindowFunction<EdgeEvent, Tuple2<L
 
 
 
-    public void process(Integer key, Context context, Iterable<EdgeEvent> edgeIterable, Collector<Tuple2<List<EdgeEvent>, Integer>> out) throws Exception {
+    public void process(Integer key, Context context, Iterable<EdgeEventDepr> edgeIterable, Collector<Tuple2<List<EdgeEventDepr>, Integer>> out) throws Exception {
 //      int counterBroadcast = 0;
 
         // Print current Window (edges)
         edgeIterable.forEach(edgesInWindow::add);
         String printString = "Current Window: ";
         List<EdgeSimple> fakeList = new ArrayList<>();
-        for(EdgeEvent e: edgesInWindow) {
+        for(EdgeEventDepr e: edgesInWindow) {
             printString = printString + "; " + e.getEdge().getOriginVertex() + " " + e.getEdge().getDestinVertex();
             fakeList.add(e.getEdge());
         }

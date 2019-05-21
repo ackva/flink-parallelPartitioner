@@ -50,7 +50,7 @@ public class BroadcastPartitionerCheckPoint {
         //MatchFunctionSimple matchFunction = new MatchFunctionSimple();
         MatchFunctionRule matchRules = new MatchFunctionRule();
 
-        // create 1 sample "state" for Vertex 1, appearing in partition 1
+        // create 1 sample "state" for VertexDepr 1, appearing in partition 1
         List<Integer> stateArray = new ArrayList<>(); stateArray.add(-1); stateArray.add(-1);
         List<Tuple2<Integer, List<Integer>>> stateList = new ArrayList<>();
         stateList.add(new Tuple2<>(new Integer(-1), stateArray));
@@ -73,7 +73,7 @@ public class BroadcastPartitionerCheckPoint {
                 //.rebalance()                               // needed to increase the parallelism
                 .map(edgeSimple -> edgeSimple)
                 .setParallelism(2)
-                .keyBy(EdgeSimple::getOriginVertex);
+                .keyBy(EdgeSimple::getOriginVertexDepr);
 
         DataStream<Tuple2<Integer, List<Integer>>> outputRules = edgeKeyedStream
                 .connect(broadcastRulesStream)
@@ -112,7 +112,7 @@ public class BroadcastPartitionerCheckPoint {
             .rebalance()                               // needed to increase the parallelism
             .map(edgeSimple -> edgeSimple)
             .setParallelism(2)
-            .keyBy(EdgeSimple::getOriginVertex);
+            .keyBy(EdgeSimple::getOriginVertexDepr);
 
         DataStream<Tuple2<Integer, List<Integer>>> outputRules2 = edgeKeyedStream2
             .connect(broadcastRulesStream2)
@@ -140,7 +140,7 @@ public class BroadcastPartitionerCheckPoint {
             .rebalance()                               // needed to increase the parallelism
             .map(edgeSimple -> edgeSimple)
             .setParallelism(2)
-            .keyBy(EdgeSimple::getOriginVertex);
+            .keyBy(EdgeSimple::getOriginVertexDepr);
 
         DataStream<Tuple2<Integer, List<Integer>>> outputRules3 = edgeKeyedStream3
             .connect(broadcastRulesStream3)
@@ -227,7 +227,7 @@ public class BroadcastPartitionerCheckPoint {
                 .rebalance()                               // needed to increase the parallelism
                 .map(edgeSimple -> edgeSimple)
                 .setParallelism(2)
-                .keyBy(EdgeSimple::getOriginVertex);
+                .keyBy(EdgeSimple::getOriginVertexDepr);
 
         DataStream<String> output2 = edgeKeyedStream2
                 .connect(broadcastRulesStream2)

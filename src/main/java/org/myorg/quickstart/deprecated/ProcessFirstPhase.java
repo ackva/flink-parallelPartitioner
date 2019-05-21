@@ -10,12 +10,12 @@ import java.util.*;
 import static java.time.Instant.now;
 
 
-public class ProcessFirstPhase extends ProcessWindowFunction<EdgeEvent, HashMap, Integer, TimeWindow> {
+public class ProcessFirstPhase extends ProcessWindowFunction<EdgeEventDepr, HashMap, Integer, TimeWindow> {
 
     int windowCounter = 0;
     int edgeCounter = 0;
 
-    public void process(Integer key, Context context, Iterable<EdgeEvent> edgeIterable, Collector<HashMap> out) throws Exception {
+    public void process(Integer key, Context context, Iterable<EdgeEventDepr> edgeIterable, Collector<HashMap> out) throws Exception {
 
         windowCounter++;
         int edgeCounter2 = 0;
@@ -25,14 +25,14 @@ public class ProcessFirstPhase extends ProcessWindowFunction<EdgeEvent, HashMap,
         HashMap<Integer, HashSet<Integer>> vertexToPartitionMap = new HashMap<>();
 
         // Store all edges of current window
-        List<EdgeEvent> edgesInWindow = storeElementsOfWindow(edgeIterable);
+        List<EdgeEventDepr> edgesInWindow = storeElementsOfWindow(edgeIterable);
         //printWindowElements(edgesInWindow);
 
         // For every edge, choose partition based on algorithm
-        ModelBuilder modelBuilder = new ModelBuilder("byOrigin", vertexToPartitionMap);
+        ModelBuilderDepr modelBuilderDepr = new ModelBuilderDepr("byOrigin", vertexToPartitionMap);
 
-        for(EdgeEvent e: edgesInWindow) {
-            modelBuilder.choosePartition(e);
+        for(EdgeEventDepr e: edgesInWindow) {
+            modelBuilderDepr.choosePartition(e);
             printString = printString + e.getEdge().getOriginVertex() + " " + e.getEdge().getDestinVertex() + ", ";
         }
 
@@ -41,34 +41,34 @@ public class ProcessFirstPhase extends ProcessWindowFunction<EdgeEvent, HashMap,
             //System.out.println(printString);
         }
         // Emit local model for next phase
-        out.collect(modelBuilder.getVertexToPartitionMap());
+        out.collect(modelBuilderDepr.getVertexToPartitionMap());
 
         // Print for debugging
         //System.out.println(windowCounter++ + " windows on this worker -- " + edgeCounter + " edges ");
 
     }
 
-    public List<EdgeEvent> storeElementsOfWindow(Iterable<EdgeEvent> edgeIterable) {
+    public List<EdgeEventDepr> storeElementsOfWindow(Iterable<EdgeEventDepr> edgeIterable) {
 
         // Save into List
-        List<EdgeEvent> edgesInWindow = new ArrayList<>();
+        List<EdgeEventDepr> edgesInWindow = new ArrayList<>();
         edgeIterable.forEach(edgesInWindow::add);
 
         return edgesInWindow;
     }
 
-    public void printWindowElements(List<EdgeEvent> edgeEventList) {
+    public void printWindowElements(List<EdgeEventDepr> edgeEventDeprList) {
 
         // Create human-readable String with current window
         String printString = "1st Phase Window [" + windowCounter++ + "]: ";
-        for(EdgeEvent e: edgeEventList) {
+        for(EdgeEventDepr e: edgeEventDeprList) {
             printString = printString + "; " + e.getEdge().getOriginVertex() + " " + e.getEdge().getDestinVertex();
         }
         System.out.println(printString);
 
     }
 
-    public void buildLocalModel(EdgeEvent e, HashMap<Integer, Integer> vertexToPartitionMap) {
+    public void buildLocalModel(EdgeEventDepr e, HashMap<Integer, Integer> vertexToPartitionMap) {
         Integer[] vertices = new Integer[2];
         vertices[0] = e.getEdge().getOriginVertex();
         vertices[1] = e.getEdge().getDestinVertex();
@@ -84,7 +84,7 @@ public class ProcessFirstPhase extends ProcessWindowFunction<EdgeEvent, HashMap,
         }
     }
 
-    public void getFrequency(EdgeEvent e, HashMap<Integer, Integer> frequencyTable) {
+    public void getFrequency(EdgeEventDepr e, HashMap<Integer, Integer> frequencyTable) {
         Integer[] vertices = new Integer[2];
         vertices[0] = e.getEdge().getOriginVertex();
         vertices[1] = e.getEdge().getDestinVertex();

@@ -57,7 +57,7 @@ import static java.lang.System.setOut;
 */
 /**
  *
- * Try & Error coding with Share State in Flink
+ * Try & Error coding with Share StateDepr in Flink
  * @parameters: -- not required --
  *
  *//*
@@ -76,7 +76,7 @@ public class ShareStateImpl {
         // Create Input (fake)
         ArrayList<DestinVertex> colorList = new ArrayList<>();
         ArrayList<OriginVertex> shapeList = new ArrayList<>();
-        ArrayList<Edge> itemList = new ArrayList<>();
+        ArrayList<EdgeDepr> itemList = new ArrayList<>();
 
         // 5 color objects
         for (int i = 0; i < 5; i++) {
@@ -96,7 +96,7 @@ public class ShareStateImpl {
             Random random = new Random();
             r1 = random.nextInt(5);
             r2 = random.nextInt(10);
-            Edge item = new Edge(colorList.get(r1), shapeList.get(r2), i);
+            EdgeDepr item = new EdgeDepr(colorList.get(r1), shapeList.get(r2), i);
             itemList.add(item);
         }
 
@@ -112,11 +112,11 @@ public class ShareStateImpl {
 
 
         // Get input data
-        DataStream<Edge> streamInput = env.fromCollection(itemList);
+        DataStream<EdgeDepr> streamInput = env.fromCollection(itemList);
         DataStream<Rule> ruleStream = env.fromCollection(ruleList);
 
         // key the shapes by color
-        KeyedStream<Edge, DestinVertex> colorPartitionedStream = streamInput.keyBy(Edge::getDestinVertex);
+        KeyedStream<EdgeDepr, DestinVertex> colorPartitionedStream = streamInput.keyBy(EdgeDepr::getDestinVertexDepr);
         //keyBy(new KeySelector<OriginVertex, DestinVertex>(){});
         //streamInput.printPhaseOne();
 
@@ -140,15 +140,15 @@ public class ShareStateImpl {
                         //   2. the type of elements in the non-broadcast side
                         //   3. the type of elements in the broadcast side
                         //   4. the type of the result, here a string
-                        //   new KeyedBroadcastProcessFunction<DestinVertex, Edge, Rule, String>() {
+                        //   new KeyedBroadcastProcessFunction<DestinVertex, EdgeDepr, Rule, String>() {
 
             // store partial matches, i.e. first elements of the pair waiting for their second element
             // we keep a list as we may have many first elements waiting
-            final MapStateDescriptor<String, List<Edge>> mapStateDesc =
+            final MapStateDescriptor<String, List<EdgeDepr>> mapStateDesc =
                     new MapStateDescriptor<>(
                             "items",
                             BasicTypeInfo.STRING_TYPE_INFO,
-                            new ListTypeInfo<>(Edge.class));
+                            new ListTypeInfo<>(EdgeDepr.class));
 
             @Override
             public void processBroadcastElement(Rule value,
@@ -158,25 +158,25 @@ public class ShareStateImpl {
             }
 
             @Override
-            public void processElement(Edge value,
+            public void processElement(EdgeDepr value,
                                        ReadOnlyContext ctx,
                                        Collector<String> out) throws Exception {
 
-                final MapState<String, List<Edge>> state = getRuntimeContext().getMapState(mapStateDesc);
-                final OriginVertex shape = value.getOriginVertex();
+                final MapState<String, List<EdgeDepr>> state = getRuntimeContext().getMapState(mapStateDesc);
+                final OriginVertex shape = value.getOriginVertexDepr();
 
                 for (Map.Entry<String, Rule> entry :
                         ctx.getBroadcastState(ruleStateDescriptor).immutableEntries()) {
                     final String ruleName = entry.getKey();
                     final Rule rule = entry.getValue();
 
-                    List<Edge> stored = state.get(ruleName);
+                    List<EdgeDepr> stored = state.get(ruleName);
                     if (stored == null) {
                         stored = new ArrayList<>();
                     }
 
                     if (shape == rule.second && !stored.isEmpty()) {
-                        for (Edge i : stored) {
+                        for (EdgeDepr i : stored) {
                             out.collect("MATCH: " + i + " - " + value);
                         }
                         stored.clear();
@@ -229,7 +229,7 @@ public class ShareStateImpl {
     // Get fake state table
     DataStream<String> stateStream = env.fromCollection(hardCodedState);
 
-    // Initialize state table (Columns: Vertex, Occurrence)
+    // Initialize state table (Columns: VertexDepr, Occurrence)
     HashMap<String, Long> stateTable = new HashMap<>();
 
     // FlatMap function to create proper tuples (Tuple2) with both vertices, as in input file
@@ -304,15 +304,15 @@ public class ShareStateImpl {
         BroadcastStream<String> stateStreamBroad = stateStream.broadcast(stateDescriptor);
 
         DataStream<Match> output = partitionedEdges.connect(stateStreamBroad).process(
-        new KeyedBroadcastProcessFunction<DestinVertex, Edge, Rule, String>() {
+        new KeyedBroadcastProcessFunction<DestinVertex, EdgeDepr, Rule, String>() {
 
 // store partial matches, i.e. first elements of the pair waiting for their second element
 // we keep a list as we may have many first elements waiting
-private final MapStateDescriptor<String, List<Edge>> mapStateDesc =
+private final MapStateDescriptor<String, List<EdgeDepr>> mapStateDesc =
         new MapStateDescriptor<>(
         "items",
         BasicTypeInfo.STRING_TYPE_INFO,
-        new ListTypeInfo<>(Edge.class));
+        new ListTypeInfo<>(EdgeDepr.class));
 
 // identical to our ruleStateDescriptor above
 private final MapStateDescriptor<String, Rule> ruleStateDescriptor =
@@ -329,25 +329,25 @@ public void processBroadcastElement(Rule value,
         }
 
 @Override
-public void processElement(Edge value,
+public void processElement(EdgeDepr value,
         ReadOnlyContext ctx,
         Collector<String> out) throws Exception {
 
-final MapState<String, List<Edge>> state = getRuntimeContext().getMapState(mapStateDesc);
-final OriginVertex shape = value.getOriginVertex();
+final MapState<String, List<EdgeDepr>> state = getRuntimeContext().getMapState(mapStateDesc);
+final OriginVertex shape = value.getOriginVertexDepr();
 
         for (Map.Entry<String, Rule> entry :
         ctx.getBroadcastState(ruleStateDescriptor).immutableEntries()) {
 final String ruleName = entry.getKey();
 final Rule rule = entry.getValue();
 
-        List<Edge> stored = state.get(ruleName);
+        List<EdgeDepr> stored = state.get(ruleName);
         if (stored == null) {
         stored = new ArrayList<>();
         }
 
         if (shape == rule.second && !stored.isEmpty()) {
-        for (Edge i : stored) {
+        for (EdgeDepr i : stored) {
         out.collect("MATCH: " + i + " - " + value);
         }
         stored.clear();

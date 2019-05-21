@@ -36,7 +36,7 @@ import java.util.Map;
 
 public class BroadcastStateGraph {
 
-/*    public enum Vertex {
+/*    public enum VertexDepr {
         ONE, TWO, THREE, FOUR, FIVE, SIX
     }*/
 
@@ -66,7 +66,7 @@ public class BroadcastStateGraph {
 
         @Override
         public String toString() {
-            return "Edge{" +
+            return "EdgeDepr{" +
                     "originVertex=" + originVertex +
                     ", destinVertex=" + destinVertex +
                     '}';
@@ -145,7 +145,7 @@ public class BroadcastStateGraph {
         public void processBroadcastElement(Tuple2<Vertex, Long> value, Context ctx, Collector<String> out) throws Exception {
             ctx.getBroadcastState(broadcastStateDescriptor)
                     .put("Rule_" + counter++, value);
-            System.out.println("Vertex State_" + counter++ + value);
+            System.out.println("VertexDepr State_" + counter++ + value);
         }
 
         @Override

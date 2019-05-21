@@ -10,7 +10,7 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.typeutils.GenericTypeInfo;
 import org.apache.flink.api.java.typeutils.TupleTypeInfo;
-import org.apache.flink.graph.Edge;
+import org.apache.flink.graph.EdgeDepr;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.BroadcastStream;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -123,7 +123,7 @@ public class PhasePartitionerDegree {
         BroadcastStream<HashMap<Long, Long>> broadcastStateStream = phaseOneStream
                 .broadcast(rulesStateDescriptor);
 
-        // Connect Broadcast Stream and Edge Stream to build global model
+        // Connect Broadcast Stream and EdgeDepr Stream to build global model
         SingleOutputStreamOperator<Tuple2<EdgeEventGelly,Integer>> phaseTwoStream = edgesWindowed
                 .keyBy(new KeySelector<EdgeEventGelly, Integer>() {
                     @Override
@@ -137,7 +137,7 @@ public class PhasePartitionerDegree {
         // Final Step -- Custom Partition, based on pre-calculated ID
         DataStream partitionedEdges = phaseTwoStream.partitionCustom(new PartitionByTag(),1);
 
-        //Print result in human-readable way --> e.g. (4,2,0) means: Edge(4,2) partitioned to machineId 0
+        //Print result in human-readable way --> e.g. (4,2,0) means: EdgeDepr(4,2) partitioned to machineId 0
 
         partitionedEdges.map(new MapFunction<Tuple2<EdgeEventGelly, Integer>, Tuple3<Integer, Integer, Integer>>() {
             public Tuple3<Integer, Integer, Integer> map(Tuple2<EdgeEventGelly, Integer> input) {

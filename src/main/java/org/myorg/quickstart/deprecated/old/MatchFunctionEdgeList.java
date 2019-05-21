@@ -5,22 +5,22 @@ import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.functions.co.KeyedBroadcastProcessFunction;
 import org.apache.flink.util.Collector;
-import org.myorg.quickstart.deprecated.EdgeEvent;
-import org.myorg.quickstart.deprecated.ModelBuilder;
+import org.myorg.quickstart.deprecated.EdgeEventDepr;
+import org.myorg.quickstart.deprecated.ModelBuilderDepr;
 
 import java.util.*;
 
 import static org.myorg.quickstart.deprecated.old.PartitionWithBroadcast.tupleTypeInfo;
 
-public class MatchFunctionEdgeList extends KeyedBroadcastProcessFunction<Integer, List<EdgeEvent>, HashMap, Tuple2<EdgeEvent,Integer>> {
+public class MatchFunctionEdgeList extends KeyedBroadcastProcessFunction<Integer, List<EdgeEventDepr>, HashMap, Tuple2<EdgeEventDepr,Integer>> {
 
     int counter = 0;
     HashMap<Integer, HashSet<Integer>> vertexPartition = new HashMap<>();
-    HashMap<EdgeEvent, Integer> edgeInPartition = new HashMap<>();
+    HashMap<EdgeEventDepr, Integer> edgeInPartition = new HashMap<>();
     private String processedEdges = "Edges processed by: ";
     private String processedBroadcastElements = "BroadcastRules processed by: ";
     private int round;
-    ModelBuilder modelBuilder = new ModelBuilder("byOrigin", vertexPartition);
+    ModelBuilderDepr modelBuilderDepr = new ModelBuilderDepr("byOrigin", vertexPartition);
 
 
     public void setRound(int round) {
@@ -32,7 +32,7 @@ public class MatchFunctionEdgeList extends KeyedBroadcastProcessFunction<Integer
 
     @Override
     //public void processBroadcastElement(Tuple2<Integer, List<Integer>> broadcastElement, Context ctx, Collector<Integer> out) throws Exception {
-    public void processBroadcastElement(HashMap broadcastElement, Context ctx, Collector<Tuple2<EdgeEvent,Integer>> out) throws Exception {
+    public void processBroadcastElement(HashMap broadcastElement, Context ctx, Collector<Tuple2<EdgeEventDepr,Integer>> out) throws Exception {
 
         //System.out.println("Phase 2: Broadcasting HashMap " + broadcastElement);
 
@@ -53,8 +53,8 @@ public class MatchFunctionEdgeList extends KeyedBroadcastProcessFunction<Integer
         /*
         // NOT SURE IF NEEDED
         Integer[] vertices = new Integer[2];
-        vertices[0] = currentEdge.getEdge().getOriginVertex();
-        vertices[1] = currentEdge.getEdge().getDestinVertex();
+        vertices[0] = currentEdge.getEdge().getOriginVertexDepr();
+        vertices[1] = currentEdge.getEdge().getDestinVertexDepr();
 
         for (int i = 0; i < 2; i++) {
             HashSet<Integer> partitionSet = new HashSet<>();
@@ -78,16 +78,16 @@ public class MatchFunctionEdgeList extends KeyedBroadcastProcessFunction<Integer
     }
 
     @Override
-    public void processElement(List<EdgeEvent> edgeEventList, ReadOnlyContext ctx, Collector<Tuple2<EdgeEvent,Integer>> out) throws Exception {
+    public void processElement(List<EdgeEventDepr> edgeEventDeprList, ReadOnlyContext ctx, Collector<Tuple2<EdgeEventDepr,Integer>> out) throws Exception {
 
-        //System.out.println("Phase 2: Processing EDGE: " + currentEdge.getEdge().getOriginVertex() + " " + currentEdge.getEdge().getDestinVertex());
+        //System.out.println("Phase 2: Processing EDGE: " + currentEdge.getEdge().getOriginVertexDepr() + " " + currentEdge.getEdge().getDestinVertexDepr());
 
 /*        Integer[] vertices = new Integer[2];
-        vertices[0] = currentEdge.getEdge().getOriginVertex();
-        vertices[1] = currentEdge.getEdge().getDestinVertex();*/
+        vertices[0] = currentEdge.getEdge().getOriginVertexDepr();
+        vertices[1] = currentEdge.getEdge().getDestinVertexDepr();*/
 
-        for (EdgeEvent edgeEvent: edgeEventList) {
-            int partitionId = modelBuilder.choosePartition(edgeEvent);
+        for (EdgeEventDepr edgeEventDepr : edgeEventDeprList) {
+            int partitionId = modelBuilderDepr.choosePartition(edgeEventDepr);
 
 
     /*        // Get Partition (TODO: real partitioning Algorithm please)
@@ -95,7 +95,7 @@ public class MatchFunctionEdgeList extends KeyedBroadcastProcessFunction<Integer
             int partitionId = rand.nextInt(4);*/
 
             // Add to "SINK" (TODO: Real Sink Function)
-            edgeInPartition.put(edgeEvent, partitionId);
+            edgeInPartition.put(edgeEventDepr, partitionId);
 
 
             /*for (int i = 0; i < 2; i++) {
@@ -115,7 +115,7 @@ public class MatchFunctionEdgeList extends KeyedBroadcastProcessFunction<Integer
 
             }*/
 
-            out.collect(new Tuple2<>(edgeEvent, partitionId));
+            out.collect(new Tuple2<>(edgeEventDepr, partitionId));
         }
         }
 

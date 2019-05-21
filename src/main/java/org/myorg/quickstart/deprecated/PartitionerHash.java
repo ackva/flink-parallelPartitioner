@@ -13,7 +13,7 @@ import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.util.OutputTag;
-import org.myorg.quickstart.partitioners.PhasePartitionerHdrf;
+import org.myorg.quickstart.partitioners.GraphPartitionerImpl;
 import org.myorg.quickstart.utils.EdgeEventGelly;
 import org.myorg.quickstart.utils.GraphCreatorGelly;
 import org.myorg.quickstart.utils.MatchFunctionPartitioner;
@@ -42,7 +42,7 @@ import java.util.concurrent.TimeUnit;
  *           - hrdf - default lambda
  *           - hash
  */
-public class PartitionerHash extends PhasePartitionerHdrf {
+public class PartitionerHash extends GraphPartitionerImpl {
 
     public static final OutputTag<String> outputTag = new OutputTag<String>("side-output"){};
 
@@ -97,7 +97,7 @@ public class PartitionerHash extends PhasePartitionerHdrf {
         // Final Step -- Custom Partition, based on pre-calculated ID
         DataStream partitionedEdges = taggedEdges.partitionCustom(new PartitionByTag(),1);
 
-        //Print result in human-readable way --> e.g. (4,2,0) means: Edge(4,2) partitioned to machineId 0
+        //Print result in human-readable way --> e.g. (4,2,0) means: EdgeDepr(4,2) partitioned to machineId 0
 
         partitionedEdges.map(new MapFunction<Tuple2<EdgeEventGelly, Integer>, Tuple3<Integer, Integer, Integer>>() {
             public Tuple3<Integer, Integer, Integer> map(Tuple2<EdgeEventGelly, Integer> input) {

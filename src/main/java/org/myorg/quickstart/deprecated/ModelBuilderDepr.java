@@ -5,16 +5,16 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Random;
 
-public class ModelBuilder implements Serializable {
+public class ModelBuilderDepr implements Serializable {
 
     private HashMap <Integer, HashSet<Integer>> vertexToPartitionMap;
     private String algorithm;
 
-    public ModelBuilder(HashMap<Integer, HashSet<Integer>> vertexToPartitionMap) {
+    public ModelBuilderDepr(HashMap<Integer, HashSet<Integer>> vertexToPartitionMap) {
         this.vertexToPartitionMap = vertexToPartitionMap;
     }
 
-    public ModelBuilder(String algorithm, HashMap <Integer, HashSet<Integer>> vertexToPartitionMap) {
+    public ModelBuilderDepr(String algorithm, HashMap <Integer, HashSet<Integer>> vertexToPartitionMap) {
         this.vertexToPartitionMap = vertexToPartitionMap;
 
         switch (algorithm) {
@@ -41,7 +41,7 @@ public class ModelBuilder implements Serializable {
     }
 
 
-    public int choosePartition(EdgeEvent edge) throws Exception {
+    public int choosePartition(EdgeEventDepr edge) throws Exception {
 
         int partitionId = -1;
 
@@ -60,7 +60,7 @@ public class ModelBuilder implements Serializable {
         return partitionId;
     }
 
-    public void updateLocalModel(EdgeEvent e, Integer partitionId) {
+    public void updateLocalModel(EdgeEventDepr e, Integer partitionId) {
         Integer[] vertices = new Integer[2];
         vertices[0] = e.getEdge().getOriginVertex();
         vertices[1] = e.getEdge().getDestinVertex();

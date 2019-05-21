@@ -15,7 +15,7 @@ import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
-import org.myorg.quickstart.deprecated.EdgeEvent;
+import org.myorg.quickstart.deprecated.EdgeEventDepr;
 import org.myorg.quickstart.deprecated.EdgeSimple;
 import org.myorg.quickstart.deprecated.GraphCreator;
 
@@ -53,7 +53,7 @@ public class BroadcastPartitionerWindowed {
 
 /*
         // SHOULD BE TEMPORARY
-        // #### Create 1 sample "state" for Vertex 1, appearing in partition 1
+        // #### Create 1 sample "state" for VertexDepr 1, appearing in partition 1
         List<Integer> stateArray = new ArrayList<>();
         stateArray.add(-1);
         stateArray.add(-1);
@@ -81,44 +81,44 @@ public class BroadcastPartitionerWindowed {
         tgraph.generateGraphOneTwoToAny(graphSize);
         List<EdgeSimple> edgeList = tgraph.getEdges();
         // Assign event time (=now) for every edge and printPhaseOne this list
-        List<EdgeEvent> edgeEvents = new ArrayList<>();
+        List<EdgeEventDepr> edgeEventDeprs = new ArrayList<>();
         for (int i = 0; i < graphSize; i++) {
-            edgeEvents.add(new EdgeEvent(edgeList.get(i)));
-            //System.out.println(edgeEvents.get(i).getEdge().getOriginVertex() + " "
-            //       + edgeEvents.get(i).getEdge().getDestinVertex() + " -- Time: " + edgeEvents.get(i).getEventTime());
+            edgeEventDeprs.add(new EdgeEventDepr(edgeList.get(i)));
+            //System.out.println(edgeEventDeprs.get(i).getEdge().getOriginVertexDepr() + " "
+            //       + edgeEventDeprs.get(i).getEdge().getDestinVertexDepr() + " -- Time: " + edgeEventDeprs.get(i).getEventTime());
         }
 
-        // ### Create Edge Stream from input graph
+        // ### Create EdgeDepr Stream from input graph
         // Assign timestamps to the stream
-        DataStream<EdgeEvent> edgeEventStream = env.fromCollection(edgeEvents)
-                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<EdgeEvent>() {
+        DataStream<EdgeEventDepr> edgeEventStream = env.fromCollection(edgeEventDeprs)
+                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<EdgeEventDepr>() {
                     @Override
-                    public long extractAscendingTimestamp(EdgeEvent element) {
+                    public long extractAscendingTimestamp(EdgeEventDepr element) {
                         return element.getEventTime();
                     }
                 });
 
-        // Window Edge Stream, by time
+        // Window EdgeDepr Stream, by time
         WindowedStream windowedEdgeStream = edgeEventStream
-                .keyBy(new KeySelector<EdgeEvent, Integer>() {
+                .keyBy(new KeySelector<EdgeEventDepr, Integer>() {
                     @Override
-                    public Integer getKey(EdgeEvent value) throws Exception {
+                    public Integer getKey(EdgeEventDepr value) throws Exception {
                         return value.getEdge().getOriginVertex();
                     }
                 })
                 .timeWindow(Time.milliseconds(1));
 
         // Process all Windows into a "new" DataStream
-        DataStream<Tuple2<List<EdgeEvent>, Integer>> processedWindowedEdges = windowedEdgeStream
+        DataStream<Tuple2<List<EdgeEventDepr>, Integer>> processedWindowedEdges = windowedEdgeStream
                 //.trigger(CountTrigger.of(5))
                 .process(new ProcessEdgeWindow() {
                 //.process(new ProcessEdgeWindow(broadcastRulesStream, env) {
                 });
 
         KeyedStream<EdgeSimple, Integer> edgeStreamForPartitioning = processedWindowedEdges
-                .flatMap(new FlatMapFunction<Tuple2<List<EdgeEvent>, Integer>, EdgeSimple>() {
+                .flatMap(new FlatMapFunction<Tuple2<List<EdgeEventDepr>, Integer>, EdgeSimple>() {
                     @Override
-                    public void flatMap(Tuple2<List<EdgeEvent>, Integer> value, Collector< EdgeSimple> out) throws Exception {
+                    public void flatMap(Tuple2<List<EdgeEventDepr>, Integer> value, Collector< EdgeSimple> out) throws Exception {
                         for (int i = 0; i < value.f0.size(); i++) {
                             out.collect(value.f0.get(i).getEdge());
                         }
@@ -149,10 +149,10 @@ public class BroadcastPartitionerWindowed {
 
 /*
         // "Testing" function to see how window processing behaves
-        DataStream<Tuple2<EdgeEvent, Integer>> test123 = processedWindowedEdges
-                .flatMap(new FlatMapFunction<Tuple2<List<EdgeEvent>, Integer>, Tuple2<EdgeEvent, Integer>>() {
+        DataStream<Tuple2<EdgeEventDepr, Integer>> test123 = processedWindowedEdges
+                .flatMap(new FlatMapFunction<Tuple2<List<EdgeEventDepr>, Integer>, Tuple2<EdgeEventDepr, Integer>>() {
                     @Override
-                    public void flatMap(Tuple2<List<EdgeEvent>, Integer> value, Collector< Tuple2<EdgeEvent, Integer>> out) throws Exception {
+                    public void flatMap(Tuple2<List<EdgeEventDepr>, Integer> value, Collector< Tuple2<EdgeEventDepr, Integer>> out) throws Exception {
                         for (int i = 0; i < value.f0.size(); i++) {
                             out.collect(new Tuple2<>(value.f0.get(i), value.f1));
                         }
@@ -167,7 +167,7 @@ public class BroadcastPartitionerWindowed {
 
     } // close main method
 
-    public static class ProcessEdgeWindow extends ProcessWindowFunction<EdgeEvent, Tuple2<List<EdgeEvent>, Integer>, Integer, TimeWindow> {
+    public static class ProcessEdgeWindow extends ProcessWindowFunction<EdgeEventDepr, Tuple2<List<EdgeEventDepr>, Integer>, Integer, TimeWindow> {
 
         //    private static ClassLoader
 
@@ -181,7 +181,7 @@ public class BroadcastPartitionerWindowed {
 
         List<Tuple2<Integer, List<Integer>>> stateList = new ArrayList<>();
         List<Integer> stateArray = new ArrayList<>();
-        List<EdgeEvent> edgesInWindow = new ArrayList<>();
+        List<EdgeEventDepr> edgesInWindow = new ArrayList<>();
         BroadcastStream<Tuple2<Integer,List<Integer>>> broadcastStream;
         StreamExecutionEnvironment env;
 
@@ -190,14 +190,14 @@ public class BroadcastPartitionerWindowed {
 
 
 
-        public void process(Integer key, Context context, Iterable<EdgeEvent> edgeIterable, Collector<Tuple2<List<EdgeEvent>, Integer>> out) throws Exception {
+        public void process(Integer key, Context context, Iterable<EdgeEventDepr> edgeIterable, Collector<Tuple2<List<EdgeEventDepr>, Integer>> out) throws Exception {
 //      int counterBroadcast = 0;
 
             // Print current Window (edges)
             edgeIterable.forEach(edgesInWindow::add);
             String printString = "Current Window: ";
             List<EdgeSimple> fakeList = new ArrayList<>();
-            for(EdgeEvent e: edgesInWindow) {
+            for(EdgeEventDepr e: edgesInWindow) {
                 printString = printString + "; " + e.getEdge().getOriginVertex() + " " + e.getEdge().getDestinVertex();
                 fakeList.add(e.getEdge());
             }

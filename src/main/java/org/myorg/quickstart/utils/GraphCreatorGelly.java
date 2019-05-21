@@ -17,7 +17,7 @@ import java.util.*;
 public class GraphCreatorGelly {
 
 /*    private List<EdgeSimple> edges;
-    private List<EdgeEvent> edgeEvents;*/
+    private List<EdgeEventDepr> edgeEvents;*/
 
     private List<Edge> edges;
     private List<EdgeEventGelly> edgeEvents;
@@ -75,7 +75,6 @@ public class GraphCreatorGelly {
         List<Edge> edgeList = new ArrayList<>();
 
         String line = null;
-
         try {
             // FileReader reads text files in the default encoding.
             FileReader fileReader =
@@ -330,16 +329,16 @@ public class GraphCreatorGelly {
 
     }
     // FROM ZAINAB'S CODE FOR HDRF
-/*    public DataStream<Edge<Long, NullValue>> getGraphStream(StreamExecutionEnvironment env) throws IOException {
+/*    public DataStream<EdgeDepr<Long, NullValue>> getGraphStream(StreamExecutionEnvironment env) throws IOException {
 
         return env.readTextFile(inputPath)
-                .map(new MapFunction<String, Edge<Long, NullValue>>() {
+                .map(new MapFunction<String, EdgeDepr<Long, NullValue>>() {
                     @Override
-                    public Edge<Long, NullValue> map(String s) throws Exception {
+                    public EdgeDepr<Long, NullValue> map(String s) throws Exception {
                         String[] fields = s.split("\\,");
                         long src = Long.parseLong(fields[0]);
                         long trg = Long.parseLong(fields[1]);
-                        return new Edge<>(src, trg, NullValue.getInstance());
+                        return new EdgeDepr<>(src, trg, NullValue.getInstance());
                     }
         });
 

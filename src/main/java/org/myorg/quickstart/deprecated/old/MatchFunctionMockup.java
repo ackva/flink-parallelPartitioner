@@ -29,7 +29,7 @@ public class MatchFunctionMockup extends KeyedBroadcastProcessFunction<Integer, 
     @Override
     public void processBroadcastElement(Tuple2<Integer, List<Integer>> broadcastElement, Context ctx, Collector<Integer> out) throws Exception {
 
-        System.out.println("R_"+ round + ":: Broadcasting Vertex " + broadcastElement.f0);
+        System.out.println("R_"+ round + ":: Broadcasting VertexDepr " + broadcastElement.f0);
 
     }
 

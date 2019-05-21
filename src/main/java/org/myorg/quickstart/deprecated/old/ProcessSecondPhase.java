@@ -3,24 +3,24 @@ package org.myorg.quickstart.deprecated.old;
 import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
-import org.myorg.quickstart.deprecated.EdgeEvent;
+import org.myorg.quickstart.deprecated.EdgeEventDepr;
 
 import java.util.*;
 
 
-public class ProcessSecondPhase extends ProcessWindowFunction<EdgeEvent, HashMap, Integer, TimeWindow> {
+public class ProcessSecondPhase extends ProcessWindowFunction<EdgeEventDepr, HashMap, Integer, TimeWindow> {
 
     int counter = 0;
     HashMap<Integer, Set<Integer>> stateTable = new HashMap<>();
 
-    public void process(Integer key, Context context, Iterable<EdgeEvent> edgeIterable, Collector<HashMap> out) throws Exception {
+    public void process(Integer key, Context context, Iterable<EdgeEventDepr> edgeIterable, Collector<HashMap> out) throws Exception {
 
 
         // Store all edges of current window
-        List<EdgeEvent> edgesInWindow = storeElementsOfWindow(edgeIterable);
+        List<EdgeEventDepr> edgesInWindow = storeElementsOfWindow(edgeIterable);
         printWindowElements(edgesInWindow);
 
-        for(EdgeEvent e: edgesInWindow) {
+        for(EdgeEventDepr e: edgesInWindow) {
             findPartition(e);
         }
 
@@ -28,20 +28,20 @@ public class ProcessSecondPhase extends ProcessWindowFunction<EdgeEvent, HashMap
 
     }
 
-    public List<EdgeEvent> storeElementsOfWindow(Iterable<EdgeEvent> edgeIterable) {
+    public List<EdgeEventDepr> storeElementsOfWindow(Iterable<EdgeEventDepr> edgeIterable) {
 
         // Save into List
-        List<EdgeEvent> edgesInWindow = new ArrayList<>();
+        List<EdgeEventDepr> edgesInWindow = new ArrayList<>();
         edgeIterable.forEach(edgesInWindow::add);
 
         return edgesInWindow;
     }
 
-    public void printWindowElements(List<EdgeEvent> edgeEventList) {
+    public void printWindowElements(List<EdgeEventDepr> edgeEventDeprList) {
 
         // Create human-readable String with current window
         String printString = "1st Phase Window [" + counter++ + "]: ";
-        for(EdgeEvent e: edgeEventList) {
+        for(EdgeEventDepr e: edgeEventDeprList) {
             printString = printString + "; " + e.getEdge().getOriginVertex() + " " + e.getEdge().getDestinVertex();
         }
         // Optionally: Print
@@ -49,7 +49,7 @@ public class ProcessSecondPhase extends ProcessWindowFunction<EdgeEvent, HashMap
 
     }
 
-    public void findPartition(EdgeEvent e) {
+    public void findPartition(EdgeEventDepr e) {
         Integer[] vertices = new Integer[2];
         vertices[0] = e.getEdge().getOriginVertex();
         vertices[1] = e.getEdge().getDestinVertex();
@@ -88,7 +88,7 @@ public class ProcessSecondPhase extends ProcessWindowFunction<EdgeEvent, HashMap
 
     }
 
-    public int choosePartition(EdgeEvent e) {
+    public int choosePartition(EdgeEventDepr e) {
         Random rand = new Random();
         int selectedPartition = rand.nextInt(4);
         return selectedPartition;

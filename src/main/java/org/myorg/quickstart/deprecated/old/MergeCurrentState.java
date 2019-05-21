@@ -41,7 +41,7 @@ public class MergeCurrentState {
             //ctx.getBroadcastState(broadcastStateDescriptor).put("Entry_" + counterBroadcast++, broadcastElement);
             for (Map.Entry<String, Tuple2<Integer, List<Integer>>> stateEntry : ctx.getBroadcastState(broadcastStateDescriptor).entries()) {
                 if (stateEntry.getValue().f0 == broadcastElement.f0) {
-                    //System.out.println("Current State entry " + stateEntry.getValue().f0 + " --- Current BroadcastElement entry: " + broadcastElement.f0);
+                    //System.out.println("Current StateDepr entry " + stateEntry.getValue().f0 + " --- Current BroadcastElement entry: " + broadcastElement.f0);
                     //System.out.println("found existing -- id from entry: " + stateEntry.getValue().f0 + " -- id from broadcast " + broadcastElement.f0);
                     inList = true;
                 }
@@ -50,9 +50,9 @@ public class MergeCurrentState {
             if (inList == false) {
                 //ctx.getBroadcastState(broadcastStateDescriptor).put("Entry_" + counterBroadcast++, broadcastElement);
                 ctx.getBroadcastState(broadcastStateDescriptor).put(broadcastElement.f0.toString(), broadcastElement);
-                System.out.println("Add RULE: Vertex " + broadcastElement.f0 + " to state table");
+                System.out.println("Add RULE: VertexDepr " + broadcastElement.f0 + " to state table");
                 counterBroadcast++;
-                System.out.println("State Table after processing " + broadcastElement.f0 + " --> " + ctx.getBroadcastState(broadcastStateDescriptor).entries());
+                System.out.println("StateDepr Table after processing " + broadcastElement.f0 + " --> " + ctx.getBroadcastState(broadcastStateDescriptor).entries());
             }
         }
 
@@ -82,7 +82,7 @@ public class MergeCurrentState {
                 System.out.println("Added vertex " + currentVertex + " to partition: " + partitions.get(0));
             }
         }
-        System.out.println("EDGE: " + currentEdge.getOriginVertex() + " " + currentEdge.getDestinVertex());
+        System.out.println("EDGE: " + currentEdge.getOriginVertexDepr() + " " + currentEdge.getDestinVertexDepr());
     }
 
     public int choosePartition(int vertexId) {

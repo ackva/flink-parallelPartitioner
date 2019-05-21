@@ -5,7 +5,7 @@ import org.apache.flink.api.common.JobExecutionResult;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.Partitioner;
 import org.apache.flink.core.fs.FileSystem;
-import org.apache.flink.graph.Edge;
+import org.apache.flink.graph.EdgeDepr;
 import org.apache.flink.graph.streaming.partitioner.edgepartitioners.keyselector.CustomKeySelector;
 import org.apache.flink.graph.streaming.partitioner.object.StoredObject;
 import org.apache.flink.graph.streaming.partitioner.object.StoredState;
@@ -34,7 +34,7 @@ public class Hdrf {
 
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setParallelism(1);
-        DataStream<Edge<Long, NullValue>> edges = getGraphStream(env);
+        DataStream<EdgeDepr<Long, NullValue>> edges = getGraphStream(env);
 
 
         edges.partitionCustom(new HDRF<>(new CustomKeySelector(0),k,lamda), new CustomKeySelector<>(0)).writeAsCsv(outputPath, FileSystem.WriteMode.OVERWRITE).setParallelism(k);
@@ -207,7 +207,7 @@ public class Hdrf {
                 }
             }
 
-            Edge e = new Edge<>(source, target, NullValue.getInstance());
+            EdgeDepr e = new EdgeDepr<>(source, target, NullValue.getInstance());
             //2-UPDATE EDGES
             currentState.incrementMachineLoad(machine_id, e);
 
@@ -229,16 +229,16 @@ public class Hdrf {
     }
 
 
-    public static  DataStream<Edge<Long, NullValue>> getGraphStream(StreamExecutionEnvironment env) throws IOException {
+    public static  DataStream<EdgeDepr<Long, NullValue>> getGraphStream(StreamExecutionEnvironment env) throws IOException {
 
         return env.readTextFile(InputPath)
-                .map(new MapFunction<String, Edge<Long, NullValue>>() {
+                .map(new MapFunction<String, EdgeDepr<Long, NullValue>>() {
                     @Override
-                    public Edge<Long, NullValue> map(String s) throws Exception {
+                    public EdgeDepr<Long, NullValue> map(String s) throws Exception {
                         String[] fields = s.split("\\,");
                         long src = Long.parseLong(fields[0]);
                         long trg = Long.parseLong(fields[1]);
-                        return new Edge<>(src, trg, NullValue.getInstance());
+                        return new EdgeDepr<>(src, trg, NullValue.getInstance());
                     }
                 });
 

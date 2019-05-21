@@ -47,7 +47,7 @@ public class BroadcastPartitionerSimple {
         MatchFunctionRule matchRules = new MatchFunctionRule();
         matchRules.setRound(1);
 
-        // create 1 sample "state" for Vertex 1, appearing in partition 1
+        // create 1 sample "state" for VertexDepr 1, appearing in partition 1
         List<Integer> stateArray = new ArrayList<>(); stateArray.add(-1); stateArray.add(-1);
         List<Tuple2<Integer, List<Integer>>> stateList = new ArrayList<>();
         stateList.add(new Tuple2<>(new Integer(-1), stateArray));
@@ -181,7 +181,7 @@ public class BroadcastPartitionerSimple {
                 .rebalance()                               // needed to increase the parallelism
                 .map(edgeSimple -> edgeSimple)
                 .setParallelism(2)
-                .keyBy(EdgeSimple::getOriginVertex);
+                .keyBy(EdgeSimple::getOriginVertexDepr);
 
         DataStream<String> output2 = edgeKeyedStream2
                 .connect(broadcastRulesStream2)

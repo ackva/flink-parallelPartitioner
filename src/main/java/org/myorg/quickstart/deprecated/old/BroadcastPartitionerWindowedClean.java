@@ -8,7 +8,7 @@ import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExt
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.triggers.CountTrigger;
 import org.apache.flink.util.OutputTag;
-import org.myorg.quickstart.deprecated.EdgeEvent;
+import org.myorg.quickstart.deprecated.EdgeEventDepr;
 import org.myorg.quickstart.deprecated.EdgeSimple;
 import org.myorg.quickstart.deprecated.GraphCreator;
 
@@ -41,22 +41,22 @@ public class BroadcastPartitionerWindowedClean {
         tgraph.generateGraphOneTwoToAny(graphSize);
         List<EdgeSimple> edgeList = tgraph.getEdges();
         // Assign event time (=now) for every edge and printPhaseOne this list
-        List<EdgeEvent> edgeEvents = new ArrayList<>();
+        List<EdgeEventDepr> edgeEventDeprs = new ArrayList<>();
         for (int i = 0; i < graphSize; i++)
-            edgeEvents.add(new EdgeEvent(edgeList.get(i)));
+            edgeEventDeprs.add(new EdgeEventDepr(edgeList.get(i)));
 
-        // ### Create Edge Stream from input graph
+        // ### Create EdgeDepr Stream from input graph
         // Assign timestamps to the stream
-        KeyedStream keyedEdgeStream = env.fromCollection(edgeEvents)
-                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<EdgeEvent>() {
+        KeyedStream keyedEdgeStream = env.fromCollection(edgeEventDeprs)
+                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<EdgeEventDepr>() {
                     @Override
-                    public long extractAscendingTimestamp(EdgeEvent element) {
+                    public long extractAscendingTimestamp(EdgeEventDepr element) {
                         return element.getEventTime();
                     }
                 })
-                .keyBy(new KeySelector<EdgeEvent, Integer>() {
+                .keyBy(new KeySelector<EdgeEventDepr, Integer>() {
                     @Override
-                    public Integer getKey(EdgeEvent value) throws Exception {
+                    public Integer getKey(EdgeEventDepr value) throws Exception {
                         return value.getEdge().getOriginVertex();
                     }
                 });

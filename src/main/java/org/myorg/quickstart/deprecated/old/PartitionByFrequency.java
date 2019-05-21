@@ -37,7 +37,7 @@ History:
 
     public static void main(String[] args) throws Exception {
 
-        // Initialize state table (Columns: Vertex, Occurrence)
+        // Initialize state table (Columns: VertexDepr, Occurrence)
         HashMap<String, Long> vertexTable = new HashMap<>();
 
         // Tag edges (results from FlatMap) by constructing a state table (hash map) that keeps track of vertices and their occurrences

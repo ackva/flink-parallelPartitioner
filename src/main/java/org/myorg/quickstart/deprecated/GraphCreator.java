@@ -13,7 +13,7 @@ import java.util.Random;
 public class GraphCreator {
 
     private List<EdgeSimple> edges;
-    private List<EdgeEvent> edgeEvents;
+    private List<EdgeEventDepr> edgeEventDeprs;
 
     public GraphCreator(String characteristic, int graphSize) throws Exception {
         switch (characteristic) {
@@ -37,13 +37,13 @@ public class GraphCreator {
                 break;
         }
 
-        ArrayList<EdgeEvent> edgeEventList = new ArrayList<>();
+        ArrayList<EdgeEventDepr> edgeEventDeprList = new ArrayList<>();
         for (EdgeSimple e: this.getEdges()) {
 //            System.out.println(e);
-            edgeEventList.add(new EdgeEvent(e));
+            edgeEventDeprList.add(new EdgeEventDepr(e));
             Thread.sleep(PhasePartitioner.sleep);
         }
-        this.edgeEvents = edgeEventList;
+        this.edgeEventDeprs = edgeEventDeprList;
     }
 
     // empty graph -- needs to call a "generate" functions after
@@ -54,12 +54,12 @@ public class GraphCreator {
         return edges;
     }
 
-    public List<EdgeEvent> getEdgeEvents() {
-        return edgeEvents;
+    public List<EdgeEventDepr> getEdgeEventDeprs() {
+        return edgeEventDeprs;
     }
 
     public void printEdgeEventsWithTimestamp() {
-        for (EdgeEvent e: this.edgeEvents) {
+        for (EdgeEventDepr e: this.edgeEventDeprs) {
             System.out.println(e.getEdge().getOriginVertex() + " " + e.getEdge().getDestinVertex() + " "
                     + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date(e.getEventTime())));
         }
@@ -164,16 +164,16 @@ public class GraphCreator {
         System.out.println("------------------");
     }
 
-    public List<EdgeEvent> getSyntheticGraphWithEvents() {
-        return edgeEvents;
+    public List<EdgeEventDepr> getSyntheticGraphWithEvents() {
+        return edgeEventDeprs;
     }
 
-    public DataStream<EdgeEvent> getEdgeStream (StreamExecutionEnvironment env) {
+    public DataStream<EdgeEventDepr> getEdgeStream (StreamExecutionEnvironment env) {
 
-        DataStream<EdgeEvent> edgeEventStream = env.fromCollection(this.edgeEvents)
-                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<EdgeEvent>() {
+        DataStream<EdgeEventDepr> edgeEventStream = env.fromCollection(this.edgeEventDeprs)
+                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<EdgeEventDepr>() {
                     @Override
-                    public long extractAscendingTimestamp(EdgeEvent element) {
+                    public long extractAscendingTimestamp(EdgeEventDepr element) {
                         return element.getEventTime();
                     }
                 });
@@ -182,16 +182,16 @@ public class GraphCreator {
     }
 
     // FROM ZAINAB'S CODE FOR HDRF
-/*    public DataStream<Edge<Long, NullValue>> getGraphStream(StreamExecutionEnvironment env) throws IOException {
+/*    public DataStream<EdgeDepr<Long, NullValue>> getGraphStream(StreamExecutionEnvironment env) throws IOException {
 
         return env.readTextFile(inputPath)
-                .map(new MapFunction<String, Edge<Long, NullValue>>() {
+                .map(new MapFunction<String, EdgeDepr<Long, NullValue>>() {
                     @Override
-                    public Edge<Long, NullValue> map(String s) throws Exception {
+                    public EdgeDepr<Long, NullValue> map(String s) throws Exception {
                         String[] fields = s.split("\\,");
                         long src = Long.parseLong(fields[0]);
                         long trg = Long.parseLong(fields[1]);
-                        return new Edge<>(src, trg, NullValue.getInstance());
+                        return new EdgeDepr<>(src, trg, NullValue.getInstance());
                     }
         });
 

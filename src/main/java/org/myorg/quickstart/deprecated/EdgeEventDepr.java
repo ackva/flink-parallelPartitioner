@@ -3,12 +3,12 @@ package org.myorg.quickstart.deprecated;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-public class EdgeEvent {
+public class EdgeEventDepr {
 
     private EdgeSimple edge;
     private Long eventTime;
 
-    public EdgeEvent(EdgeSimple edge) {
+    public EdgeEventDepr(EdgeSimple edge) {
         this.edge = edge;
         this.eventTime = System.currentTimeMillis();
     }

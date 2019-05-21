@@ -20,7 +20,7 @@ public class Item {
 
     @Override
     public String toString() {
-        return "Edge{" +
+        return "EdgeDepr{" +
                 "shape=" + shape +
                 ", color=" + color +
                 '}';

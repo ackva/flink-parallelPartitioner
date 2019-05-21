@@ -29,7 +29,7 @@ public class EdgeSimple {
 
     @Override
     public String toString() {
-        return "Edge{" +
+        return "EdgeDepr{" +
                 "originVertex=" + originVertex +
                 ", destinVertex=" + destinVertex +
                 '}';

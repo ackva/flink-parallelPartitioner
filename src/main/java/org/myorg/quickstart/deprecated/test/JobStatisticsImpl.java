@@ -21,7 +21,7 @@ public class JobStatisticsImpl {
         System.out.println("Some statistics");
         System.out.println("Job Name: " + jobStats.getName());
         System.out.println("Job ID: " + jobStats.getJobId());
-        System.out.println("Job State: " + jobStats.getState());
+        System.out.println("Job StateDepr: " + jobStats.getState());
         System.out.println("Job Input: " + jobStats.getInputFile());
         System.out.println("Job Parallelism: " + jobStats.getParallelism());
         System.out.println("Job Start Time: " + jobStats.getStarttime());

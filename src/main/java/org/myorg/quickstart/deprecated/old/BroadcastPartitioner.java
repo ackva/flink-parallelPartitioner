@@ -10,19 +10,19 @@ import org.apache.flink.streaming.api.datastream.*;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.util.Collector;
 import org.apache.flink.util.OutputTag;
-import org.myorg.quickstart.deprecated.Vertex;
+import org.myorg.quickstart.deprecated.VertexDepr;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class BroadcastPartitioner {
 
-    final static Class<Tuple2<Vertex, ArrayList<Integer>>> typedTuple = (Class<Tuple2<Vertex, ArrayList<Integer>>>) (Class<?>) Tuple2.class;
+    final static Class<Tuple2<VertexDepr, ArrayList<Integer>>> typedTuple = (Class<Tuple2<VertexDepr, ArrayList<Integer>>>) (Class<?>) Tuple2.class;
 
     final static TupleTypeInfo tupleTypeInfo = new TupleTypeInfo<>(
             typedTuple,
-            new GenericTypeInfo<>(Vertex.class),
-            new GenericTypeInfo<>(Vertex.class)
+            new GenericTypeInfo<>(VertexDepr.class),
+            new GenericTypeInfo<>(VertexDepr.class)
     );
 
     public static void main(String[] args) throws Exception {
@@ -31,10 +31,10 @@ public class BroadcastPartitioner {
         env.setParallelism(2);
 
         // Generate "random" edges as input for stream
-        List<Edge> keyedInput = getGraph();
+        List<EdgeDepr> keyedInput = getGraph();
 
         // MapState Descriptor (as from data artisans)
-        MapStateDescriptor<String, Tuple2<Vertex, ArrayList<Integer>>> rulesStateDescriptor = new MapStateDescriptor<>(
+        MapStateDescriptor<String, Tuple2<VertexDepr, ArrayList<Integer>>> rulesStateDescriptor = new MapStateDescriptor<>(
                 "RulesBroadcastState",
                 BasicTypeInfo.STRING_TYPE_INFO,
                 tupleTypeInfo
@@ -44,20 +44,20 @@ public class BroadcastPartitioner {
 
         MatchFunction matchFunction = new MatchFunction();
 
-        // create 1 sample "state" for Vertex 1, appearing in partition 1
+        // create 1 sample "state" for VertexDepr 1, appearing in partition 1
         List<Integer> stateArray = new ArrayList<>(); stateArray.add(1); stateArray.add(3);
-        List<Tuple2<Vertex, List<Integer>>> stateList = new ArrayList<>();
-        stateList.add(new Tuple2<>(new Vertex(1), stateArray));
+        List<Tuple2<VertexDepr, List<Integer>>> stateList = new ArrayList<>();
+        stateList.add(new Tuple2<>(new VertexDepr(1), stateArray));
         // 2nd state Array for other vertex
         List<Integer> stateArray1 = new ArrayList<>();stateArray1.add(3); stateArray1.add(4);
 
         //System.out.println("iteration: " + i + " :: stateList size: " + stateList.size());
 
         // Stream of state table, based on an ArrayList
-        BroadcastStream<Tuple2<Vertex, List<Integer>>> broadcastRulesStream = env.fromCollection(stateList)
-                .flatMap(new FlatMapFunction<Tuple2<Vertex, List<Integer>>, Tuple2<Vertex, List<Integer>>>() {
+        BroadcastStream<Tuple2<VertexDepr, List<Integer>>> broadcastRulesStream = env.fromCollection(stateList)
+                .flatMap(new FlatMapFunction<Tuple2<VertexDepr, List<Integer>>, Tuple2<VertexDepr, List<Integer>>>() {
                     @Override
-                    public void flatMap(Tuple2<Vertex, List<Integer>> value, Collector<Tuple2<Vertex, List<Integer>>> out) {
+                    public void flatMap(Tuple2<VertexDepr, List<Integer>> value, Collector<Tuple2<VertexDepr, List<Integer>>> out) {
                         out.collect(value);
                     }
                 })
@@ -65,11 +65,11 @@ public class BroadcastPartitioner {
                 .broadcast(rulesStateDescriptor);
 
         // Stream of with window-sized amount of edges
-        KeyedStream<Edge, Vertex> edgeKeyedStream = env.fromCollection(keyedInput.subList(0,4))
+        KeyedStream<EdgeDepr, VertexDepr> edgeKeyedStream = env.fromCollection(keyedInput.subList(0,4))
                 .rebalance()                               // needed to increase the parallelism
                 .map(edge -> edge)
                 .setParallelism(2)
-                .keyBy(Edge::getOriginVertex);
+                .keyBy(EdgeDepr::getOriginVertexDepr);
 
         DataStream<String> output = edgeKeyedStream
                 .connect(broadcastRulesStream)
@@ -89,24 +89,24 @@ public class BroadcastPartitioner {
     }
 
     // Get the graph to stream
-    public static List<Edge> getGraph() {
-        List<Edge> keyedInput = new ArrayList<>();
-        keyedInput.add(new Edge(new Vertex(1), new Vertex(2)));
-        keyedInput.add(new Edge(new Vertex(1), new Vertex(3)));
-        keyedInput.add(new Edge(new Vertex(1), new Vertex(4)));
-        keyedInput.add(new Edge(new Vertex(1), new Vertex(5)));
-        keyedInput.add(new Edge(new Vertex(2), new Vertex(3)));
-        keyedInput.add(new Edge(new Vertex(2), new Vertex(4)));
-        keyedInput.add(new Edge(new Vertex(2), new Vertex(5)));
-        keyedInput.add(new Edge(new Vertex(2), new Vertex(6)));
-        keyedInput.add(new Edge(new Vertex(3), new Vertex(4)));
-        keyedInput.add(new Edge(new Vertex(3), new Vertex(5)));
-        keyedInput.add(new Edge(new Vertex(3), new Vertex(6)));
-        keyedInput.add(new Edge(new Vertex(3), new Vertex(7)));
-        keyedInput.add(new Edge(new Vertex(4), new Vertex(5)));
-        keyedInput.add(new Edge(new Vertex(4), new Vertex(6)));
-        keyedInput.add(new Edge(new Vertex(4), new Vertex(7)));
-        keyedInput.add(new Edge(new Vertex(4), new Vertex(8)));
+    public static List<EdgeDepr> getGraph() {
+        List<EdgeDepr> keyedInput = new ArrayList<>();
+        keyedInput.add(new EdgeDepr(new VertexDepr(1), new VertexDepr(2)));
+        keyedInput.add(new EdgeDepr(new VertexDepr(1), new VertexDepr(3)));
+        keyedInput.add(new EdgeDepr(new VertexDepr(1), new VertexDepr(4)));
+        keyedInput.add(new EdgeDepr(new VertexDepr(1), new VertexDepr(5)));
+        keyedInput.add(new EdgeDepr(new VertexDepr(2), new VertexDepr(3)));
+        keyedInput.add(new EdgeDepr(new VertexDepr(2), new VertexDepr(4)));
+        keyedInput.add(new EdgeDepr(new VertexDepr(2), new VertexDepr(5)));
+        keyedInput.add(new EdgeDepr(new VertexDepr(2), new VertexDepr(6)));
+        keyedInput.add(new EdgeDepr(new VertexDepr(3), new VertexDepr(4)));
+        keyedInput.add(new EdgeDepr(new VertexDepr(3), new VertexDepr(5)));
+        keyedInput.add(new EdgeDepr(new VertexDepr(3), new VertexDepr(6)));
+        keyedInput.add(new EdgeDepr(new VertexDepr(3), new VertexDepr(7)));
+        keyedInput.add(new EdgeDepr(new VertexDepr(4), new VertexDepr(5)));
+        keyedInput.add(new EdgeDepr(new VertexDepr(4), new VertexDepr(6)));
+        keyedInput.add(new EdgeDepr(new VertexDepr(4), new VertexDepr(7)));
+        keyedInput.add(new EdgeDepr(new VertexDepr(4), new VertexDepr(8)));
 
         return keyedInput;
     }

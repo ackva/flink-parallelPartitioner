@@ -10,16 +10,16 @@ import static java.time.Instant.now;
 
 //import static org.myorg.quickstart.deprecated.old.PartitionWithBroadcast.tupleTypeInfo;
 
-public class MatchFunctionEdges extends KeyedBroadcastProcessFunction<Integer, EdgeEvent, HashMap, Tuple2<EdgeEvent,Integer>> {
+public class MatchFunctionEdges extends KeyedBroadcastProcessFunction<Integer, EdgeEventDepr, HashMap, Tuple2<EdgeEventDepr,Integer>> {
 
     int counterBroadcastInstance = 0;
     int counterEdgesInstance = 0;
     HashMap<Integer, HashSet<Integer>> vertexPartition = new HashMap<>();
-    HashMap<EdgeEvent, Integer> edgeInPartition = new HashMap<>();
-    ModelBuilder modelBuilder = new ModelBuilder("byOrigin", vertexPartition);
+    HashMap<EdgeEventDepr, Integer> edgeInPartition = new HashMap<>();
+    ModelBuilderDepr modelBuilderDepr = new ModelBuilderDepr("byOrigin", vertexPartition);
 
     @Override
-    public void processBroadcastElement(HashMap broadcastElement, Context ctx, Collector<Tuple2<EdgeEvent,Integer>> out) throws Exception {
+    public void processBroadcastElement(HashMap broadcastElement, Context ctx, Collector<Tuple2<EdgeEventDepr,Integer>> out) throws Exception {
 
         counterBroadcastInstance++;
         //System.out.println("Phase 2: Broadcasting HashMap " + broadcastElement);
@@ -40,7 +40,7 @@ public class MatchFunctionEdges extends KeyedBroadcastProcessFunction<Integer, E
 
 
 /*        String printString = " - ";
-        printString = printString + e.getEdge().getOriginVertex() + " " + e.getEdge().getDestinVertex() + ", ";
+        printString = printString + e.getEdge().getOriginVertexDepr() + " " + e.getEdge().getDestinVertexDepr() + ", ";
 
         if (TEMPGLOBALVARIABLES.printPhaseOne == true) {
             printString = now() + "P1: window # " + windowCounter + " -- edges: " + edgesInWindow.size() + printString + " --(Edges)";
@@ -53,13 +53,13 @@ public class MatchFunctionEdges extends KeyedBroadcastProcessFunction<Integer, E
     }
 
     @Override
-    public void processElement(EdgeEvent currentEdge, ReadOnlyContext ctx, Collector<Tuple2<EdgeEvent,Integer>> out) throws Exception {
+    public void processElement(EdgeEventDepr currentEdge, ReadOnlyContext ctx, Collector<Tuple2<EdgeEventDepr,Integer>> out) throws Exception {
 
         String checkInside = checkIfEarlyArrival(currentEdge);
 
         counterEdgesInstance++;
-        int partitionId = modelBuilder.choosePartition(currentEdge);
-        //System.out.println("Phase 2: " + currentEdge.getEdge().getOriginVertex() + " " + currentEdge.getEdge().getDestinVertex() + " --> " + partitionId);
+        int partitionId = modelBuilderDepr.choosePartition(currentEdge);
+        //System.out.println("Phase 2: " + currentEdge.getEdge().getOriginVertexDepr() + " " + currentEdge.getEdge().getDestinVertexDepr() + " --> " + partitionId);
 
         // Add to "SINK" (TODO: Real Sink Function)
         edgeInPartition.put(currentEdge,partitionId);
@@ -72,20 +72,20 @@ public class MatchFunctionEdges extends KeyedBroadcastProcessFunction<Integer, E
 
     }
 
-    private String checkIfEarlyArrival(EdgeEvent currentEdge) {
-        String returnString = "Edge (" + currentEdge.getEdge().getOriginVertex() + " " + currentEdge.getEdge().getDestinVertex() + "): ";
+    private String checkIfEarlyArrival(EdgeEventDepr currentEdge) {
+        String returnString = "EdgeDepr (" + currentEdge.getEdge().getOriginVertex() + " " + currentEdge.getEdge().getDestinVertex() + "): ";
         String vertexPartitionString = vertexPartition.toString();
         if (!vertexPartition.containsKey(currentEdge.getEdge().getOriginVertex())) {
-            returnString = returnString + "Vertex: " + currentEdge.getEdge().getOriginVertex() + " outside -- ";
+            returnString = returnString + "VertexDepr: " + currentEdge.getEdge().getOriginVertex() + " outside -- ";
         }
         else {
-            returnString = returnString + "Vertex: " + currentEdge.getEdge().getOriginVertex() + " inside  -- ";
+            returnString = returnString + "VertexDepr: " + currentEdge.getEdge().getOriginVertex() + " inside  -- ";
         }
         if (!vertexPartition.containsKey(currentEdge.getEdge().getDestinVertex())){
-            returnString = returnString + "Vertex: " + currentEdge.getEdge().getDestinVertex() + " outside -- " + vertexPartitionString;
+            returnString = returnString + "VertexDepr: " + currentEdge.getEdge().getDestinVertex() + " outside -- " + vertexPartitionString;
         }
         else {
-            returnString = returnString + "Vertex: " + currentEdge.getEdge().getDestinVertex() + " inside  -- " + vertexPartitionString;
+            returnString = returnString + "VertexDepr: " + currentEdge.getEdge().getDestinVertex() + " inside  -- " + vertexPartitionString;
         }
 
         return returnString;

@@ -18,7 +18,7 @@ import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
 import org.apache.flink.util.OutputTag;
-import org.myorg.quickstart.deprecated.EdgeEvent;
+import org.myorg.quickstart.deprecated.EdgeEventDepr;
 import org.myorg.quickstart.deprecated.EdgeSimple;
 import org.myorg.quickstart.deprecated.GraphCreator;
 
@@ -52,22 +52,22 @@ public class ValueStateImplementation {
         tgraph.generateGraphOneTwoToAny(graphSize);
         List<EdgeSimple> edgeList = tgraph.getEdges();
         // Assign event time (=now) for every edge and printPhaseOne this list
-        List<EdgeEvent> edgeEvents = new ArrayList<>();
+        List<EdgeEventDepr> edgeEventDeprs = new ArrayList<>();
         for (int i = 0; i < graphSize; i++)
-            edgeEvents.add(new EdgeEvent(edgeList.get(i)));
+            edgeEventDeprs.add(new EdgeEventDepr(edgeList.get(i)));
 
-        // ### Create Edge Stream from input graph
+        // ### Create EdgeDepr Stream from input graph
         // Assign timestamps to the stream
-        KeyedStream keyedEdgeStream = env.fromCollection(edgeEvents)
-                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<EdgeEvent>() {
+        KeyedStream keyedEdgeStream = env.fromCollection(edgeEventDeprs)
+                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<EdgeEventDepr>() {
                     @Override
-                    public long extractAscendingTimestamp(EdgeEvent element) {
+                    public long extractAscendingTimestamp(EdgeEventDepr element) {
                         return element.getEventTime();
                     }
                 })
-                .keyBy(new KeySelector<EdgeEvent, Integer>() {
+                .keyBy(new KeySelector<EdgeEventDepr, Integer>() {
                     @Override
-                    public Integer getKey(EdgeEvent value) throws Exception {
+                    public Integer getKey(EdgeEventDepr value) throws Exception {
                         return value.getEdge().getOriginVertex();
                     }
                 });
@@ -90,7 +90,7 @@ public class ValueStateImplementation {
 }
 
 
-class WindowProcessingWithValueState extends ProcessWindowFunction<EdgeEvent, Tuple2<DataStream<EdgeEvent>,Integer>, Integer, TimeWindow> {
+class WindowProcessingWithValueState extends ProcessWindowFunction<EdgeEventDepr, Tuple2<DataStream<EdgeEventDepr>,Integer>, Integer, TimeWindow> {
 
     public List<Tuple2<Integer, List<Integer>>> stateList = new ArrayList<>();
     public List<Integer> stateArray = new ArrayList<>();
@@ -127,10 +127,10 @@ class WindowProcessingWithValueState extends ProcessWindowFunction<EdgeEvent, Tu
      * @param out
      * @throws Exception
      */
-    public void process(Integer key, Context context, Iterable<EdgeEvent> edgeIterable, Collector<Tuple2<DataStream<EdgeEvent>, Integer>> out) throws Exception {
+    public void process(Integer key, Context context, Iterable<EdgeEventDepr> edgeIterable, Collector<Tuple2<DataStream<EdgeEventDepr>, Integer>> out) throws Exception {
 
         counter++;
-        List<EdgeEvent> edgesInWindow = new ArrayList<>();
+        List<EdgeEventDepr> edgesInWindow = new ArrayList<>();
 
         edgeIterable.forEach(edgesInWindow::add);
 
@@ -138,7 +138,7 @@ class WindowProcessingWithValueState extends ProcessWindowFunction<EdgeEvent, Tu
         String printString = "Current Window: ";
         List<EdgeSimple> fakeList = new ArrayList<>();
         int newState = 0;
-        for(EdgeEvent e: edgesInWindow) {
+        for(EdgeEventDepr e: edgesInWindow) {
             printString = printString + "; " + e.getEdge().getOriginVertex() + " " + e.getEdge().getDestinVertex();
             fakeList.add(e.getEdge());
             newState = newState + e.getEdge().getDestinVertex();

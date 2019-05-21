@@ -54,9 +54,9 @@ public class BroadcastState {
         // iterate until end of file
 
 
-        State state = new State();
-        List<Tuple2<Shape, Shape>> rules = state.getRules();
-        state.addRule(Shape.CIRCLE,Shape.CIRCLE);
+        StateDepr stateDepr = new StateDepr();
+        List<Tuple2<Shape, Shape>> rules = stateDepr.getRules();
+        stateDepr.addRule(Shape.CIRCLE,Shape.CIRCLE);
 
         final List<Item> keyedInput = new ArrayList<>();
         keyedInput.add(new Item(Shape.RECTANGLE, Color.GREEN));
@@ -103,9 +103,9 @@ public class BroadcastState {
 
         DataStream<String> output = itemColorKeyedStream
                 .connect(broadcastRulesStream)
-                .process(new MatchFunction());
+                .process(new MatchFunctionDepr());
 
-        state.addRule(Shape.RECTANGLE,Shape.RECTANGLE);
+        stateDepr.addRule(Shape.RECTANGLE,Shape.RECTANGLE);
 
 
         output.print();

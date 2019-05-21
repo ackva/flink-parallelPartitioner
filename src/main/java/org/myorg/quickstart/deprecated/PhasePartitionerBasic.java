@@ -52,14 +52,14 @@ public class PhasePartitionerBasic {
         edgeGraph.printGraph();
 
         // Create initial EdgeStream
-        DataStream<EdgeEvent> edgeSteam = edgeGraph.getEdgeStream(env);
+        DataStream<EdgeEventDepr> edgeSteam = edgeGraph.getEdgeStream(env);
 
         // *** PHASE 1 ***
         // Process edges to build the local model
         DataStream<HashMap> phaseOneStream = edgeSteam
-                .keyBy(new KeySelector<EdgeEvent, Integer>() {
+                .keyBy(new KeySelector<EdgeEventDepr, Integer>() {
                     @Override
-                    public Integer getKey(EdgeEvent value) throws Exception {
+                    public Integer getKey(EdgeEventDepr value) throws Exception {
                         return value.getEdge().getOriginVertex();
                     }
                 })
@@ -69,10 +69,10 @@ public class PhasePartitionerBasic {
         //phaseOneStream.print();
 
         // Process edges in the similar time windows to "wait" for phase 2
-        DataStream<EdgeEvent> edgesWindowed = edgeSteam
-                .keyBy(new KeySelector<EdgeEvent, Integer>() {
+        DataStream<EdgeEventDepr> edgesWindowed = edgeSteam
+                .keyBy(new KeySelector<EdgeEventDepr, Integer>() {
                     @Override
-                    public Integer getKey(EdgeEvent value) throws Exception {
+                    public Integer getKey(EdgeEventDepr value) throws Exception {
                         return value.getEdge().getOriginVertex();
                     }
                 })
@@ -85,11 +85,11 @@ public class PhasePartitionerBasic {
         BroadcastStream<HashMap> broadcastFrequency = phaseOneStream
                 .broadcast(rulesStateDescriptor);
 
-        // Connect Broadcast Stream and Edge Stream to build global model
-        SingleOutputStreamOperator<Tuple2<EdgeEvent,Integer>> phaseTwoStream = edgesWindowed
-                .keyBy(new KeySelector<EdgeEvent, Integer>() {
+        // Connect Broadcast Stream and EdgeDepr Stream to build global model
+        SingleOutputStreamOperator<Tuple2<EdgeEventDepr,Integer>> phaseTwoStream = edgesWindowed
+                .keyBy(new KeySelector<EdgeEventDepr, Integer>() {
                     @Override
-                    public Integer getKey(EdgeEvent value) throws Exception {
+                    public Integer getKey(EdgeEventDepr value) throws Exception {
                         return value.getEdge().getOriginVertex();
                     }
                 })
@@ -100,10 +100,10 @@ public class PhasePartitionerBasic {
         sideOutputStream.print();
 
         //Print result in human-readable way
-             // Tuple3 (Vertex, Vertex, Partition) --> e.g. (4,2,0) is Edge(4,2) located in Parttition 0
- /*       phaseTwoStream.map(new MapFunction<Tuple2<EdgeEvent, Integer>, Tuple3<Integer, Integer, Integer>>() {
-            public Tuple3<Integer, Integer, Integer> map(Tuple2<EdgeEvent, Integer> input) {
-                return new Tuple3<>(input.f0.getEdge().getOriginVertex(), input.f0.getEdge().getDestinVertex(), input.f1);
+             // Tuple3 (VertexDepr, VertexDepr, Partition) --> e.g. (4,2,0) is EdgeDepr(4,2) located in Parttition 0
+ /*       phaseTwoStream.map(new MapFunction<Tuple2<EdgeEventDepr, Integer>, Tuple3<Integer, Integer, Integer>>() {
+            public Tuple3<Integer, Integer, Integer> map(Tuple2<EdgeEventDepr, Integer> input) {
+                return new Tuple3<>(input.f0.getEdge().getOriginVertexDepr(), input.f0.getEdge().getDestinVertexDepr(), input.f1);
             }
         }).print();*/
 

@@ -16,40 +16,54 @@ import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.util.OutputTag;
+import org.myorg.quickstart.jobstatistics.LoadBalanceCalculator;
+import org.myorg.quickstart.jobstatistics.VertexCut;
+import org.myorg.quickstart.jobstatistics.VertexCutImpl;
 import org.myorg.quickstart.utils.ProcessWindowGelly;
 import org.myorg.quickstart.utils.CustomKeySelector5;
 import org.myorg.quickstart.utils.*;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import static java.time.LocalDate.now;
 
 /**
  *
+ *
+ *
  * @Arguments:
- *      1) graphSource:
+ *      0) graphSource:
  *           "0": generated on Runtime
  *           "1": from file
- *      2) input path
+ *      1) input path
  *           - will be ignored, if GraphSource == 0
- *      3)  Algorithm (Optional)
+ *      2)  Algorithm (Optional)
  *           - hrdf - default lambda
  *           - hash
- *      4) Graph size
+ *      3) Graph size
  *          - will be ignored if graphsource == 1
- *      5) Parallelism in "global model" step --> parallel or non-parallel HDRF
+ *      4) Parallelism in "global model" step --> parallel or non-parallel HDRF
  *          - 1 (default)
  *          - X whatever
- *      6) General parallelism
+ *      5) General parallelism
  *          - must be > 1
+ *      6) "graph name" --> used for logging, e.g. "twitter"
  *
  *   Example (local testing in IntelliJ:
- *   1 C:\flinkJobs\input\streamInput11.txt hdrf 100 1 2
+ *   1 C:\flinkJobs\input\streamInput199.txt dbh 100 2 2 streamInput
  *
  */
-public class PhasePartitionerHdrf {
+public class GraphPartitionerImpl {
 
     public static final OutputTag<String> outputTag = new OutputTag<String>("side-output"){};
 
@@ -80,18 +94,28 @@ public class PhasePartitionerHdrf {
         globalPhase = Integer.valueOf(args[4]);
         k = Integer.valueOf(args[5]);
         String graphName = args[6];
-        String outputPathPartitions = "flinkJobOutput/job_" + new SimpleDateFormat("MM_dd-HH_mm_ss").format(new Date()) + "_" + algorithm + "_p" + k + "_s" + graphName;
-        String outputPathLogging = "flinkJobOutput/job_" + new SimpleDateFormat("MM_dd-HH_mm_ss").format(new Date()) + "_Logging";
+        String outputPathStatistics = args[7];
+        String testing = args[8];
+        boolean localRun = false;
+        if (testing.equals("local")) {
+            localRun = true;
+            }
+        String timestamp = new SimpleDateFormat("yy-MM-dd_HH-mm-ss").format(new Date());
+        String outputPathPartitions = "flinkJobOutput/job_" + timestamp + "_" + algorithm + "_p" + k + "_" + graphName;
+        String outputPathLogging = "flinkJobOutput/job_" + timestamp + "_Logging";
 
         ProcessWindowGelly firstPhaseProcessor = new ProcessWindowGelly();
         MatchFunctionPartitioner matchFunction = new MatchFunctionPartitioner(algorithm, k, lambda);
         MapStateDescriptor<String, Tuple2<Integer, ArrayList<Integer>>> rulesStateDescriptor = new MapStateDescriptor<>("RulesBroadcastState", BasicTypeInfo.STRING_TYPE_INFO,tupleTypeInfo);
+
+        //System.out.println(new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()) + " timestamp for whatever you want");
 
         // Environment setup
         env.setParallelism(k);
         env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
         // Generate OR FileRead graph -- as from arguments
         GraphCreatorGelly edgeGraph = getGraph(graphSource, graphSize);
+
         DataStream<EdgeEventGelly>edgeStream = edgeGraph.getEdgeStream(env);
 
         DataStream<EdgeEventGelly> partitionedEdges = null;
@@ -125,7 +149,7 @@ public class PhasePartitionerHdrf {
             BroadcastStream<HashMap<Long, Long>> broadcastStateStream = phaseOneStream
                     .broadcast(rulesStateDescriptor);
 
-            // Connect Broadcast Stream and Edge Stream to build global model
+            // Connect Broadcast Stream and EdgeDepr Stream to build global model
             SingleOutputStreamOperator<Tuple2<EdgeEventGelly, Integer>> phaseTwoStream = edgesWindowed
                     .keyBy(new KeySelector<EdgeEventGelly, Integer>() {
                         @Override
@@ -152,7 +176,7 @@ public class PhasePartitionerHdrf {
         }
 
 
-        //Print result in human-readable way --> e.g. (4,2,0) means: Edge(4,2) partitioned to machineId 0
+        //Print result in human-readable way --> e.g. (4,2,0) means: EdgeDepr(4,2) partitioned to machineId 0
         partitionedEdges.writeAsText(outputPathPartitions.replaceAll(":","_"));
 
 
@@ -199,6 +223,38 @@ public class PhasePartitionerHdrf {
         System.out.println("The job took " + result.getNetRuntime(TimeUnit.SECONDS) + " seconds to execute"+"\n");//appends the string to the file
         System.out.println("The job took " + result.getNetRuntime(TimeUnit.NANOSECONDS) + " nanoseconds to execute"+"\n");
 
+
+        // Gather statistics for the job
+        String statistics = graphName + "," + algorithm + "," + timestamp +  "," + result.getNetRuntime(TimeUnit.MILLISECONDS) + ","
+                + result.getNetRuntime((TimeUnit.SECONDS)) + "," + k + "," + globalPhase + "," + inputPath + ",";
+        if (localRun) {
+            File directory = new File("C:\\Users\\adac0\\IdeaProjects\\flink-parallelPartitioner\\" + outputPathPartitions);
+            File[] partitions = directory.listFiles();
+            List<File> fileList = new ArrayList<>();
+            int parallelism = 0;
+            for (File f : partitions) {
+                fileList.add(f);
+                System.out.println("File: " + f.getName());
+                parallelism = +1;
+            }
+            double replicationFactor = new VertexCut(parallelism).calculateVertexCut(fileList);
+            double load = new LoadBalanceCalculator().calculateLoad(fileList);
+            statistics = statistics + replicationFactor + "," + load;
+
+        }
+        System.out.println("statistics: " + statistics);
+       // graphName,algorithm,timestamp,durationInMs,durationInSec,partitions,parallelismModel,inputPath,replicationFactor,load
+
+        try {
+            FileWriter fw = new FileWriter(outputPathStatistics, true); //the true will append the new data
+            fw.write(statistics + "\n");//appends the string to the file
+            //fw.write("The job took " + result.getNetRuntime(TimeUnit.NANOSECONDS) + " nanoseconds to execute"+"\n");
+            fw.close();
+        } catch (IOException ioe) {
+            System.err.println("IOException: " + ioe.getMessage());
+        }
+
+
     }
 
     private static GraphCreatorGelly getGraph(String generateGraph, int graphSize) throws Exception {
@@ -210,9 +266,11 @@ public class PhasePartitionerHdrf {
         } else if (generateGraph.equals("1")) {
             // READ GRAPH FROM FILE
             edgeGraph = new GraphCreatorGelly("file", inputPath, env);
+
         } else throw new Exception("check the input for generate graph");
 
         return edgeGraph;
+
     }
 
     private static String createJobName(String algorithm, int k, String generateGraph, String graphName) {

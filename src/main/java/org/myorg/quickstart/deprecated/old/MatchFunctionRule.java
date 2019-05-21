@@ -27,7 +27,7 @@ public class MatchFunctionRule extends KeyedBroadcastProcessFunction<Integer, Ed
     @Override
     public void processBroadcastElement(Tuple2<Integer, List<Integer>> broadcastElement, Context ctx, Collector<Tuple2<Integer, List<Integer>>> out) throws Exception {
 
-        //System.out.println("R_"+ round + ":: Broadcasting Vertex " + broadcastElement.f0);
+        //System.out.println("R_"+ round + ":: Broadcasting VertexDepr " + broadcastElement.f0);
 
         if (broadcastElement.f0 != -1) {
             boolean inList = false;
@@ -41,9 +41,9 @@ public class MatchFunctionRule extends KeyedBroadcastProcessFunction<Integer, Ed
             if (inList == false) {
                 //ctx.getBroadcastState(broadcastStateDescriptor).put("Entry_" + counterBroadcast++, broadcastElement);
                 ctx.getBroadcastState(broadcastStateDescriptor).put(broadcastElement.f0.toString(), broadcastElement);
-                //System.out.println("R_"+ round +":: RULE: Vertex " + broadcastElement.f0 + " to state table");
+                //System.out.println("R_"+ round +":: RULE: VertexDepr " + broadcastElement.f0 + " to state table");
                 counter++;
-                System.out.println("R_"+ round +":: State Table after ADDING Vertex " + broadcastElement.f0 + " --> " + ctx.getBroadcastState(broadcastStateDescriptor).entries());
+                System.out.println("R_"+ round +":: StateDepr Table after ADDING VertexDepr " + broadcastElement.f0 + " --> " + ctx.getBroadcastState(broadcastStateDescriptor).entries());
             }
         }
 
@@ -52,7 +52,7 @@ public class MatchFunctionRule extends KeyedBroadcastProcessFunction<Integer, Ed
     @Override
     public void processElement(EdgeSimple currentEdge, ReadOnlyContext ctx, Collector<Tuple2<Integer, List<Integer>>> out) throws Exception {
 
-        //System.out.println("R_"+ round +":: Processing EDGE: " + currentEdge.getOriginVertex() + " " + currentEdge.getDestinVertex());
+        //System.out.println("R_"+ round +":: Processing EDGE: " + currentEdge.getOriginVertexDepr() + " " + currentEdge.getDestinVertexDepr());
         processedEdges = processedEdges + currentEdge.getOriginVertex() + "," + currentEdge.getDestinVertex() + "--";
         System.out.println("R_"+ round +":: " + processedEdges);
 

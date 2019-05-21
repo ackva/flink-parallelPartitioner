@@ -7,7 +7,7 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExtractor;
 import org.apache.flink.streaming.api.windowing.time.Time;
-import org.myorg.quickstart.deprecated.EdgeEvent;
+import org.myorg.quickstart.deprecated.EdgeEventDepr;
 import org.myorg.quickstart.deprecated.EdgeSimple;
 import org.myorg.quickstart.deprecated.GraphCreator;
 
@@ -60,34 +60,34 @@ public class SumTumblingWindow {
         edges = tgraph.getEdges();
 
         // Assign event time (=now) for every edge and printPhaseOne this list
-        List<EdgeEvent> edgeEvents = new ArrayList<>();
+        List<EdgeEventDepr> edgeEventDeprs = new ArrayList<>();
         for (int i = 0; i < graphSize; i++) {
-            edgeEvents.add(new EdgeEvent(edges.get(i)));
-            System.out.println("Edge: "+ edgeEvents.get(i).getEdge().getOriginVertex() + " "
-                    +edgeEvents.get(i).getEdge().getDestinVertex() + " -- Time: " + edgeEvents.get(i).getEventTime());
+            edgeEventDeprs.add(new EdgeEventDepr(edges.get(i)));
+            System.out.println("EdgeDepr: "+ edgeEventDeprs.get(i).getEdge().getOriginVertex() + " "
+                    + edgeEventDeprs.get(i).getEdge().getDestinVertex() + " -- Time: " + edgeEventDeprs.get(i).getEventTime());
         }
 
         // Assign timestamps to the edges (as "fake" events)
-        DataStream<EdgeEvent> sourceData = env.fromCollection(edgeEvents)
-            .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<EdgeEvent>() {
+        DataStream<EdgeEventDepr> sourceData = env.fromCollection(edgeEventDeprs)
+            .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<EdgeEventDepr>() {
 
                     @Override
-                    public long extractAscendingTimestamp(EdgeEvent element) {
+                    public long extractAscendingTimestamp(EdgeEventDepr element) {
                         return element.getEventTime();
                     }
                 });
 
-        // Stream with Tuple2<EdgeEvent,"originVertex">
-        // Sum up origin Vertex per Window (in total, it MUST add up to "graphSize" variable
-        DataStream<Tuple2<EdgeEvent, Integer>> windowTestStream2 = sourceData
-                .map(new MapFunction<EdgeEvent, Tuple2<EdgeEvent, Integer>>() {
+        // Stream with Tuple2<EdgeEventDepr,"originVertex">
+        // Sum up origin VertexDepr per Window (in total, it MUST add up to "graphSize" variable
+        DataStream<Tuple2<EdgeEventDepr, Integer>> windowTestStream2 = sourceData
+                .map(new MapFunction<EdgeEventDepr, Tuple2<EdgeEventDepr, Integer>>() {
                     @Override
-                    public Tuple2<EdgeEvent, Integer> map(EdgeEvent value)
+                    public Tuple2<EdgeEventDepr, Integer> map(EdgeEventDepr value)
                             throws Exception {
                         return new Tuple2<>(value,value.getEdge().getOriginVertex());
                     }
                 })
-                .keyBy(1) // keyBy first Vertex ("originVertex")
+                .keyBy(1) // keyBy first VertexDepr ("originVertex")
                 .timeWindow(Time.milliseconds(5))
                 .sum(1);
         // Print the results

@@ -4,9 +4,6 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.streaming.api.functions.co.KeyedBroadcastProcessFunction;
 import org.apache.flink.util.Collector;
-import org.myorg.quickstart.partitioners.PhasePartitionerHdrf;
-import org.myorg.quickstart.utils.EdgeEventGelly;
-import org.myorg.quickstart.utils.ModelBuilderGelly;
 
 import java.util.*;
 
@@ -38,7 +35,7 @@ public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Inte
         countBroadcastsOnWorker++;
 
         // Print for debugging
-        if (TEMPGLOBALVARIABLES.printPhaseOne)
+        if (TEMPGLOBALVARIABLES.printPhaseTwo)
             System.out.println("Phase 2: Broadcasting HashMap " + broadcastElement);
 
         if (this.algorithm.equals("hdrf")) {
@@ -71,7 +68,7 @@ public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Inte
             }
         }
 
-        //System.out.println("Current Vertex Partitioning Table: " + vertexPartition);
+        //System.out.println("Current VertexDepr Partitioning Table: " + vertexPartition);
 
         if (TEMPGLOBALVARIABLES.printPhaseTwo) {
             System.out.println(countBroadcastsOnWorker + ": " + vertexDegreeMap);
@@ -84,7 +81,7 @@ public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Inte
                     //System.out.println("checking again");
                     int partitionId = modelBuilder.choosePartition(e);
                     out.collect(new Tuple2<>(e, partitionId));
-                    //System.out.println("added Edge (" + e.getEdge().f0 + " " + e.getEdge().f1 + ") later");
+                    //System.out.println("added EdgeDepr (" + e.getEdge().f0 + " " + e.getEdge().f1 + ") later");
                     toBeRemoved.add(e);
                 } else {
                     //System.out.println("breaking");
@@ -94,7 +91,7 @@ public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Inte
             }
             waitingEdges.removeAll(toBeRemoved);
         }
-        //ctx.output(PhasePartitionerHdrf.outputTag, "1: " + modelBuilder.getHdrf().getCurrentState().printState().toString());
+        //ctx.output(GraphPartitionerImpl.outputTag, "1: " + modelBuilder.getHdrf().getCurrentState().printState().toString());
 
     }
 
@@ -105,7 +102,7 @@ public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Inte
         boolean checkInside = checkIfEarlyArrived(currentEdge);
 
         if (!checkInside) {
-            //System.out.println("Edge (" + currentEdge.getEdge().f0 + " " + currentEdge.getEdge().f1 + ") not inside. added to queue");
+            //System.out.println("EdgeDepr (" + currentEdge.getEdge().f0 + " " + currentEdge.getEdge().f1 + ") not inside. added to queue");
             waitingEdges.add(currentEdge);
         } else {
             int partitionId = modelBuilder.choosePartition(currentEdge);
@@ -114,7 +111,7 @@ public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Inte
 
         counterEdgesInstance++;
         //int partitionId = modelBuilder.choosePartition(currentEdge);
-        //System.out.println("Phase 2: " + currentEdge.getEdge().getOriginVertex() + " " + currentEdge.getEdge().getDestinVertex() + " --> " + partitionId);
+        //System.out.println("Phase 2: " + currentEdge.getEdge().getOriginVertexDepr() + " " + currentEdge.getEdge().getDestinVertexDepr() + " --> " + partitionId);
 
         // Add to "SINK" (TODO: Real Sink Function)
         //edgeInPartition.put(currentEdge,partitionId);
@@ -124,7 +121,7 @@ public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Inte
 
         //out.collect(new Tuple2<>(currentEdge,partitionId));
 
-        //ctx.output(PhasePartitionerHdrf.outputTag, "1: " + modelBuilder.getHdrf().getCurrentState().printState().toString());
+        //ctx.output(GraphPartitionerImpl.outputTag, "1: " + modelBuilder.getHdrf().getCurrentState().printState().toString());
 
     }
 
@@ -143,8 +140,8 @@ public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Inte
 
         // Debugging only
         if (TEMPGLOBALVARIABLES.printPhaseTwo) {
-            List<Tuple3> printState = modelBuilder.getHdrf().getCurrentState().printState();
-            System.out.println("Edge (" + currentEdge.getEdge().f0 + " " + currentEdge.getEdge().f1 + "): " + printState);
+            //List<Tuple3> printState = modelBuilder.getHdrf().getCurrentState().printState();
+            //System.out.println("Edge (" + currentEdge.getEdge().f0 + " " + currentEdge.getEdge().f1 + "): " + printState);
         }
 
         // Return TRUE if both vertices are in HashMap. Otherwise return false

@@ -31,7 +31,7 @@ public class MatchFunctionEdgeEvents extends KeyedBroadcastProcessFunction<Integ
     @Override
     public void processBroadcastElement(Tuple2<Integer, List<Integer>> broadcastElement, Context ctx, Collector<Tuple2<Integer, List<Integer>>> out) throws Exception {
 
-        System.out.println("R_"+ round + ":: Broadcasting Vertex " + broadcastElement.f0);
+        System.out.println("R_"+ round + ":: Broadcasting VertexDepr " + broadcastElement.f0);
 
         if (broadcastElement.f0 != -1) {
             boolean inList = false;
@@ -45,9 +45,9 @@ public class MatchFunctionEdgeEvents extends KeyedBroadcastProcessFunction<Integ
             if (inList == false) {
                 //ctx.getBroadcastState(broadcastStateDescriptor).put("Entry_" + counterBroadcast++, broadcastElement);
                 ctx.getBroadcastState(broadcastStateDescriptor).put(broadcastElement.f0.toString(), broadcastElement);
-                //System.out.println("R_"+ round +":: RULE: Vertex " + broadcastElement.f0 + " to state table");
+                //System.out.println("R_"+ round +":: RULE: VertexDepr " + broadcastElement.f0 + " to state table");
                 counter++;
-                System.out.println("R_"+ round +":: State Table after ADDING Vertex " + broadcastElement.f0 + " --> " + ctx.getBroadcastState(broadcastStateDescriptor).entries());
+                System.out.println("R_"+ round +":: StateDepr Table after ADDING VertexDepr " + broadcastElement.f0 + " --> " + ctx.getBroadcastState(broadcastStateDescriptor).entries());
             }
         }
 
@@ -100,7 +100,7 @@ public class MatchFunctionEdgeEvents extends KeyedBroadcastProcessFunction<Integ
         // Do something
 
 
-   /*      //System.out.println("broadcastFunction called for " + currentEdge.getOriginVertex() + " " + currentEdge.getDestinVertex());
+   /*      //System.out.println("broadcastFunction called for " + currentEdge.getOriginVertexDepr() + " " + currentEdge.getDestinVertexDepr());
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         // MapState Descriptor (as from data artisans)
         MapStateDescriptor<String, Tuple2<Integer, ArrayList<Integer>>> rulesStateDescriptor = new MapStateDescriptor<>(
@@ -110,10 +110,10 @@ public class MatchFunctionEdgeEvents extends KeyedBroadcastProcessFunction<Integ
         );
 
        // SHOULD BE TEMPORARY
-        // #### Create 1 sample "state" for Vertex 1, appearing in partition 1
+        // #### Create 1 sample "state" for VertexDepr 1, appearing in partition 1
         List<Integer> stateArray = new ArrayList<>();
-        stateArray.add(currentEdge.getOriginVertex());
-        stateArray.add(currentEdge.getDestinVertex());
+        stateArray.add(currentEdge.getOriginVertexDepr());
+        stateArray.add(currentEdge.getDestinVertexDepr());
         List<Tuple2<Integer, List<Integer>>> stateList = new ArrayList<>();
         stateList.add(new Tuple2<>(new Integer(-1), stateArray));
 
@@ -135,7 +135,7 @@ public class MatchFunctionEdgeEvents extends KeyedBroadcastProcessFunction<Integ
 
         DataStream<EdgeSimple> edgeStreamForPartitioning = env.fromCollection(fakeList)
                 .map(edgeSimple -> edgeSimple)
-                .keyBy(EdgeSimple::getDestinVertex);
+                .keyBy(EdgeSimple::getDestinVertexDepr);
 
         // Match Function to connect broadcast (state) and edges
         MatchFunctionEdgeEvents matchRules2 = new MatchFunctionEdgeEvents();

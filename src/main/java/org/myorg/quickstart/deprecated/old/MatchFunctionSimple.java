@@ -56,12 +56,12 @@ public class MatchFunctionSimple extends KeyedBroadcastProcessFunction<Integer, 
 
             for (Integer v: currentEdge.getVertices()) {
                 if (entry.getValue().f0 == v) {
-                    System.out.println("OLD Vertex " + v + " already in vertexTable (partitions: " + currentPartitions + ")");
+                    System.out.println("OLD VertexDepr " + v + " already in vertexTable (partitions: " + currentPartitions + ")");
                 } else {
                     StringBuilder sb = new StringBuilder();
                     sb.append(v);
-                    //out.collect("New Vertex " + sb.toString() + " to be added to state table. " + "( currentPart: " + currentPartitions);
-                    out.collect("New Vertex " + sb.toString() + " to be added to state table. for current entry: " + entry.getValue().f0 + " with part: " + currentPartitions);
+                    //out.collect("New VertexDepr " + sb.toString() + " to be added to state table. " + "( currentPart: " + currentPartitions);
+                    out.collect("New VertexDepr " + sb.toString() + " to be added to state table. for current entry: " + entry.getValue().f0 + " with part: " + currentPartitions);
                     ctx.output(outputTag, "sideout-" + String.valueOf(sb.toString()));
 
                 }

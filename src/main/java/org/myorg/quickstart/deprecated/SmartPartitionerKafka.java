@@ -99,7 +99,7 @@ public class SmartPartitionerKafka {
 		// Get timestamp for logging
 		String timeStamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new Date());
 
-		// Initialize state table (Columns: Vertex, Occurrence)
+		// Initialize state table (Columns: VertexDepr, Occurrence)
 		HashMap<String, Long> stateTable = new HashMap<>();
 
 		// FlatMap function to create proper tuples (Tuple2) with both vertices, as in input file

@@ -4,7 +4,7 @@ package org.myorg.quickstart.deprecated.TwoPhasePartitioner;
 import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
-import org.myorg.quickstart.deprecated.EdgeEvent;
+import org.myorg.quickstart.deprecated.EdgeEventDepr;
 import org.myorg.quickstart.deprecated.PhasePartitioner;
 
 import java.util.ArrayList;
@@ -81,10 +81,10 @@ public class ProcessFirstPhaseGelly extends ProcessWindowFunction<EdgeEventGelly
 
     }
 
-    public void buildLocalModel(EdgeEvent e, HashMap<Integer, Integer> vertexToPartitionMap) {
+    public void buildLocalModel(EdgeEventDepr e, HashMap<Integer, Integer> vertexToPartitionMap) {
         Integer[] vertices = new Integer[2];
-        vertices[0] = e.getEdge().getOriginVertex();
-        vertices[1] = e.getEdge().getDestinVertex();
+        vertices[0] = e.getEdge().getOriginVertexDepr();
+        vertices[1] = e.getEdge().getDestinVertexDepr();
 
         // Loop over both vertices and see which one has the higher degree (if equal, the left vertex "wins").
         for (int i = 0; i < 2; i++) {
@@ -97,10 +97,10 @@ public class ProcessFirstPhaseGelly extends ProcessWindowFunction<EdgeEventGelly
         }
     }
 
-    public void getFrequency(EdgeEvent e, HashMap<Integer, Integer> frequencyTable) {
+    public void getFrequency(EdgeEventDepr e, HashMap<Integer, Integer> frequencyTable) {
         Integer[] vertices = new Integer[2];
-        vertices[0] = e.getEdge().getOriginVertex();
-        vertices[1] = e.getEdge().getDestinVertex();
+        vertices[0] = e.getEdge().getOriginVertexDepr();
+        vertices[1] = e.getEdge().getDestinVertexDepr();
 
         // Loop over both vertices and see which one has the higher degree (if equal, the left vertex "wins").
         for (int i = 0; i < 2; i++) {

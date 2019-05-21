@@ -12,14 +12,14 @@ import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
 import org.apache.flink.util.OutputTag;
-import org.myorg.quickstart.deprecated.EdgeEvent;
+import org.myorg.quickstart.deprecated.EdgeEventDepr;
 import org.myorg.quickstart.deprecated.EdgeSimple;
 
 import java.util.ArrayList;
 import java.util.List;
 
 
-public class ProcessEdgeWindowWithSideOutput extends ProcessWindowFunction<EdgeEvent, Tuple2<DataStream<EdgeEvent>,Integer>, Integer, TimeWindow> {
+public class ProcessEdgeWindowWithSideOutput extends ProcessWindowFunction<EdgeEventDepr, Tuple2<DataStream<EdgeEventDepr>,Integer>, Integer, TimeWindow> {
 
     public List<Tuple2<Integer, List<Integer>>> stateList = new ArrayList<>();
     public List<Integer> stateArray = new ArrayList<>();
@@ -48,9 +48,9 @@ public class ProcessEdgeWindowWithSideOutput extends ProcessWindowFunction<EdgeE
         state = getRuntimeContext().getState(descriptor);
     }
 
-    public void process(Integer key, Context context, Iterable<EdgeEvent> edgeIterable, Collector<Tuple2<DataStream<EdgeEvent>, Integer>> out) throws Exception {
+    public void process(Integer key, Context context, Iterable<EdgeEventDepr> edgeIterable, Collector<Tuple2<DataStream<EdgeEventDepr>, Integer>> out) throws Exception {
 
-        List<EdgeEvent> edgesInWindow = new ArrayList<>();
+        List<EdgeEventDepr> edgesInWindow = new ArrayList<>();
 
         edgeIterable.forEach(edgesInWindow::add);
 
@@ -58,7 +58,7 @@ public class ProcessEdgeWindowWithSideOutput extends ProcessWindowFunction<EdgeE
         String printString = "Current Window: ";
         List<EdgeSimple> fakeList = new ArrayList<>();
         int newState = 0;
-        for(EdgeEvent e: edgesInWindow) {
+        for(EdgeEventDepr e: edgesInWindow) {
             printString = printString + "; " + e.getEdge().getOriginVertex() + " " + e.getEdge().getDestinVertex();
             fakeList.add(e.getEdge());
             newState = newState + e.getEdge().getDestinVertex();
@@ -67,7 +67,7 @@ public class ProcessEdgeWindowWithSideOutput extends ProcessWindowFunction<EdgeE
         int currentState = state.value();
         state.update(newState);
 
-        DataStream<EdgeEvent> edgeEventSubStream = env.fromCollection(edgesInWindow);
+        DataStream<EdgeEventDepr> edgeEventSubStream = env.fromCollection(edgesInWindow);
 
         out.collect(new Tuple2<>(edgeEventSubStream, counter));
 

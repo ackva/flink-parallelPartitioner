@@ -3,8 +3,7 @@ package org.myorg.quickstart.utils;
 import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
-import org.myorg.quickstart.partitioners.PhasePartitionerHdrf;
-import org.myorg.quickstart.deprecated.EdgeEvent;
+import org.myorg.quickstart.deprecated.EdgeEventDepr;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -85,7 +84,7 @@ public class ProcessWindowDegree extends ProcessWindowFunction<EdgeEventGelly, H
 
     }
 
-    public void buildLocalModel(EdgeEvent e, HashMap<Long, Long> vertexToPartitionMap) {
+    public void buildLocalModel(EdgeEventDepr e, HashMap<Long, Long> vertexToPartitionMap) {
         long[] vertices = new long[2];
         vertices[0] = e.getEdge().getOriginVertex();
         vertices[1] = e.getEdge().getDestinVertex();
@@ -101,7 +100,7 @@ public class ProcessWindowDegree extends ProcessWindowFunction<EdgeEventGelly, H
         }
     }
 
-    public void getFrequency(EdgeEvent e, HashMap<Long, Long> frequencyTable) {
+    public void getFrequency(EdgeEventDepr e, HashMap<Long, Long> frequencyTable) {
         long[] vertices = new long[2];
         vertices[0] = e.getEdge().getOriginVertex();
         vertices[1] = e.getEdge().getDestinVertex();

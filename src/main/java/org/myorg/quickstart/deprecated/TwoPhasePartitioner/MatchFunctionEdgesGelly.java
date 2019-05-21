@@ -4,7 +4,6 @@ package org.myorg.quickstart.deprecated.TwoPhasePartitioner;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.functions.co.KeyedBroadcastProcessFunction;
 import org.apache.flink.util.Collector;
-import org.myorg.quickstart.partitioners.PhasePartitionerHdrf;
 import org.myorg.quickstart.deprecated.PhasePartitioner;
 import org.myorg.quickstart.utils.EdgeEventGelly;
 import org.myorg.quickstart.utils.ModelBuilderGelly;
@@ -53,7 +52,7 @@ public class MatchFunctionEdgesGelly extends KeyedBroadcastProcessFunction<Integ
                 }
             }
 
-        //System.out.println("Current Vertex Partitioning Table: " + vertexPartition);
+        //System.out.println("Current VertexDepr Partitioning Table: " + vertexPartition);
 
         if (TEMPGLOBALVARIABLES.printPhaseTwo == true) {
             //System.out.println(printString);
@@ -71,7 +70,7 @@ public class MatchFunctionEdgesGelly extends KeyedBroadcastProcessFunction<Integ
 
         counterEdgesInstance++;
         int partitionId = modelBuilder.choosePartition(currentEdge);
-        //System.out.println("Phase 2: " + currentEdge.getEdge().getOriginVertex() + " " + currentEdge.getEdge().getDestinVertex() + " --> " + partitionId);
+        //System.out.println("Phase 2: " + currentEdge.getEdge().getOriginVertexDepr() + " " + currentEdge.getEdge().getDestinVertexDepr() + " --> " + partitionId);
 
         // Add to "SINK" (TODO: Real Sink Function)
         edgeInPartition.put(currentEdge,partitionId);
@@ -85,19 +84,19 @@ public class MatchFunctionEdgesGelly extends KeyedBroadcastProcessFunction<Integ
     }
 
     private String checkIfEarlyArrival(EdgeEventGelly currentEdge) {
-        String returnString = "Edge (" + currentEdge.getEdge().f0 + " " + currentEdge.getEdge().f1 + "): ";
+        String returnString = "EdgeDepr (" + currentEdge.getEdge().f0 + " " + currentEdge.getEdge().f1 + "): ";
         String vertexPartitionString = vertexPartition.toString();
         if (!vertexPartition.containsKey(currentEdge.getEdge().f0)) {
-            returnString = returnString + "Vertex: " + currentEdge.getEdge().f0 + " outside -- ";
+            returnString = returnString + "VertexDepr: " + currentEdge.getEdge().f0 + " outside -- ";
         }
         else {
-            returnString = returnString + "Vertex: " + currentEdge.getEdge().f0 + " inside  -- ";
+            returnString = returnString + "VertexDepr: " + currentEdge.getEdge().f0 + " inside  -- ";
         }
         if (!vertexPartition.containsKey(currentEdge.getEdge().f1)){
-            returnString = returnString + "Vertex: " + currentEdge.getEdge().f1 + " outside -- " + vertexPartitionString;
+            returnString = returnString + "VertexDepr: " + currentEdge.getEdge().f1 + " outside -- " + vertexPartitionString;
         }
         else {
-            returnString = returnString + "Vertex: " + currentEdge.getEdge().f1 + " inside  -- " + vertexPartitionString;
+            returnString = returnString + "VertexDepr: " + currentEdge.getEdge().f1 + " inside  -- " + vertexPartitionString;
         }
 
         return returnString;

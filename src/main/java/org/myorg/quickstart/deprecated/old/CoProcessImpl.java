@@ -13,7 +13,7 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.co.CoProcessFunction;
 import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExtractor;
 import org.apache.flink.util.Collector;
-import org.myorg.quickstart.deprecated.EdgeEvent;
+import org.myorg.quickstart.deprecated.EdgeEventDepr;
 import org.myorg.quickstart.deprecated.EdgeSimple;
 import org.myorg.quickstart.deprecated.GraphCreator;
 
@@ -22,7 +22,7 @@ import java.util.*;
 /**
  *
  * Idea:
- * Partition a graph by using a CoProcessFunction which connects an Edge stream with a "state" Stream.
+ * Partition a graph by using a CoProcessFunction which connects an EdgeDepr stream with a "state" Stream.
  * This does not really work.
  *
  * We found out that the NEWLY created Streams above, inside "processElement()" are not created/executed (Not sure which Java terminology to use).
@@ -56,7 +56,7 @@ public class CoProcessImpl {
         env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
 
         // ### Generate graph and make "fake events" (for window processing)
-        List<EdgeEvent> edges1 = getGraph(graphSize); // see below
+        List<EdgeEventDepr> edges1 = getGraph(graphSize); // see below
 
         List<Tuple2<Integer, List<Integer>>> stateList = new ArrayList<>();
         for(int i =  0; i < 10; i++) {
@@ -75,18 +75,18 @@ public class CoProcessImpl {
         keyedInput.add(1); keyedInput.add(2);
 
 
-        // ### Create Edge Stream from input graph
+        // ### Create EdgeDepr Stream from input graph
         // Assign timestamps to the stream
-        KeyedStream<EdgeEvent,Integer> keyedEdgeStream = env.fromCollection(edges1)
-                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<EdgeEvent>() {
+        KeyedStream<EdgeEventDepr,Integer> keyedEdgeStream = env.fromCollection(edges1)
+                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<EdgeEventDepr>() {
                     @Override
-                    public long extractAscendingTimestamp(EdgeEvent element) {
+                    public long extractAscendingTimestamp(EdgeEventDepr element) {
                         return element.getEventTime();
                     }
                 })
-                .keyBy(new KeySelector<EdgeEvent, Integer>() {
+                .keyBy(new KeySelector<EdgeEventDepr, Integer>() {
                     @Override
-                    public Integer getKey(EdgeEvent value) throws Exception {
+                    public Integer getKey(EdgeEventDepr value) throws Exception {
                         return value.getEdge().getOriginVertex();
                     }
                 });
@@ -94,15 +94,15 @@ public class CoProcessImpl {
 
         DataStream<String> coProcessedStream = keyedEdgeStream
            .connect(ruleStream)
-                .process(new CoProcessFunction<EdgeEvent, Tuple2<Integer, List<Integer>>, String>() {
+                .process(new CoProcessFunction<EdgeEventDepr, Tuple2<Integer, List<Integer>>, String>() {
                              int counter1 = 0;
                              int counter2 = 0;
                              int totalCounter = 0;
                              List<Tuple2<Integer, List<Integer>>> stateListSink = new ArrayList<>();
 
                              @Override
-                             // Edge Stream
-                             public void processElement1(EdgeEvent value, Context ctx, Collector<String> out) throws Exception {
+                             // EdgeDepr Stream
+                             public void processElement1(EdgeEventDepr value, Context ctx, Collector<String> out) throws Exception {
                                  counter1++;
                                  out.collect(value.getEdge() + " _1_ " + counter1);
                              }
@@ -168,17 +168,17 @@ public class CoProcessImpl {
         env.execute();
     }
 
-    public static List<EdgeEvent> getGraph(int graphSize) {
+    public static List<EdgeEventDepr> getGraph(int graphSize) {
         System.out.println("Number of edges: " + graphSize);
         GraphCreator tgraph = new GraphCreator();
         tgraph.generateGraphOneToAny(graphSize);
         List<EdgeSimple> edgeList = tgraph.getEdges();
         // Assign event time (=now) for every edge and printPhaseOne this list
-        List<EdgeEvent> edgeEvents = new ArrayList<>();
+        List<EdgeEventDepr> edgeEventDeprs = new ArrayList<>();
         for (int i = 0; i < graphSize; i++)
-            edgeEvents.add(new EdgeEvent(edgeList.get(i)));
+            edgeEventDeprs.add(new EdgeEventDepr(edgeList.get(i)));
 
-        return  edgeEvents;
+        return edgeEventDeprs;
     }
 }
 

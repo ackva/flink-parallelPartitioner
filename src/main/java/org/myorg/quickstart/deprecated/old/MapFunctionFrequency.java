@@ -4,11 +4,11 @@ import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.datastream.KeyedStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.myorg.quickstart.deprecated.EdgeEvent;
+import org.myorg.quickstart.deprecated.EdgeEventDepr;
 
 import java.util.HashMap;
 
-public class MapFunctionFrequency implements MapFunction<EdgeEvent, Tuple2<EdgeEvent, Integer>> {
+public class MapFunctionFrequency implements MapFunction<EdgeEventDepr, Tuple2<EdgeEventDepr, Integer>> {
 
     private HashMap<Integer, Integer> stateTable;
 
@@ -16,9 +16,9 @@ public class MapFunctionFrequency implements MapFunction<EdgeEvent, Tuple2<EdgeE
         stateTable = new HashMap<>();
     }
 
-    //new MapFunction<EdgeEvent, Tuple2<EdgeEvent, Integer>>() {
+    //new MapFunction<EdgeEventDepr, Tuple2<EdgeEventDepr, Integer>>() {
         @Override
-        public Tuple2 map(EdgeEvent edge) throws Exception {
+        public Tuple2 map(EdgeEventDepr edge) throws Exception {
             Integer[] vertices = new Integer[2];
             vertices[0] = edge.getEdge().getOriginVertex();
             vertices[1] = edge.getEdge().getDestinVertex();

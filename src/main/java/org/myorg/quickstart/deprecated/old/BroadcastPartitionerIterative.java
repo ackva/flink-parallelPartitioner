@@ -9,7 +9,7 @@ import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExt
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.triggers.CountTrigger;
 import org.apache.flink.util.OutputTag;
-import org.myorg.quickstart.deprecated.EdgeEvent;
+import org.myorg.quickstart.deprecated.EdgeEventDepr;
 import org.myorg.quickstart.deprecated.EdgeSimple;
 import org.myorg.quickstart.deprecated.GraphCreator;
 
@@ -48,20 +48,20 @@ public class BroadcastPartitionerIterative {
         env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
 
         // ### Generate graph and make "fake events" (for window processing)
-        List<EdgeEvent> edgeEvents = getGraph(graphSize); // see below
+        List<EdgeEventDepr> edgeEventDeprs = getGraph(graphSize); // see below
 
-        // ### Create Edge Stream from input graph
+        // ### Create EdgeDepr Stream from input graph
         // Assign timestamps to the stream
-        KeyedStream keyedEdgeStream = env.fromCollection(edgeEvents)
-                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<EdgeEvent>() {
+        KeyedStream keyedEdgeStream = env.fromCollection(edgeEventDeprs)
+                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<EdgeEventDepr>() {
                     @Override
-                    public long extractAscendingTimestamp(EdgeEvent element) {
+                    public long extractAscendingTimestamp(EdgeEventDepr element) {
                         return element.getEventTime();
                     }
                 })
-                .keyBy(new KeySelector<EdgeEvent, Integer>() {
+                .keyBy(new KeySelector<EdgeEventDepr, Integer>() {
                     @Override
-                    public Integer getKey(EdgeEvent value) throws Exception {
+                    public Integer getKey(EdgeEventDepr value) throws Exception {
                         return value.getEdge().getOriginVertex();
                     }
                 });
@@ -81,23 +81,23 @@ public class BroadcastPartitionerIterative {
         //windowedEdgeStream.printPhaseOne();
         //sideOutputStream.printPhaseOne();
 
-        KeySelector abc = new KeySelector<Tuple2<DataStream<EdgeEvent>,Integer>, Integer>() {
+        KeySelector abc = new KeySelector<Tuple2<DataStream<EdgeEventDepr>,Integer>, Integer>() {
             @Override
-            public Integer getKey(Tuple2<DataStream<EdgeEvent>,Integer> value) throws Exception {
+            public Integer getKey(Tuple2<DataStream<EdgeEventDepr>,Integer> value) throws Exception {
                 return value.f1;
             }
         };
 
 
-        //DataStream<Tuple2<DataStream<EdgeEvent>,Integer>> testUtilsStream = DataStreamUtils.collect(windowedEdgeStream);
+        //DataStream<Tuple2<DataStream<EdgeEventDepr>,Integer>> testUtilsStream = DataStreamUtils.collect(windowedEdgeStream);
                //.reinterpretAsKeyedStream(windowedEdgeStream, abc);
 
         //testUtilsStream
 
-        List<Tuple2<DataStream<EdgeEvent>,Integer>> allSubStreams = new ArrayList<>();
+        List<Tuple2<DataStream<EdgeEventDepr>,Integer>> allSubStreams = new ArrayList<>();
 
 /*
-        Iterator<Tuple2<DataStream<EdgeEvent>,Integer>> myOutput = DataStreamUtils.collect(testUtilsStream);
+        Iterator<Tuple2<DataStream<EdgeEventDepr>,Integer>> myOutput = DataStreamUtils.collect(testUtilsStream);
 
         while (myOutput.hasNext())
             allSubStreams.add(myOutput.next());
@@ -117,17 +117,17 @@ public class BroadcastPartitionerIterative {
         env.execute();
     }
 
-    public static List<EdgeEvent> getGraph(int graphSize) {
+    public static List<EdgeEventDepr> getGraph(int graphSize) {
         System.out.println("Number of edges: " + graphSize);
         GraphCreator tgraph = new GraphCreator();
         tgraph.generateGraphOneTwoToAny(graphSize);
         List<EdgeSimple> edgeList = tgraph.getEdges();
         // Assign event time (=now) for every edge and printPhaseOne this list
-        List<EdgeEvent> edgeEvents = new ArrayList<>();
+        List<EdgeEventDepr> edgeEventDeprs = new ArrayList<>();
         for (int i = 0; i < graphSize; i++)
-            edgeEvents.add(new EdgeEvent(edgeList.get(i)));
+            edgeEventDeprs.add(new EdgeEventDepr(edgeList.get(i)));
 
-        return  edgeEvents;
+        return edgeEventDeprs;
     }
 }
 

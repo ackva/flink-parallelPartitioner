@@ -1,10 +1,10 @@
 package org.myorg.quickstart.deprecated;
 
-public class Vertex {
+public class VertexDepr {
 
     private int id;
 
-    public Vertex (int id) {
+    public VertexDepr(int id) {
         this.id = id;
     }
 

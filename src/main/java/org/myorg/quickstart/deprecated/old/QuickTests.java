@@ -8,7 +8,7 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.ProcessFunction;
 import org.apache.flink.util.Collector;
 import org.apache.flink.util.OutputTag;
-import org.myorg.quickstart.deprecated.old.Edge;
+import org.myorg.quickstart.deprecated.old.EdgeDepr;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -48,24 +48,24 @@ public class QuickTests {
         }
 
         // Get the graph to stream
-    public static List<Edge> getGraph() {
-        List<Edge> keyedInput = new ArrayList<>();
-        keyedInput.add(new Edge(new Vertex(1), new Vertex(2)));
-        keyedInput.add(new Edge(new Vertex(1), new Vertex(3)));
-        keyedInput.add(new Edge(new Vertex(1), new Vertex(4)));
-        keyedInput.add(new Edge(new Vertex(1), new Vertex(5)));
-        keyedInput.add(new Edge(new Vertex(2), new Vertex(3)));
-        keyedInput.add(new Edge(new Vertex(2), new Vertex(4)));
-        keyedInput.add(new Edge(new Vertex(2), new Vertex(5)));
-        keyedInput.add(new Edge(new Vertex(2), new Vertex(6)));
-        keyedInput.add(new Edge(new Vertex(3), new Vertex(4)));
-        keyedInput.add(new Edge(new Vertex(3), new Vertex(5)));
-        keyedInput.add(new Edge(new Vertex(3), new Vertex(6)));
-        keyedInput.add(new Edge(new Vertex(3), new Vertex(7)));
-        keyedInput.add(new Edge(new Vertex(4), new Vertex(5)));
-        keyedInput.add(new Edge(new Vertex(4), new Vertex(6)));
-        keyedInput.add(new Edge(new Vertex(4), new Vertex(7)));
-        keyedInput.add(new Edge(new Vertex(4), new Vertex(8)));
+    public static List<EdgeDepr> getGraph() {
+        List<EdgeDepr> keyedInput = new ArrayList<>();
+        keyedInput.add(new EdgeDepr(new VertexDepr(1), new VertexDepr(2)));
+        keyedInput.add(new EdgeDepr(new VertexDepr(1), new VertexDepr(3)));
+        keyedInput.add(new EdgeDepr(new VertexDepr(1), new VertexDepr(4)));
+        keyedInput.add(new EdgeDepr(new VertexDepr(1), new VertexDepr(5)));
+        keyedInput.add(new EdgeDepr(new VertexDepr(2), new VertexDepr(3)));
+        keyedInput.add(new EdgeDepr(new VertexDepr(2), new VertexDepr(4)));
+        keyedInput.add(new EdgeDepr(new VertexDepr(2), new VertexDepr(5)));
+        keyedInput.add(new EdgeDepr(new VertexDepr(2), new VertexDepr(6)));
+        keyedInput.add(new EdgeDepr(new VertexDepr(3), new VertexDepr(4)));
+        keyedInput.add(new EdgeDepr(new VertexDepr(3), new VertexDepr(5)));
+        keyedInput.add(new EdgeDepr(new VertexDepr(3), new VertexDepr(6)));
+        keyedInput.add(new EdgeDepr(new VertexDepr(3), new VertexDepr(7)));
+        keyedInput.add(new EdgeDepr(new VertexDepr(4), new VertexDepr(5)));
+        keyedInput.add(new EdgeDepr(new VertexDepr(4), new VertexDepr(6)));
+        keyedInput.add(new EdgeDepr(new VertexDepr(4), new VertexDepr(7)));
+        keyedInput.add(new EdgeDepr(new VertexDepr(4), new VertexDepr(8)));
 
         return keyedInput;
     }
