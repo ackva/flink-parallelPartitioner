@@ -22,6 +22,7 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.types.NullValue;
 import org.apache.flink.util.OutputTag;
+import org.apache.hadoop.yarn.state.Graph;
 import org.myorg.quickstart.jobstatistics.LoadBalanceCalculator;
 import org.myorg.quickstart.jobstatistics.VertexCut;
 import org.myorg.quickstart.jobstatistics.VertexCutImpl;
@@ -69,7 +70,7 @@ import static java.time.LocalDate.now;
  *   1 C:\flinkJobs\input\streamInput199.txt dbh 100 2 2 streamInput
  *
  */
-public class GraphPartitionerImpl {
+public class GraphPartitioner {
 
     public static final OutputTag<String> outputTag = new OutputTag<String>("side-output"){};
 
@@ -180,16 +181,6 @@ public class GraphPartitionerImpl {
         } else {
             throw new Exception("WRONG ALGO!!");
         }
-
-
-
-        partitionedEdges.print();
-/*
-        GraphStream applicationStream = new SimpleEdgeStream(test,env);
-
-        DataStream<DisjointSet<Long>> cc = applicationStream.aggregate(new ConnectedComponents<Long, NullValue>(100));
-
-        cc.print();*/
 
 /*        GraphStream<Long, NullValue, NullValue> edges = partitionedEdges.map(new MapFunction<EdgeEventGelly, DisjointSet<Long>>() {
             @Override

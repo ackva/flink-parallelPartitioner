@@ -22,7 +22,9 @@ import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
+import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.graph.Edge;
+import org.apache.flink.graph.streaming.SimpleEdgeStream;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.types.NullValue;
@@ -47,7 +49,7 @@ public class ExactTriangleCount {
 
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         SimpleEdgeStream<Integer, NullValue> edges = getGraphStream(env);
-        env.setParallelism(2);
+
         DataStream<Tuple2<Integer, Integer>> result =
                 edges.buildNeighborhood(false)
                         .map(new ProjectCanonicalEdges())
@@ -55,7 +57,7 @@ public class ExactTriangleCount {
                         .keyBy(0).flatMap(new SumAndEmitCounters());
 
         if (resultPath != null) {
-            result.writeAsText(resultPath);
+            result.writeAsText(resultPath, FileSystem.WriteMode.OVERWRITE);
         }
         else {
             result.print();
@@ -76,7 +78,6 @@ public class ExactTriangleCount {
         Map<Tuple2<Integer, Integer>, TreeSet<Integer>> neighborhoods = new HashMap<>();
 
         public void flatMap(Tuple3<Integer, Integer, TreeSet<Integer>> t, Collector<Tuple2<Integer, Integer>> out) {
-
             //intersect neighborhoods and emit local and global counters
             Tuple2<Integer, Integer> key = new Tuple2<>(t.f0, t.f1);
             if (neighborhoods.containsKey(key)) {
@@ -102,7 +103,6 @@ public class ExactTriangleCount {
                     }
                 }
                 if (counter > 0) {
-
                     //emit counter for srcID, trgID, and total
                     out.collect(new Tuple2<>(t.f0, counter));
                     out.collect(new Tuple2<>(t.f1, counter));
@@ -121,19 +121,13 @@ public class ExactTriangleCount {
      */
     public static final class SumAndEmitCounters implements FlatMapFunction<Tuple2<Integer, Integer>, Tuple2<Integer, Integer>> {
         Map<Integer, Integer> counts = new HashMap<>();
-        public static int count=0;
 
         public void flatMap(Tuple2<Integer, Integer> t, Collector<Tuple2<Integer, Integer>> out) {
-
             if (counts.containsKey(t.f0)) {
-                count++;
-                System.out.println("count"+count+"count");
                 int newCount = counts.get(t.f0) + t.f1;
                 counts.put(t.f0, newCount);
                 out.collect(new Tuple2<>(t.f0, newCount));
             } else {
-                //count++;
-                //System.out.println("count"+count+"count");
                 counts.put(t.f0, t.f1);
                 out.collect(new Tuple2<>(t.f0, t.f1));
             }
@@ -142,10 +136,8 @@ public class ExactTriangleCount {
 
     public static final class ProjectCanonicalEdges implements
             MapFunction<Tuple3<Integer, Integer, TreeSet<Integer>>, Tuple3<Integer, Integer, TreeSet<Integer>>> {
-
         @Override
         public Tuple3<Integer, Integer, TreeSet<Integer>> map(Tuple3<Integer, Integer, TreeSet<Integer>> t) {
-
             int source = Math.min(t.f0, t.f1);
             int trg = Math.max(t.f0, t.f1);
             t.setField(source, 0);
@@ -205,18 +197,12 @@ public class ExactTriangleCount {
         return new SimpleEdgeStream<>(env.fromElements(
                 new Edge<>(1, 2, NullValue.getInstance()),
                 new Edge<>(2, 3, NullValue.getInstance()),
-                new Edge<>(4, 5, NullValue.getInstance()),
-                new Edge<>(3, 5, NullValue.getInstance()),
+                new Edge<>(2, 6, NullValue.getInstance()),
+                new Edge<>(5, 6, NullValue.getInstance()),
+                new Edge<>(1, 4, NullValue.getInstance()),
+                new Edge<>(5, 3, NullValue.getInstance()),
                 new Edge<>(3, 4, NullValue.getInstance()),
-                new Edge<>(6, 7, NullValue.getInstance()),
-                new Edge<>(7, 8, NullValue.getInstance()),
-                new Edge<>(10, 11, NullValue.getInstance()),
-                new Edge<>(11, 12, NullValue.getInstance()),
-                new Edge<>(10, 12, NullValue.getInstance()),
-                new Edge<>(12, 13, NullValue.getInstance()),
-                new Edge<>(13, 14, NullValue.getInstance()),
-                new Edge<>(12, 14, NullValue.getInstance()),
-                new Edge<>(6, 8, NullValue.getInstance()),
+                new Edge<>(3, 6, NullValue.getInstance()),
                 new Edge<>(1, 3, NullValue.getInstance())), env);
     }
 }
