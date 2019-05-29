@@ -71,7 +71,7 @@ public class GraphCreatorGelly {
         this.edgeEvents = edgeEventList;
     }
 
-    public void readGraphFromFile(String inputPath) throws IOException {
+    public void readGraphFromFile(String inputPath) throws Exception {
         List<Edge> edgeList = new ArrayList<>();
 
         String line = null;
@@ -84,7 +84,12 @@ public class GraphCreatorGelly {
                     new BufferedReader(fileReader);
 
             while((line = bufferedReader.readLine()) != null) {
-                String[] lineArray = line.split(",");
+                String[] lineArray;
+                if(line.contains(","))
+                    lineArray = line.split(",");
+                else if (line.contains(" "))
+                    lineArray = line.split(" ");
+                else throw new Exception("Edges in the input file must be separated with space or comma");
                 long src = Long.parseLong(lineArray[0]);
                 long trg = Long.parseLong(lineArray[1]);
                 edgeList.add(new Edge<>(src,trg,NullValue.getInstance()));

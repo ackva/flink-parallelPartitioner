@@ -12,9 +12,9 @@ public class LoadBalanceCalculator {
     }
 
     public double calculateLoad(List<File> fileList) throws IOException {
-        int fileCounter = 0;
-        int totalNumOfEdges = 0;
-        int highestLoad = 0;
+        double fileCounter = 0;
+        double totalNumOfEdges = 0;
+        double highestLoad = 0;
         for (File f : fileList) {
             fileCounter++;
             int numberOfLines = 0;
@@ -29,7 +29,6 @@ public class LoadBalanceCalculator {
                 }
 
                 numberOfLines = count.getLineNumber() + 1;                                    // +1 because line index starts at 0
-                    System.out.println(numberOfLines);
                 }
             totalNumOfEdges = totalNumOfEdges + numberOfLines;
 

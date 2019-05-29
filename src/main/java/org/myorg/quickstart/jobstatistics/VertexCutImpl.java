@@ -24,6 +24,9 @@ public class VertexCutImpl {
         ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
         env.setParallelism(1);
         HashMap<Long, List<Long>> T = new HashMap<>();
+
+        // Read every file inside folder (k = parallelism = nr of files)
+
         for (int i = 1; i <= k; i++) {
             FileReader fr=new FileReader(InputPath+"/"+i);
             BufferedReader br = new BufferedReader(fr);
@@ -36,6 +39,7 @@ public class VertexCutImpl {
                     String f1 = fields[1].replaceAll("\\(","").replaceAll("\\)","");
                     Long src = Long.parseLong(f0);
                     Long trg = Long.parseLong(f1);
+                    // put every distinct vertex into a hash map
                     if (!T.containsKey(src)) {
                         T.put(src, new ArrayList<>());
                     }
@@ -54,6 +58,7 @@ public class VertexCutImpl {
             }
         }
 
+        // Read all files again --> maintain hash map with a counter of the vertices, e.g. V 123 --> 100 times
         for (int i = 1; i <= k; i++) {
             //2. URI of the file to be read
             FileReader fr=new FileReader(InputPath+"/"+i);
@@ -91,14 +96,17 @@ public class VertexCutImpl {
         }
 
 
+        // Do final calculations
 
         long sum=0;
         double rep = 0.0;
 
         for (Long key : T.keySet()) {
-
             sum=sum+T.get(key).size();
         }
+
+        // According to formula:
+        //       replication factor = ( # of edges cut by partitions / all edges )
 
         rep = (double) sum/T.size();
         System.out.println("Replication Factor:" + rep);

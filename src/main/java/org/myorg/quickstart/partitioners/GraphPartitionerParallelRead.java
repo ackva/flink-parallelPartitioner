@@ -1,6 +1,7 @@
 package org.myorg.quickstart.partitioners;
 
 import org.apache.flink.api.common.JobExecutionResult;
+import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.Partitioner;
 import org.apache.flink.api.common.state.MapStateDescriptor;
@@ -19,8 +20,10 @@ import org.apache.flink.streaming.api.datastream.BroadcastStream;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExtractor;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.types.NullValue;
+import org.apache.flink.util.Collector;
 import org.apache.flink.util.OutputTag;
 import org.myorg.quickstart.jobstatistics.LoadBalanceCalculator;
 import org.myorg.quickstart.jobstatistics.VertexCut;
@@ -35,10 +38,7 @@ import java.io.IOException;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import static java.time.LocalDate.now;
@@ -69,7 +69,7 @@ import static java.time.LocalDate.now;
  *   1 C:\flinkJobs\input\streamInput199.txt dbh 100 2 2 streamInput
  *
  */
-public class GraphPartitionerImpl {
+public class GraphPartitionerParallelRead {
 
     public static final OutputTag<String> outputTag = new OutputTag<String>("side-output"){};
 
@@ -131,9 +131,33 @@ public class GraphPartitionerImpl {
         env.setParallelism(k);
         env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
         // Generate OR FileRead graph -- as from arguments
-        GraphCreatorGelly edgeGraph = getGraph(graphSource, graphSize);
 
-        DataStream<EdgeEventGelly> edgeStream = edgeGraph.getEdgeStream(env);
+        DataStream<EdgeEventGelly> edgeStream = env.readTextFile(inputPath)
+                .flatMap(new FlatMapFunction<String, EdgeEventGelly>() {
+                    @Override
+                    public void flatMap(String value, Collector<EdgeEventGelly> out) throws Exception {
+                        // normalize and split the line
+                        String[] tokens = value.replaceAll("\\s+","").split("\\r?\\n");
+                        // emit the pairs
+                        for (String token:tokens) {
+                            if (token.length() > 0) {
+                                String[] elements = token.split(",",2);
+                                long t0 = Long.parseLong(elements[0]);
+                                long t1 = Long.parseLong(elements[1]);
+                                out.collect(new EdgeEventGelly(new Edge(t0,t1,NullValue.getInstance())));
+                            }
+
+                        }
+                    }})
+                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<EdgeEventGelly>() {
+                    @Override
+                    public long extractAscendingTimestamp(EdgeEventGelly element) {
+                        return element.getEventTime();
+                    }
+                });
+                ;
+
+        edgeStream.print();
 
         DataStream<EdgeEventGelly> partitionedEdges = null;
 
@@ -192,7 +216,7 @@ public class GraphPartitionerImpl {
             throw new Exception("WRONG ALGO!!");
         }
 
-       //partitionedEdges.print();
+        //partitionedEdges.print();
 /*
         GraphStream applicationStream = new SimpleEdgeStream(test,env);
 
@@ -248,7 +272,7 @@ public class GraphPartitionerImpl {
 */
 
         // ### Execute the job in Flink
-        //System.out.println(env.getExecutionPlan());
+        System.out.println(env.getExecutionPlan());
         JobExecutionResult result = env.execute(createJobName(algorithm,k, graphSource, graphName));
 
         System.out.println("The job took " + result.getNetRuntime(TimeUnit.SECONDS) + " seconds to execute"+"\n");//appends the string to the file
@@ -340,7 +364,7 @@ public class GraphPartitionerImpl {
             System.out.println(" --> Usage: PhasePartitioner <graphType> <inputPath> <outputType> <outputPath> <algorithm>");
         }
         return true;
-}
+    }
 
     public static class PartitionByTag implements Partitioner<Integer> {
         @Override
@@ -350,4 +374,5 @@ public class GraphPartitionerImpl {
     }
 
 }
+
 

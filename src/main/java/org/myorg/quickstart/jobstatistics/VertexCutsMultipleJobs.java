@@ -24,6 +24,14 @@
      * C:\Users\adac0\IdeaProjects\flink-parallelPartitioner\flinkJobOutput\
      */
     public class VertexCutsMultipleJobs {
+
+        private String directoryName;
+
+        public VertexCutsMultipleJobs(String outputFolder) {
+            this.directoryName = outputFolder;
+        }
+
+
         //utility method to print a string
         static void print(String value) {
             System.out.println(value);
@@ -31,11 +39,10 @@
         /**
          * Method to sort all files and folders in a directory
          *
-         * @param dirName : directory name
          * @return : No return value. Sort and print out the result
          */
-        private static void sortAll(String dirName) throws IOException {
-            File directory = new File(dirName);
+        public void calculate() throws IOException {
+            File directory = new File(directoryName);
             File[] filesArray = directory.listFiles();
             //sort all files
             Arrays.sort(filesArray);
@@ -64,6 +71,7 @@
         }
         public static void main(String[] args) throws IOException {
             //sortAll("C://Programs/");
-            sortAll(args[0]);
+            //
+
         }
     }
