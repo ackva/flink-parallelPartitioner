@@ -1,3 +1,4 @@
+/*
 package org.myorg.quickstart.partitioners;
 
 import org.apache.flink.api.common.JobExecutionResult;
@@ -44,6 +45,7 @@ import java.util.concurrent.TimeUnit;
 
 import static java.time.LocalDate.now;
 
+*/
 /**
  *
  *
@@ -69,7 +71,8 @@ import static java.time.LocalDate.now;
  *   Example (local testing in IntelliJ:
  *   1 C:\flinkJobs\input\streamInput199.txt dbh 100 2 2 streamInput
  *
- */
+ *//*
+
 public class GraphPartitioner {
 
     public static final OutputTag<String> outputTag = new OutputTag<String>("side-output"){};
@@ -182,12 +185,14 @@ public class GraphPartitioner {
             throw new Exception("WRONG ALGO!!");
         }
 
+*/
 /*        GraphStream<Long, NullValue, NullValue> edges = partitionedEdges.map(new MapFunction<EdgeEventGelly, DisjointSet<Long>>() {
             @Override
             public  map(EdgeEventGelly value) throws Exception {
                 return null;
             }
-            })*/
+            })*//*
+
 
 
 
@@ -197,7 +202,8 @@ public class GraphPartitioner {
 
 
         // Attempt to lower the amount of "state" prints -- ignore for now
-        /*DataStream<String> stateStream = phaseTwoStream.getSideOutput(outputTag)
+        */
+/*DataStream<String> stateStream = phaseTwoStream.getSideOutput(outputTag)
                 .keyBy(new KeySelector<String, Integer>() {
                  @Override
                 public Integer getKey(String value) throws Exception {
@@ -220,9 +226,11 @@ public class GraphPartitioner {
                         }
 
                     }
-                });*/
+                });*//*
 
-        /*
+
+        */
+/*
         stateStream.
                 filter(new FilterFunction<String>() {
                     @Override
@@ -230,7 +238,8 @@ public class GraphPartitioner {
                         return  ! value.equals("ignore");
                     }
                 }).writeAsText(outputPathLogging.replaceAll(":","_"));
-*/
+*//*
+
 
         // ### Execute the job in Flink
         System.out.println(env.getExecutionPlan());
@@ -310,6 +319,7 @@ public class GraphPartitioner {
                 return false;
             }
 
+*/
 /*            graphType = Integer.valueOf(args[0]);
             inputPath = args[1];
             outputType = Integer.valueOf(args[2]);
@@ -317,7 +327,8 @@ public class GraphPartitioner {
             algorithm = args[4];
             globalPhase = Integer.valueOf(args[5]);
             //k = (int) Long.parseLong(args[3]);
-            //lamda = Double.parseDouble(args[4]);*/
+            //lamda = Double.parseDouble(args[4]);*//*
+
         } else {
             System.out.println("Executing example with default parameters and built-in default data.");
             System.out.println("Provide parameters to read input data from files.");
@@ -335,3 +346,4 @@ public class GraphPartitioner {
 
 }
 
+*/

@@ -63,15 +63,15 @@
                     double vertexCut = new VertexCut(parallelism).calculateVertexCut(fileList);
                     System.out.println("Replication Factor: " + vertexCut);
                     System.out.println(" --- ");
+                    double loadBalance = new LoadBalanceCalculator().calculateLoad(fileList);
+                    System.out.println("Load Balance: " + loadBalance);
+                    System.out.println(" --- ");
+
                     //print("Directory : " + file.getName());
                 } else {
                     print("No Job Output Directory found : " + file.getName());
                 }
             }
         }
-        public static void main(String[] args) throws IOException {
-            //sortAll("C://Programs/");
-            //
 
-        }
     }

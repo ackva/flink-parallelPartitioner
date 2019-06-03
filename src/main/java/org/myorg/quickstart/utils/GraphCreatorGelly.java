@@ -85,6 +85,8 @@ public class GraphCreatorGelly {
 
             while((line = bufferedReader.readLine()) != null) {
                 String[] lineArray;
+                if(line.substring(0,1).contains("%"))
+                    continue;
                 if(line.contains(","))
                     lineArray = line.split(",");
                 else if (line.contains(" "))

@@ -2,21 +2,23 @@ package org.myorg.quickstart.utils;
 
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
+import org.apache.flink.graph.Edge;
 import org.apache.flink.streaming.api.functions.co.KeyedBroadcastProcessFunction;
+import org.apache.flink.types.NullValue;
 import org.apache.flink.util.Collector;
 
 import java.util.*;
 
 import static java.lang.Math.toIntExact;
 
-public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Integer, EdgeEventGelly, HashMap<Long, Long>, Tuple2<EdgeEventGelly,Integer>> {
+public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Integer, Edge<Long, NullValue>, HashMap<Long, Long>, Tuple2<Edge<Long, NullValue>,Integer>> {
 
     int countBroadcastsOnWorker = 0;
     int counterEdgesInstance = 0;
     String algorithm;
     HashMap<Long, Long> vertexDegreeMap = new HashMap<>();
     ModelBuilderGelly modelBuilder;
-    List<EdgeEventGelly> waitingEdges;
+    List<Edge<Long, NullValue>> waitingEdges;
 
     public MatchFunctionPartitioner(String algorithm, Integer k, double lambda) {
         this.algorithm = algorithm;
@@ -30,7 +32,7 @@ public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Inte
 
     // This function is called every time when a broadcast state is processed from the previous phase
     @Override
-    public void processBroadcastElement(HashMap<Long, Long> broadcastElement, Context ctx, Collector<Tuple2<EdgeEventGelly,Integer>> out) throws Exception {
+    public void processBroadcastElement(HashMap<Long, Long> broadcastElement, Context ctx, Collector<Tuple2<Edge<Long, NullValue>,Integer>> out) throws Exception {
 
         countBroadcastsOnWorker++;
 
@@ -75,8 +77,8 @@ public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Inte
         }
 
         if (waitingEdges.size() > 0) {
-            List<EdgeEventGelly> toBeRemoved = new ArrayList<>();
-            for (EdgeEventGelly e : waitingEdges) {
+            List<Edge<Long, NullValue>> toBeRemoved = new ArrayList<>();
+            for (Edge<Long, NullValue> e : waitingEdges) {
                 if (checkIfEarlyArrived(e)) {
                     //System.out.println("checking again");
                     int partitionId = modelBuilder.choosePartition(e);
@@ -96,7 +98,7 @@ public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Inte
     }
 
     @Override
-    public void processElement(EdgeEventGelly currentEdge, ReadOnlyContext ctx, Collector<Tuple2<EdgeEventGelly,Integer>> out) throws Exception {
+    public void processElement(Edge<Long, NullValue> currentEdge, ReadOnlyContext ctx, Collector<Tuple2<Edge<Long, NullValue>,Integer>> out) throws Exception {
 
         //System.out.println("inside Process: Edge (" + currentEdge.getEdge().f0 + " " + currentEdge.getEdge().f1 + "): " + currentEdge.getEdge().f0.getClass() + " " + currentEdge.getEdge().f1.getClass() + " -- ");
         boolean checkInside = checkIfEarlyArrived(currentEdge);
@@ -125,17 +127,17 @@ public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Inte
 
     }
 
-    private boolean checkIfEarlyArrived(EdgeEventGelly currentEdge) {
+    private boolean checkIfEarlyArrived(Edge<Long, NullValue> currentEdge) {
 
         //System.out.println(vertexDegreeMap.containsKey(currentEdge.getEdge().f0) + " " + currentEdge.getEdge().f0 + " __ " + currentEdge.getEdge().f1 + vertexDegreeMap.containsKey(currentEdge.getEdge().f1));
         boolean sourceInside = false;
         boolean targetInside = false;
         if (algorithm.equals("hdrf")) {
-            sourceInside = modelBuilder.getHdrf().getCurrentState().checkIfRecordExits(Long.parseLong(currentEdge.getEdge().f0.toString()));
-            targetInside = modelBuilder.getHdrf().getCurrentState().checkIfRecordExits(Long.parseLong(currentEdge.getEdge().f1.toString()));
+            sourceInside = modelBuilder.getHdrf().getCurrentState().checkIfRecordExits(Long.parseLong(currentEdge.f0.toString()));
+            targetInside = modelBuilder.getHdrf().getCurrentState().checkIfRecordExits(Long.parseLong(currentEdge.f1.toString()));
         } else if (algorithm.equals("dbh")) {
-            sourceInside = modelBuilder.getDbh().getCurrentState().checkIfRecordExits(Long.parseLong(currentEdge.getEdge().f0.toString()));
-            targetInside = modelBuilder.getDbh().getCurrentState().checkIfRecordExits(Long.parseLong(currentEdge.getEdge().f1.toString()));
+            sourceInside = modelBuilder.getDbh().getCurrentState().checkIfRecordExits(Long.parseLong(currentEdge.f0.toString()));
+            targetInside = modelBuilder.getDbh().getCurrentState().checkIfRecordExits(Long.parseLong(currentEdge.f1.toString()));
         }
 
         // Debugging only

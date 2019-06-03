@@ -1,8 +1,11 @@
+/*
 
 package org.myorg.quickstart.deprecated.TwoPhasePartitioner;
 
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.graph.Edge;
 import org.apache.flink.streaming.api.functions.co.KeyedBroadcastProcessFunction;
+import org.apache.flink.types.NullValue;
 import org.apache.flink.util.Collector;
 import org.myorg.quickstart.deprecated.PhasePartitioner;
 import org.myorg.quickstart.utils.EdgeEventGelly;
@@ -64,7 +67,7 @@ public class MatchFunctionEdgesGelly extends KeyedBroadcastProcessFunction<Integ
     }
 
     @Override
-    public void processElement(EdgeEventGelly currentEdge, ReadOnlyContext ctx, Collector<Tuple2<EdgeEventGelly,Integer>> out) throws Exception {
+    public void processElement(Edge<Long, NullValue> currentEdge, ReadOnlyContext ctx, Collector<Tuple2<EdgeEventGelly,Integer>> out) throws Exception {
 
         String checkInside = checkIfEarlyArrival(currentEdge);
 
@@ -105,3 +108,4 @@ public class MatchFunctionEdgesGelly extends KeyedBroadcastProcessFunction<Integ
 }
 
 
+*/

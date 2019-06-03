@@ -1,9 +1,13 @@
 package org.myorg.quickstart.utils;
 
+import org.apache.flink.graph.Edge;
 import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
+import org.apache.flink.types.NullValue;
 import org.apache.flink.util.Collector;
+import org.apache.hadoop.yarn.state.Graph;
 import org.myorg.quickstart.deprecated.EdgeEventDepr;
+import scala.xml.Null;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -12,7 +16,7 @@ import java.util.List;
 import static java.time.Instant.now;
 
 
-public class ProcessWindowDegree extends ProcessWindowFunction<EdgeEventGelly, HashMap<Long, Long>, Long, TimeWindow> {
+public class ProcessWindowDegree extends ProcessWindowFunction<Edge<Long, NullValue>, HashMap<Long, Long>, Long, TimeWindow> {
 
     private String algorithm;
     int windowCounter = 0;
@@ -23,20 +27,20 @@ public class ProcessWindowDegree extends ProcessWindowFunction<EdgeEventGelly, H
     }
 
     // The process function keeps a hashmap that tracks the vertex degrees ** per Window AND key **
-    public void process(Long key, Context context, Iterable<EdgeEventGelly> edgeIterable, Collector<HashMap<Long, Long>> out) throws Exception {
+    public void process(Long key, Context context, Iterable<Edge<Long, NullValue>> edgeIterable, Collector<HashMap<Long, Long>> out) throws Exception {
 
         windowCounter++;
 
         HashMap<Long, Long> vertexDegreeMap = new HashMap<>();
 
         // Store all edges of current window
-        List<EdgeEventGelly> edgesInWindow = storeElementsOfWindow(edgeIterable);
+        List<Edge> edgesInWindow = storeElementsOfWindow(edgeIterable);
 
         // Maintain degree HashMap (Key: vertex || Value: degree)
-        for(EdgeEventGelly e: edgesInWindow) {
+        for(Edge e: edgesInWindow) {
 
-            long source = Long.parseLong(e.getEdge().f0.toString());
-            long target = Long.parseLong(e.getEdge().f1.toString());
+            long source = Long.parseLong(e.f0.toString());
+            long target = Long.parseLong(e.f1.toString());
             // Add source vertex with degree 1, if no map entry exists. Otherwise, increment by 1
             if (!vertexDegreeMap.containsKey(source))
                 vertexDegreeMap.put(source, 1L);
@@ -62,29 +66,29 @@ public class ProcessWindowDegree extends ProcessWindowFunction<EdgeEventGelly, H
 
     }
 
-    public List<EdgeEventGelly> storeElementsOfWindow(Iterable<EdgeEventGelly> edgeIterable) {
+    public List<Edge> storeElementsOfWindow(Iterable<Edge<Long, NullValue>> edgeIterable) {
 
         // Save into List
-        List<EdgeEventGelly> edgesInWindow = new ArrayList<>();
+        List<Edge> edgesInWindow = new ArrayList<>();
         edgeIterable.forEach(edgesInWindow::add);
 
         return edgesInWindow;
     }
 
-    public void printWindowElements(List<EdgeEventGelly> edgeEventList) {
+    public void printWindowElements(List<Edge> edgeEventList) {
 
         // Create human-readable String with current window
 
         String printString = "1st Phase Window [" + windowCounter++ + "]: ";
-        for(EdgeEventGelly e: edgeEventList) {
-            printString = printString + "; " + e.getEdge().f0 + " " + e.getEdge().f1;
+        for(Edge e: edgeEventList) {
+            printString = printString + "; " + e.f0 + " " + e.f1;
         }
         if (TEMPGLOBALVARIABLES.printPhaseOne)
             System.out.println(printString);
 
     }
 
-    public void buildLocalModel(EdgeEventDepr e, HashMap<Long, Long> vertexToPartitionMap) {
+/*    public void buildLocalModel(EdgeEventDepr e, HashMap<Long, Long> vertexToPartitionMap) {
         long[] vertices = new long[2];
         vertices[0] = e.getEdge().getOriginVertex();
         vertices[1] = e.getEdge().getDestinVertex();
@@ -98,9 +102,9 @@ public class ProcessWindowDegree extends ProcessWindowFunction<EdgeEventGelly, H
                 vertexToPartitionMap.put(vertices[i], 1L);
             }
         }
-    }
+    }*/
 
-    public void getFrequency(EdgeEventDepr e, HashMap<Long, Long> frequencyTable) {
+    /*public void getFrequency(EdgeEventDepr e, HashMap<Long, Long> frequencyTable) {
         long[] vertices = new long[2];
         vertices[0] = e.getEdge().getOriginVertex();
         vertices[1] = e.getEdge().getDestinVertex();
@@ -116,6 +120,6 @@ public class ProcessWindowDegree extends ProcessWindowFunction<EdgeEventGelly, H
         }
 
 
-    }
+    }*/
 
 }

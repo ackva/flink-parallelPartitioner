@@ -1,7 +1,9 @@
 package org.myorg.quickstart.utils;
 
+import org.apache.flink.graph.Edge;
 import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
+import org.apache.flink.types.NullValue;
 import org.apache.flink.util.Collector;
 
 import java.util.ArrayList;
@@ -10,24 +12,24 @@ import java.util.List;
 import static java.time.Instant.now;
 
 
-public class ProcessWindowGelly extends ProcessWindowFunction<EdgeEventGelly, EdgeEventGelly, Integer, TimeWindow> {
+public class ProcessWindowGelly extends ProcessWindowFunction<Edge<Long, NullValue>, Edge<Long, NullValue>, Long, TimeWindow> {
 
     int windowCounter = 0;
 
 
-    public void process(Integer key, Context context, Iterable<EdgeEventGelly> edgeIterable, Collector<EdgeEventGelly> out) throws Exception {
+    public void process(Long key, Context context, Iterable<Edge<Long, NullValue>> edgeIterable, Collector<Edge<Long, NullValue>> out) throws Exception {
 
         // Temporary variables
         String printString = " - ";
         windowCounter++;
 
         // Store all edges of current window
-        List<EdgeEventGelly> edgesInWindow = storeElementsOfWindow(edgeIterable);
+        List<Edge<Long, NullValue>> edgesInWindow = storeElementsOfWindow(edgeIterable);
         //printWindowElements(edgesInWindow);
 
-        for(EdgeEventGelly e: edgesInWindow) {
+        for(Edge<Long, NullValue> e: edgesInWindow) {
             out.collect(e);
-            printString = printString + e.getEdge().f0 + " " + e.getEdge().f0 + ", ";
+            printString = printString + e.f0 + " " + e.f0 + ", ";
         }
 
         /*if (TEMPGLOBALVARIABLES.printPhaseOne == true) {
@@ -37,10 +39,10 @@ public class ProcessWindowGelly extends ProcessWindowFunction<EdgeEventGelly, Ed
 
     }
 
-    public List<EdgeEventGelly> storeElementsOfWindow(Iterable<EdgeEventGelly> edgeIterable) {
+    public List<Edge<Long, NullValue>> storeElementsOfWindow(Iterable<Edge<Long, NullValue>> edgeIterable) {
 
         // Save into List
-        List<EdgeEventGelly> edgesInWindow = new ArrayList<>();
+        List<Edge<Long, NullValue>> edgesInWindow = new ArrayList<>();
         edgeIterable.forEach(edgesInWindow::add);
 
         return edgesInWindow;

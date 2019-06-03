@@ -1,3 +1,4 @@
+/*
 package org.myorg.quickstart.partitioners;
 
 import org.apache.flink.api.common.JobExecutionResult;
@@ -43,6 +44,7 @@ import java.util.concurrent.TimeUnit;
 
 import static java.time.LocalDate.now;
 
+*/
 /**
  *
  *
@@ -68,7 +70,8 @@ import static java.time.LocalDate.now;
  *   Example (local testing in IntelliJ:
  *   1 C:\flinkJobs\input\streamInput199.txt dbh 100 2 2 streamInput
  *
- */
+ *//*
+
 public class GraphPartitionerParallelRead {
 
     public static final OutputTag<String> outputTag = new OutputTag<String>("side-output"){};
@@ -217,26 +220,31 @@ public class GraphPartitionerParallelRead {
         }
 
         //partitionedEdges.print();
+*/
 /*
         GraphStream applicationStream = new SimpleEdgeStream(test,env);
 
         DataStream<DisjointSet<Long>> cc = applicationStream.aggregate(new ConnectedComponents<Long, NullValue>(100));
 
-        cc.print();*/
+        cc.print();*//*
 
+
+*/
 /*        GraphStream<Long, NullValue, NullValue> edges = partitionedEdges.map(new MapFunction<EdgeEventGelly, DisjointSet<Long>>() {
             @Override
             public  map(EdgeEventGelly value) throws Exception {
                 return null;
             }
-            })*/
+            })*//*
+
 
 
         //Print result in human-readable way --> e.g. (4,2,0) means: EdgeDepr(4,2) partitioned to machineId 0
         partitionedEdges.writeAsText(outputPathPartitions.replaceAll(":","_"));
 
         // Attempt to lower the amount of "state" prints -- ignore for now
-        /*DataStream<String> stateStream = phaseTwoStream.getSideOutput(outputTag)
+        */
+/*DataStream<String> stateStream = phaseTwoStream.getSideOutput(outputTag)
                 .keyBy(new KeySelector<String, Integer>() {
                  @Override
                 public Integer getKey(String value) throws Exception {
@@ -259,9 +267,11 @@ public class GraphPartitionerParallelRead {
                         }
 
                     }
-                });*/
+                });*//*
 
-        /*
+
+        */
+/*
         stateStream.
                 filter(new FilterFunction<String>() {
                     @Override
@@ -269,7 +279,8 @@ public class GraphPartitionerParallelRead {
                         return  ! value.equals("ignore");
                     }
                 }).writeAsText(outputPathLogging.replaceAll(":","_"));
-*/
+*//*
+
 
         // ### Execute the job in Flink
         System.out.println(env.getExecutionPlan());
@@ -350,6 +361,7 @@ public class GraphPartitionerParallelRead {
                 return false;
             }
 
+*/
 /*            graphType = Integer.valueOf(args[0]);
             inputPath = args[1];
             outputType = Integer.valueOf(args[2]);
@@ -357,7 +369,8 @@ public class GraphPartitionerParallelRead {
             algorithm = args[4];
             globalPhase = Integer.valueOf(args[5]);
             //k = (int) Long.parseLong(args[3]);
-            //lamda = Double.parseDouble(args[4]);*/
+            //lamda = Double.parseDouble(args[4]);*//*
+
         } else {
             System.out.println("Executing example with default parameters and built-in default data.");
             System.out.println("Provide parameters to read input data from files.");
@@ -376,3 +389,4 @@ public class GraphPartitionerParallelRead {
 }
 
 
+*/

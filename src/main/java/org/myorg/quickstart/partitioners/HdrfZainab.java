@@ -1,6 +1,7 @@
 package org.myorg.quickstart.partitioners;
 
 import org.apache.flink.api.common.JobExecutionResult;
+import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.Partitioner;
 import org.apache.flink.core.fs.FileSystem;
@@ -224,10 +225,16 @@ public class HdrfZainab {
     public static  DataStream<Edge<Long, NullValue>> getGraphStream(StreamExecutionEnvironment env) throws IOException {
 
         return env.readTextFile(InputPath)
+                .filter(new FilterFunction<String>() {
+                    @Override
+                    public boolean filter(String value) throws Exception {
+                        return !value.contains("%");
+                    }
+                })
                 .map(new MapFunction<String, Edge<Long, NullValue>>() {
                     @Override
                     public Edge<Long, NullValue> map(String s) throws Exception {
-                        String[] fields = s.split("\\,");
+                        String[] fields = s.split(" ");
                         long src = Long.parseLong(fields[0]);
                         long trg = Long.parseLong(fields[1]);
                         return new Edge<>(src, trg, NullValue.getInstance());
@@ -235,6 +242,4 @@ public class HdrfZainab {
                 });
 
     }
-
-
 }

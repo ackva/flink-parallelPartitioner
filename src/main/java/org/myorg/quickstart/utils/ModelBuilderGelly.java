@@ -1,5 +1,8 @@
 package org.myorg.quickstart.utils;
 
+import org.apache.flink.graph.Edge;
+import org.apache.flink.types.NullValue;
+
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Random;
@@ -57,18 +60,18 @@ public class ModelBuilderGelly implements Serializable {
         return vertexDegreeMap;
     }
 
-    public int choosePartition(EdgeEventGelly edge) throws Exception {
+    public int choosePartition(Edge<Long, NullValue> edge) throws Exception {
 
         int partitionId = -1;
 
         if (this.algorithm.equals("byOrigin")) {
-            partitionId = Integer.parseInt(edge.getEdge().f0.toString());
+            partitionId = Integer.parseInt(edge.f0.toString());
         } else if (this.algorithm.equals("hash")) {
-            partitionId = hashPartitioner.selectPartition(edge.getEdge());
+            partitionId = hashPartitioner.selectPartition(edge);
         } else if (this.algorithm.equals("hdrf")) {
-            partitionId = hdrf.selectPartition(edge.getEdge());
+            partitionId = hdrf.selectPartition(edge);
         } else if (this.algorithm.equals("dbh")) {
-            partitionId = dbh.selectPartition(edge.getEdge());
+            partitionId = dbh.selectPartition(edge);
         } else {
             // TODO: Actual algorithm here
             Random rand = new Random();
@@ -82,10 +85,10 @@ public class ModelBuilderGelly implements Serializable {
         return partitionId;
     }
 
-    public void updateLocalModel(EdgeEventGelly e, Integer partitionId) {
+    public void updateLocalModel(Edge<Long, NullValue> e, Integer partitionId) {
         Integer[] vertices = new Integer[2];
-        vertices[0] = Integer.parseInt(e.getEdge().f0.toString());
-        vertices[1] = Integer.parseInt(e.getEdge().f1.toString());
+        vertices[0] = Integer.parseInt(e.f0.toString());
+        vertices[1] = Integer.parseInt(e.f1.toString());
 
 /*        // Loop over both vertices and see which one has the higher degree (if equal, the left vertex "wins").
         for (int i = 0; i < 2; i++) {
