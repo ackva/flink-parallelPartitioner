@@ -27,6 +27,8 @@
 
         private String directoryName;
 
+
+
         public VertexCutsMultipleJobs(String outputFolder) {
             this.directoryName = outputFolder;
         }

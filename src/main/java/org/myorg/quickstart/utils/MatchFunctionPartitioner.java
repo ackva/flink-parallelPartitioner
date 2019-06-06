@@ -11,14 +11,14 @@ import java.util.*;
 
 import static java.lang.Math.toIntExact;
 
-public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Integer, Edge<Long, NullValue>, HashMap<Long, Long>, Tuple2<Edge<Long, NullValue>,Integer>> {
+public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Integer, Edge<Integer, NullValue>, HashMap<Integer, Integer>, Tuple2<Edge<Integer, NullValue>,Integer>> {
 
     int countBroadcastsOnWorker = 0;
     int counterEdgesInstance = 0;
     String algorithm;
-    HashMap<Long, Long> vertexDegreeMap = new HashMap<>();
+    HashMap<Integer, Integer> vertexDegreeMap = new HashMap<>();
     ModelBuilderGelly modelBuilder;
-    List<Edge<Long, NullValue>> waitingEdges;
+    List<Edge<Integer, NullValue>> waitingEdges;
 
     public MatchFunctionPartitioner(String algorithm, Integer k, double lambda) {
         this.algorithm = algorithm;
@@ -32,7 +32,7 @@ public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Inte
 
     // This function is called every time when a broadcast state is processed from the previous phase
     @Override
-    public void processBroadcastElement(HashMap<Long, Long> broadcastElement, Context ctx, Collector<Tuple2<Edge<Long, NullValue>,Integer>> out) throws Exception {
+    public void processBroadcastElement(HashMap<Integer, Integer> broadcastElement, Context ctx, Collector<Tuple2<Edge<Integer, NullValue>,Integer>> out) throws Exception {
 
         countBroadcastsOnWorker++;
 
@@ -40,17 +40,20 @@ public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Inte
         if (TEMPGLOBALVARIABLES.printPhaseTwo)
             System.out.println("Phase 2: Broadcasting HashMap " + broadcastElement);
 
+
+
         if (this.algorithm.equals("hdrf")) {
             // ### Merge local model from Phase 1 with global model, here in Phase 2
             Iterator it = broadcastElement.entrySet().iterator();
             while (it.hasNext()) {
-                Map.Entry<Long, Long> stateEntry = (Map.Entry)it.next();
-                if(modelBuilder.getHdrf().getCurrentState().checkIfRecordExits(stateEntry.getKey())) {
+                Map.Entry<Integer, Integer> stateEntry = (Map.Entry)it.next();
+                long vertex = stateEntry.getKey();
+                if(modelBuilder.getHdrf().getCurrentState().checkIfRecordExits(vertex)) {
                     //System.out.println("entry " + stateEntry + " exists: degree before: " + modelBuilder.getHdrf().getCurrentState().getRecord(stateEntry.getKey()).getDegree());
-                    int degree = toIntExact(stateEntry.getValue()) + modelBuilder.getHdrf().getCurrentState().getRecord(stateEntry.getKey()).getDegree();
-                    modelBuilder.getHdrf().getCurrentState().getRecord(stateEntry.getKey()).setDegree(degree);
+                    int degree = toIntExact(stateEntry.getValue()) + modelBuilder.getHdrf().getCurrentState().getRecord(vertex).getDegree();
+                    modelBuilder.getHdrf().getCurrentState().getRecord(vertex).setDegree(degree);
                 } else {
-                    modelBuilder.getHdrf().getCurrentState().addRecordWithDegree(stateEntry.getKey(), toIntExact(stateEntry.getValue()));
+                    modelBuilder.getHdrf().getCurrentState().addRecordWithDegree(vertex, toIntExact(stateEntry.getValue()));
                 }
             }
         }
@@ -59,13 +62,14 @@ public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Inte
             // ### Merge local model from Phase 1 with global model, here in Phase 2
             Iterator it = broadcastElement.entrySet().iterator();
             while (it.hasNext()) {
-                Map.Entry<Long, Long> stateEntry = (Map.Entry)it.next();
-                if(modelBuilder.getDbh().getCurrentState().checkIfRecordExits(stateEntry.getKey())) {
+                Map.Entry<Integer, Integer> stateEntry = (Map.Entry)it.next();
+                long vertex = stateEntry.getKey();
+                if(modelBuilder.getDbh().getCurrentState().checkIfRecordExits(vertex)) {
                     //System.out.println("entry " + stateEntry + " exists: degree before: " + modelBuilder.getHdrf().getCurrentState().getRecord(stateEntry.getKey()).getDegree());
-                    int degree = toIntExact(stateEntry.getValue()) + modelBuilder.getDbh().getCurrentState().getRecord(stateEntry.getKey()).getDegree();
-                    modelBuilder.getDbh().getCurrentState().getRecord(stateEntry.getKey()).setDegree(degree);
+                    int degree = toIntExact(stateEntry.getValue()) + modelBuilder.getDbh().getCurrentState().getRecord(vertex).getDegree();
+                    modelBuilder.getDbh().getCurrentState().getRecord(vertex).setDegree(degree);
                 } else {
-                    modelBuilder.getDbh().getCurrentState().addRecordWithDegree(stateEntry.getKey(), toIntExact(stateEntry.getValue()));
+                    modelBuilder.getDbh().getCurrentState().addRecordWithDegree(vertex, toIntExact(stateEntry.getValue()));
                 }
             }
         }
@@ -77,18 +81,14 @@ public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Inte
         }
 
         if (waitingEdges.size() > 0) {
-            List<Edge<Long, NullValue>> toBeRemoved = new ArrayList<>();
-            for (Edge<Long, NullValue> e : waitingEdges) {
+            List<Edge<Integer, NullValue>> toBeRemoved = new ArrayList<>();
+            for (Edge<Integer, NullValue> e : waitingEdges) {
                 if (checkIfEarlyArrived(e)) {
-                    //System.out.println("checking again");
                     int partitionId = modelBuilder.choosePartition(e);
                     out.collect(new Tuple2<>(e, partitionId));
-                    //System.out.println("added EdgeDepr (" + e.getEdge().f0 + " " + e.getEdge().f1 + ") later");
                     toBeRemoved.add(e);
                 } else {
-                    //System.out.println("breaking");
                     break;
-
                 }
             }
             waitingEdges.removeAll(toBeRemoved);
@@ -98,7 +98,7 @@ public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Inte
     }
 
     @Override
-    public void processElement(Edge<Long, NullValue> currentEdge, ReadOnlyContext ctx, Collector<Tuple2<Edge<Long, NullValue>,Integer>> out) throws Exception {
+    public void processElement(Edge<Integer, NullValue> currentEdge, ReadOnlyContext ctx, Collector<Tuple2<Edge<Integer, NullValue>,Integer>> out) throws Exception {
 
         //System.out.println("inside Process: Edge (" + currentEdge.getEdge().f0 + " " + currentEdge.getEdge().f1 + "): " + currentEdge.getEdge().f0.getClass() + " " + currentEdge.getEdge().f1.getClass() + " -- ");
         boolean checkInside = checkIfEarlyArrived(currentEdge);
@@ -127,17 +127,17 @@ public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Inte
 
     }
 
-    private boolean checkIfEarlyArrived(Edge<Long, NullValue> currentEdge) {
+    private boolean checkIfEarlyArrived(Edge<Integer, NullValue> currentEdge) {
 
         //System.out.println(vertexDegreeMap.containsKey(currentEdge.getEdge().f0) + " " + currentEdge.getEdge().f0 + " __ " + currentEdge.getEdge().f1 + vertexDegreeMap.containsKey(currentEdge.getEdge().f1));
         boolean sourceInside = false;
         boolean targetInside = false;
         if (algorithm.equals("hdrf")) {
-            sourceInside = modelBuilder.getHdrf().getCurrentState().checkIfRecordExits(Long.parseLong(currentEdge.f0.toString()));
-            targetInside = modelBuilder.getHdrf().getCurrentState().checkIfRecordExits(Long.parseLong(currentEdge.f1.toString()));
+            sourceInside = modelBuilder.getHdrf().getCurrentState().checkIfRecordExits(new Long(currentEdge.f0));
+            targetInside = modelBuilder.getHdrf().getCurrentState().checkIfRecordExits(new Long(currentEdge.f1));
         } else if (algorithm.equals("dbh")) {
-            sourceInside = modelBuilder.getDbh().getCurrentState().checkIfRecordExits(Long.parseLong(currentEdge.f0.toString()));
-            targetInside = modelBuilder.getDbh().getCurrentState().checkIfRecordExits(Long.parseLong(currentEdge.f1.toString()));
+            sourceInside = modelBuilder.getDbh().getCurrentState().checkIfRecordExits(new Long(currentEdge.f0));
+            targetInside = modelBuilder.getDbh().getCurrentState().checkIfRecordExits(new Long(currentEdge.f1));
         }
 
         // Debugging only

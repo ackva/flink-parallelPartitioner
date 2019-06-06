@@ -9,7 +9,7 @@ import java.util.Random;
 
 public class ModelBuilderGelly implements Serializable {
 
-    private HashMap <Long, Long> vertexDegreeMap;
+    private HashMap <Integer, Integer> vertexDegreeMap;
     private String algorithm;
     private Hdrf hdrf;
     private Dbh dbh;
@@ -17,7 +17,7 @@ public class ModelBuilderGelly implements Serializable {
     private CustomKeySelector keySelector;
     private int numOfPartitions;
 
-    public ModelBuilderGelly(String algorithm, HashMap <Long, Long> vertexDegreeMap, Integer k, double lambda) {
+    public ModelBuilderGelly(String algorithm, HashMap <Integer, Integer> vertexDegreeMap, Integer k, double lambda) {
         this.vertexDegreeMap = vertexDegreeMap;
 
         switch (algorithm) {
@@ -40,7 +40,7 @@ public class ModelBuilderGelly implements Serializable {
         }
     }
 
-    public ModelBuilderGelly(String algorithm, HashMap <Long, Long> vertexDegreeMap, Integer k) {
+    public ModelBuilderGelly(String algorithm, HashMap <Integer, Integer> vertexDegreeMap, Integer k) {
         this.vertexDegreeMap = vertexDegreeMap;
         this.algorithm = "dbh";
         this.keySelector = new CustomKeySelector(0);
@@ -56,16 +56,16 @@ public class ModelBuilderGelly implements Serializable {
         return dbh;
     }
 
-    public HashMap<Long, Long> getVertexDegreeMap() {
+    public HashMap<Integer, Integer> getVertexDegreeMap() {
         return vertexDegreeMap;
     }
 
-    public int choosePartition(Edge<Long, NullValue> edge) throws Exception {
+    public int choosePartition(Edge<Integer, NullValue> edge) throws Exception {
 
         int partitionId = -1;
 
         if (this.algorithm.equals("byOrigin")) {
-            partitionId = Integer.parseInt(edge.f0.toString());
+            partitionId = edge.f0;
         } else if (this.algorithm.equals("hash")) {
             partitionId = hashPartitioner.selectPartition(edge);
         } else if (this.algorithm.equals("hdrf")) {
@@ -85,10 +85,10 @@ public class ModelBuilderGelly implements Serializable {
         return partitionId;
     }
 
-    public void updateLocalModel(Edge<Long, NullValue> e, Integer partitionId) {
+    public void updateLocalModel(Edge<Integer, NullValue> e, Integer partitionId) {
         Integer[] vertices = new Integer[2];
-        vertices[0] = Integer.parseInt(e.f0.toString());
-        vertices[1] = Integer.parseInt(e.f1.toString());
+        vertices[0] = e.f0;
+        vertices[1] = e.f1;
 
 /*        // Loop over both vertices and see which one has the higher degree (if equal, the left vertex "wins").
         for (int i = 0; i < 2; i++) {

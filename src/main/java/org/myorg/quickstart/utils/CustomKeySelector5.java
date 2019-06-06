@@ -11,7 +11,7 @@ import java.util.HashMap;
  * Created by zainababbas on 07/02/2017.
  */
 
-public class CustomKeySelector5<K, EV> implements KeySelector<Edge<Long, NullValue>, K> {
+public class CustomKeySelector5<K, EV> implements KeySelector<Edge<Integer, NullValue>, K> {
     private final int key1;
     private static final HashMap<Object, Object> keyMap = new HashMap<>();
 
@@ -19,7 +19,7 @@ public class CustomKeySelector5<K, EV> implements KeySelector<Edge<Long, NullVal
         this.key1 = k;
     }
 
-    public K getKey(Edge<Long, NullValue> edge) throws Exception {
+    public K getKey(Edge<Integer, NullValue> edge) throws Exception {
         keyMap.put(edge.getField(key1),edge.getField(key1+1));
         return (K) edge.getField(key1);
     }
