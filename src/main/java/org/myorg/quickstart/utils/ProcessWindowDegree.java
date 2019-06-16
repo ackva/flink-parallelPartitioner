@@ -21,6 +21,7 @@ public class ProcessWindowDegree extends ProcessWindowFunction<Edge<Integer, Nul
     private String algorithm;
     int windowCounter = 0;
     int edgeCounter = 0;
+    long startTime = System.currentTimeMillis();
     public ProcessWindowDegree() {
 
     }
@@ -29,6 +30,7 @@ public class ProcessWindowDegree extends ProcessWindowFunction<Edge<Integer, Nul
     public void process(Integer key, Context context, Iterable<Edge<Integer, NullValue>> edgeIterable, Collector<HashMap<Integer, Integer>> out) throws Exception {
 
         windowCounter++;
+        edgeCounter++;
 
         HashMap<Integer, Integer> vertexDegreeMap = new HashMap<>();
 
@@ -54,7 +56,7 @@ public class ProcessWindowDegree extends ProcessWindowFunction<Edge<Integer, Nul
         }
 
         // Print operations for debugging
-        if (TEMPGLOBALVARIABLES.printPhaseOne) {
+/*        if (TEMPGLOBALVARIABLES.printPhaseOne) {
             edgeCounter = edgeCounter + edgesInWindow.size();
             if (windowCounter % 100 == 0) {
                 String edgesInWindowString = "";
@@ -62,7 +64,9 @@ public class ProcessWindowDegree extends ProcessWindowFunction<Edge<Integer, Nul
                     edgesInWindowString = " --> " + printWindowElements(edgesInWindow);
                 System.out.println("P1 - degre: window # " + windowCounter + " . nr of elements: " + edgesInWindow.size() + edgesInWindowString);
             }
-        }
+        }*/
+
+
         // Emit local model for next phase
         out.collect(vertexDegreeMap);
 
@@ -88,5 +92,6 @@ public class ProcessWindowDegree extends ProcessWindowFunction<Edge<Integer, Nul
         return printString;
 
     }
+
 
 }

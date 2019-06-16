@@ -22,7 +22,6 @@ import java.util.Random;
  */
 public class HdrfZainab {
 
-
     public static void main(String[] args) throws Exception {
 
         if (!parseParameters(args)) {
@@ -33,6 +32,7 @@ public class HdrfZainab {
         env.setParallelism(1);
         DataStream<Edge<Long, NullValue>> edges = getGraphStream(env);
 
+        System.out.println("parallelism " + k);
         edges.partitionCustom(new HDRF<>(new CustomKeySelector(0),k,lamda), new CustomKeySelector<>(0)).writeAsCsv(outputPath, FileSystem.WriteMode.OVERWRITE).setParallelism(k);
         //edges.partitionCustom(new HDRF<>(new CustomKeySelector(0),k,lamda), new CustomKeySelector<>(0))
         //		.addSink(new TimestampingSink(outputPath)).setParallelism(k);
@@ -234,7 +234,7 @@ public class HdrfZainab {
                 .map(new MapFunction<String, Edge<Long, NullValue>>() {
                     @Override
                     public Edge<Long, NullValue> map(String s) throws Exception {
-                        String[] fields = s.split(" ");
+                        String[] fields = s.replaceAll(","," ").split(" ");
                         long src = Long.parseLong(fields[0]);
                         long trg = Long.parseLong(fields[1]);
                         return new Edge<>(src, trg, NullValue.getInstance());

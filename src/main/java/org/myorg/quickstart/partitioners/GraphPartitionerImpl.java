@@ -85,7 +85,7 @@ public class GraphPartitionerImpl {
     public static long windowSizeInMs = 0;
     public static long sleep = 0; //public static long sleep = windowSizeInMs/100;
     private static String inputPath = null;
-    private static String graphSource = null;
+    private static String printInfo = null;
     private static String algorithm = "";
     public static int keyParam = 0;
     private static int globalPhase = 0;
@@ -96,16 +96,19 @@ public class GraphPartitionerImpl {
     private static String testing = null;
     public static int k = 2; // parallelism - partitions
     public static double lambda = 1.0;
+    //public static boolean debugMode = false;
+    //public static int printModulo = 20000;
     public static boolean localRun = false;
 
     public static void main(String[] args) throws Exception {
 
         parseParameters(args);
 
+        long windowSize2 = windowSizeInMs * 2;
         String timestamp = new SimpleDateFormat("yy-MM-dd_HH-mm-ss").format(new Date());
         String folderName = "job_" + timestamp + "_" + algorithm + "_p" + k + "_" + graphName;
         String outputPathPartitions = outputPath + "/" + folderName;
-        String outputPathLogging = outputPath + "/job_" + timestamp + "_Logs";
+        loggingPath = outputPath + "/logs_" + folderName;
 
         ProcessWindowGelly firstPhaseProcessor = new ProcessWindowGelly();
         MatchFunctionPartitioner matchFunction = new MatchFunctionPartitioner(algorithm, k, lambda);
@@ -141,7 +144,7 @@ public class GraphPartitionerImpl {
                     .keyBy(ks)
                     .timeWindow(Time.milliseconds(windowSizeInMs))
                     .process(new ProcessWindowDegree());
-            //phaseOneStream.print();
+
             // Process edges in the similar time windows to "wait" for phase 2
             DataStream<Edge<Integer, NullValue>> edgesWindowed = edges.getEdges()
                     .keyBy(ks)
@@ -165,6 +168,10 @@ public class GraphPartitionerImpl {
                     .process(matchFunction).setParallelism(globalPhase);
             //phaseTwoStream.print();
 
+            DataStream<String> sideOutputStream = phaseTwoStream.getSideOutput(outputTag);
+            sideOutputStream.print();
+            sideOutputStream.writeAsText(loggingPath.replaceAll(":","_"));
+
             // Final Step -- Custom Partition, based on pre-calculated ID
             partitionedEdges = phaseTwoStream
                     .partitionCustom(new PartitionByTag(), 1)
@@ -185,7 +192,7 @@ public class GraphPartitionerImpl {
 
         // ### Execute the job in Flink
         //System.out.println(env.getExecutionPlan());
-        JobExecutionResult result = env.execute(createJobName(algorithm,k, graphSource, graphName));
+        JobExecutionResult result = env.execute(createJobName(algorithm,k, graphName));
 
         System.out.println("The job took " + result.getNetRuntime(TimeUnit.SECONDS) + " seconds to execute"+"\n");//appends the string to the file
         //System.out.println("The job took " + result.getNetRuntime(TimeUnit.NANOSECONDS) + " nanoseconds to execute"+"\n");
@@ -207,7 +214,6 @@ public class GraphPartitionerImpl {
             double load = new LoadBalanceCalculator().calculateLoad(fileList);
             statistics = statistics + "," + replicationFactor + "," + load;
             System.out.println(statistics);
-
         }
         //System.out.println("statistics: " + statistics);
         // graphName,algorithm,timestamp,durationInMs,durationInSec,partitions,parallelismModel,inputPath,replicationFactor,load
@@ -221,27 +227,23 @@ public class GraphPartitionerImpl {
             System.err.println("IOException: " + ioe.getMessage());
         }
 
-
     }
 
-    private static String createJobName(String algorithm, int k, String generateGraph, String graphName) {
-        String jobName = "Flink Job Name not determined";
-        if (generateGraph.equals("0")) {
-            jobName = "Runtime-generated Graph";
-        } else if (generateGraph.equals("1")) {
-            // READ GRAPH FROM FILE
-            jobName = graphName + " Graph";
-        } else {
-            jobName = "Undefined Graph";
-        }
+    private static String createJobName(String algorithm, int k, String graphName) {
 
-        return jobName + " Partitioning with " + algorithm + ". parallelism " + k;
+        String jobName = graphName + " Graph";
+
+
+        return graphName + " Graph" + " partitioning with " + algorithm + ". parallelism " + k;
     }
 
     private static boolean parseParameters(String[] args) {
 
         if (args.length > 0) {
-            graphSource = args[0]; // 0 = synthetic || 1 = from File
+            printInfo = args[0];
+            if (printInfo.equals("0")) {
+                System.out.println("Debugging mode - more output can be found at logs_job_xyz: " + TEMPGLOBALVARIABLES.printTime);
+            }
             inputPath = args[1];
             algorithm = args[2];
             keyParam = Integer.valueOf(args[3]);
@@ -256,6 +258,8 @@ public class GraphPartitionerImpl {
             if (testing.equals("localTest")) {
                 localRun = true;
             }
+            if (testing.equals("cluster") && TEMPGLOBALVARIABLES.printModulo < 100000)
+                System.out.println("PRINTING MODULO < 100000 !!!!!");
         } else {
             System.out.println("Please provide parameters.");
             System.out.println(" --> Usage: PhasePartitioner <TODO>");

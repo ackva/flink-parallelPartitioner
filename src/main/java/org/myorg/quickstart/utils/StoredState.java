@@ -49,6 +49,10 @@ public class StoredState implements Serializable{
         return result;
     }
 
+    public HashMap<Long, StoredObject> getRecord_map() {
+        return record_map;
+    }
+
     // TODO: this is a change, compared to Zainab's version!! She adds the object if not existing
     public StoredObject getRecord(Long x){
         return record_map.get(x);

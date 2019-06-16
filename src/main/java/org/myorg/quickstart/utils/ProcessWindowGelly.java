@@ -31,13 +31,13 @@ public class ProcessWindowGelly extends ProcessWindowFunction<Edge<Integer, Null
 
         for(Edge<Integer, NullValue> e: edgesInWindow) {
             out.collect(e);
-            printString = printString + e.f0 + " " + e.f0 + ", ";
+            //printString = printString + e.f0 + " " + e.f0 + ", ";
         }
 
         if (TEMPGLOBALVARIABLES.printPhaseOne) {
             edgeCounter = edgeCounter + edgesInWindow.size();
             avgEdgesPerWindow =  edgeCounter / windowCounter;
-            if (windowCounter % 100 == 0) {
+            if (windowCounter % 100000 == 0) {
                 System.out.println("P1 - edges: window # " + windowCounter + " . nr of elements: " + edgesInWindow.size() +" avg = " + avgEdgesPerWindow);
             }
         }

@@ -112,9 +112,9 @@ public class ConnectedComponentsExample implements ProgramDescription {
                         @Override
                         public Edge<Long, NullValue> map(String s) {
                             String[] fields = s.replaceAll("\\,"," ").split("\\s");
-                            long src = Long.parseLong(fields[0]);
-                            long trg = Long.parseLong(fields[1]);
-                            return new Edge<>(src, trg, NullValue.getInstance());
+                                long src = Long.parseLong(fields[0]);
+                                long trg = Long.parseLong(fields[1]);
+                                return new Edge<>(src, trg, NullValue.getInstance());
                         }
                     }), env);
         }
