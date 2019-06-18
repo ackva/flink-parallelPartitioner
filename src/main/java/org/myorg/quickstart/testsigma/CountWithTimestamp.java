@@ -1,5 +1,7 @@
 package org.myorg.quickstart.testsigma;
 
+
+
 /**
  * The data type stored in the state
  */

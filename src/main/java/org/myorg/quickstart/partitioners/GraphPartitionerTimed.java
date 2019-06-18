@@ -203,9 +203,12 @@ public class GraphPartitionerTimed {
                 parallelism = +1;
             }
             double replicationFactor = Double.parseDouble(new DecimalFormat("##.###").format(new VertexCut(parallelism).calculateVertexCut(fileList)));
-            double load = new LoadBalanceCalculator().calculateLoad(fileList);
-            statistics = statistics + "," + replicationFactor + "," + load;
+            LoadBalanceCalculator lbc = new LoadBalanceCalculator();
+            double load = lbc.calculateLoad(fileList);
+            double totalNumEdgesInFile = lbc.getTotalNumberOfEdges();
+            statistics = statistics + "," + replicationFactor + "," + load + "," + totalNumEdgesInFile;
             System.out.println(statistics);
+
         }
         //System.out.println("statistics: " + statistics);
         // graphName,algorithm,timestamp,durationInMs,durationInSec,partitions,parallelismModel,inputPath,replicationFactor,load

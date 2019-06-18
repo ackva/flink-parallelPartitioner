@@ -30,6 +30,7 @@ public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Inte
     ModelBuilderGelly modelBuilder;
     List<Edge<Integer, NullValue>> waitingEdges;
     long startTime = System.currentTimeMillis();
+    int edgeOutputCount = 0;
 
     public MatchFunctionPartitioner(String algorithm, Integer k, double lambda) {
         this.algorithm = algorithm;
@@ -107,6 +108,7 @@ public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Inte
                 if (checkIfEarlyArrived(e)) {
                     int partitionId = modelBuilder.choosePartition(e);
                     out.collect(new Tuple2<>(e, partitionId));
+                    edgeOutputCount++;
                     toBeRemoved.add(e);
                 } else {
                     break;
@@ -169,6 +171,7 @@ public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Inte
         } else {
             int partitionId = modelBuilder.choosePartition(currentEdge);
             out.collect(new Tuple2<>(currentEdge, partitionId));
+            edgeOutputCount++;
         }
 
         counterEdgesInstance++;

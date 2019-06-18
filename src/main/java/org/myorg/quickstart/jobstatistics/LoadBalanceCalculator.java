@@ -8,6 +8,8 @@ import java.util.List;
 
 public class LoadBalanceCalculator {
 
+    private double totalNumberOfEdges;
+
     public LoadBalanceCalculator() {
     }
 
@@ -39,6 +41,12 @@ public class LoadBalanceCalculator {
 
         double load = highestLoad / (totalNumOfEdges / fileCounter);
 
+        this.totalNumberOfEdges = totalNumOfEdges;
+
         return load;
+    }
+
+    public double getTotalNumberOfEdges() {
+        return totalNumberOfEdges;
     }
 }
