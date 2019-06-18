@@ -33,11 +33,13 @@ public class MatchFunctionTimed extends KeyedBroadcastProcessFunction<Integer, E
     private ModelBuilderGelly modelBuilder;
     private List<Edge<Integer, NullValue>> waitingEdges;
     private long startTime = System.currentTimeMillis();
+    private int stateDelay = 0;
     /** The state that is maintained by this process function */
     private ValueState<ProcessState> state;
 
-    public MatchFunctionTimed(String algorithm, Integer k, double lambda) {
+    public MatchFunctionTimed(String algorithm, Integer k, double lambda, int stateDelay) {
         this.algorithm = algorithm;
+        this.stateDelay = stateDelay;
         this.waitingEdges = new ArrayList<>();
         if (algorithm.equals("hdrf"))
             this.modelBuilder = new ModelBuilderGelly(algorithm, vertexDegreeMap, k, lambda);
@@ -48,6 +50,7 @@ public class MatchFunctionTimed extends KeyedBroadcastProcessFunction<Integer, E
     @Override
     public void open(Configuration parameters) throws Exception {
         state = getRuntimeContext().getState(new ValueStateDescriptor<>("myState", ProcessState.class));
+        System.out.println("state delay: " + stateDelay);
     }
 
     // This function is called every time when a broadcast state is processed from the previous phase
@@ -137,7 +140,7 @@ public class MatchFunctionTimed extends KeyedBroadcastProcessFunction<Integer, E
             int partitionId = modelBuilder.choosePartition(currentEdge);
             out.collect(new Tuple2<>(currentEdge, partitionId));
             addedDirectly++;
-            if (addedDirectly % 1000000 == 0)
+            if (addedDirectly % 10000000 == 0)
                 System.out.println("addedDirectly: " + addedDirectly);
             //System.out.println("direct$1");
         } else {
@@ -159,7 +162,7 @@ public class MatchFunctionTimed extends KeyedBroadcastProcessFunction<Integer, E
             state.update(current);
 
             // schedule the next timer X seconds from the current event time
-            ctx.timerService().registerEventTimeTimer(current.lastModified + 600);
+            ctx.timerService().registerEventTimeTimer(current.lastModified + stateDelay);
 
 
 
@@ -196,8 +199,8 @@ public class MatchFunctionTimed extends KeyedBroadcastProcessFunction<Integer, E
             int partitionId = modelBuilder.choosePartition(edgeState.edge);
             out.collect(new Tuple2<>(edgeState.edge, partitionId));
             addedInState++;
-            /*if (addedInState % 100000 == 0)
-                System.out.println("addedInState: " + addedInState);*/
+            if (addedInState % 10000000 == 0)
+                System.out.println("addedInState: " + addedInState);
             //System.out.println("state$1");
         } else {
             System.out.println("still not here");

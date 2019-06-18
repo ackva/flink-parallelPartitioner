@@ -66,7 +66,7 @@ import java.util.concurrent.TimeUnit;
  *   1 C:\flinkJobs\input\streamInput199.txt dbh 100 2 2 streamInput
  *
  */
-public class GraphPartitionerImpl {
+public class GraphPartitionerImpl_old {
 
     public static final OutputTag<String> outputTag = new OutputTag<String>("side-output"){};
 
@@ -89,8 +89,9 @@ public class GraphPartitionerImpl {
     private static String testing = null;
     public static int k = 2; // parallelism - partitions
     public static double lambda = 1.0;
+    //public static boolean debugMode = false;
+    //public static int printModulo = 20000;
     public static boolean localRun = false;
-    public static int stateDelay = 0;
 
     public static void main(String[] args) throws Exception {
 
@@ -102,8 +103,8 @@ public class GraphPartitionerImpl {
         String outputPathPartitions = outputPath + "/" + folderName;
         loggingPath = outputPath + "/logs_" + folderName;
 
-        ProcessWindowGellyTimed firstPhaseProcessor = new ProcessWindowGellyTimed();
-        MatchFunctionTimed matchFunction = new MatchFunctionTimed(algorithm, k, lambda, stateDelay);
+        ProcessWindowGelly firstPhaseProcessor = new ProcessWindowGelly();
+        MatchFunctionPartitioner matchFunction = new MatchFunctionPartitioner(algorithm, k, lambda);
         MapStateDescriptor<String, Tuple2<Integer, ArrayList<Integer>>> rulesStateDescriptor = new MapStateDescriptor<>("RulesBroadcastState", BasicTypeInfo.STRING_TYPE_INFO,tupleTypeInfo);
 
         //System.out.println(new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()) + " timestamp for whatever you want");
@@ -127,7 +128,6 @@ public class GraphPartitionerImpl {
         // Create a data stream (read from file)
         SimpleEdgeStream<Integer, NullValue> edges = getGraphStream(env);
 
-
         DataStream<Edge<Integer, NullValue>> partitionedEdges = null;
 
         if (algorithm.equals("hdrf") || algorithm.equals("dbh")) {
@@ -136,7 +136,7 @@ public class GraphPartitionerImpl {
             DataStream<HashMap<Integer, Integer>> phaseOneStream = edges.getEdges()
                     .keyBy(ks)
                     .timeWindow(Time.milliseconds(windowSizeInMs))
-                    .process(new ProcessWindowDegreeTimed());
+                    .process(new ProcessWindowDegree());
 
             // Process edges in the similar time windows to "wait" for phase 2
             DataStream<Edge<Integer, NullValue>> edgesWindowed = edges.getEdges()
@@ -163,7 +163,7 @@ public class GraphPartitionerImpl {
 
             DataStream<String> sideOutputStream = phaseTwoStream.getSideOutput(outputTag);
             sideOutputStream.print();
-            //sideOutputStream.writeAsText(loggingPath.replaceAll(":","_"));
+            sideOutputStream.writeAsText(loggingPath.replaceAll(":","_"));
 
             // Final Step -- Custom Partition, based on pre-calculated ID
             partitionedEdges = phaseTwoStream
@@ -209,7 +209,6 @@ public class GraphPartitionerImpl {
             double totalNumEdgesInFile = lbc.getTotalNumberOfEdges();
             statistics = statistics + "," + replicationFactor + "," + load + "," + totalNumEdgesInFile;
             System.out.println(statistics);
-
         }
         //System.out.println("statistics: " + statistics);
         // graphName,algorithm,timestamp,durationInMs,durationInSec,partitions,parallelismModel,inputPath,replicationFactor,load
@@ -250,8 +249,7 @@ public class GraphPartitionerImpl {
             outputPath = args[8];
             windowSizeInMs = Long.parseLong(args[9]);
             wait = Long.parseLong(args[10]);
-            stateDelay = Integer.valueOf(args[11]);
-            testing = args[12];
+            testing = args[11];
             if (testing.equals("localTest")) {
                 localRun = true;
             }
@@ -262,7 +260,7 @@ public class GraphPartitionerImpl {
             System.out.println(" --> Usage: PhasePartitioner <TODO>");
         }
         return true;
-    }
+}
 
     public static class PartitionByTag implements Partitioner<Integer> {
         @Override
@@ -294,20 +292,20 @@ public class GraphPartitionerImpl {
 
     private static SimpleEdgeStream<Integer, NullValue> getGraphStream(StreamExecutionEnvironment env) {
 
-        return new SimpleEdgeStream<>(env.readTextFile(inputPath)
-                .flatMap(new FlatMapFunction<String, Edge<Integer, NullValue>>() {
-                    @Override
-                    public void flatMap(String s, Collector<Edge<Integer, NullValue>> out) {
-                        String[] fields = s.replaceAll(","," ").split(" ");
-                        //String[] fields = s.split("\\s");
-                        if (!fields[0].equals("%")) {
-                            int src = Integer.parseInt(fields[0]);
-                            int trg = Integer.parseInt(fields[1]);
-                            out.collect(new Edge<Integer, NullValue>(src, trg, NullValue.getInstance()));
+            return new SimpleEdgeStream<>(env.readTextFile(inputPath)
+                    .flatMap(new FlatMapFunction<String, Edge<Integer, NullValue>>() {
+                        @Override
+                        public void flatMap(String s, Collector<Edge<Integer, NullValue>> out) {
+                            String[] fields = s.replaceAll(","," ").split(" ");
+                            //String[] fields = s.split("\\s");
+                            if (!fields[0].equals("%")) {
+                                int src = Integer.parseInt(fields[0]);
+                                int trg = Integer.parseInt(fields[1]);
+                                out.collect(new Edge<Integer, NullValue>(src, trg, NullValue.getInstance()));
+                            }
                         }
-                    }
-                }), env);
-    }
+                    }), env);
+        }
 
 }
 

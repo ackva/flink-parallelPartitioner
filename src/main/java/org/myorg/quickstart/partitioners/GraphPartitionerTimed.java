@@ -90,6 +90,7 @@ public class GraphPartitionerTimed {
     public static int k = 2; // parallelism - partitions
     public static double lambda = 1.0;
     public static boolean localRun = false;
+    public static int stateDelay = 600;
 
     public static void main(String[] args) throws Exception {
 
@@ -102,7 +103,7 @@ public class GraphPartitionerTimed {
         loggingPath = outputPath + "/logs_" + folderName;
 
         ProcessWindowGellyTimed firstPhaseProcessor = new ProcessWindowGellyTimed();
-        MatchFunctionTimed matchFunction = new MatchFunctionTimed(algorithm, k, lambda);
+        MatchFunctionTimed matchFunction = new MatchFunctionTimed(algorithm, k, lambda, stateDelay);
         MapStateDescriptor<String, Tuple2<Integer, ArrayList<Integer>>> rulesStateDescriptor = new MapStateDescriptor<>("RulesBroadcastState", BasicTypeInfo.STRING_TYPE_INFO,tupleTypeInfo);
 
         //System.out.println(new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()) + " timestamp for whatever you want");
