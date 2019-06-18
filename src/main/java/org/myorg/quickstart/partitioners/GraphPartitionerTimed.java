@@ -12,8 +12,6 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.GenericTypeInfo;
 import org.apache.flink.api.java.typeutils.TupleTypeInfo;
 import org.apache.flink.graph.Edge;
-import org.apache.flink.graph.streaming.library.ConnectedComponents;
-import org.apache.flink.graph.streaming.summaries.DisjointSet;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.BroadcastStream;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -23,12 +21,9 @@ import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.types.NullValue;
 import org.apache.flink.util.Collector;
 import org.apache.flink.util.OutputTag;
-import org.myorg.quickstart.applications.GraphStream;
 import org.myorg.quickstart.applications.SimpleEdgeStream;
 import org.myorg.quickstart.jobstatistics.LoadBalanceCalculator;
 import org.myorg.quickstart.jobstatistics.VertexCut;
-import org.myorg.quickstart.utils.ProcessWindowGelly;
-import org.myorg.quickstart.utils.CustomKeySelector5;
 import org.myorg.quickstart.utils.*;
 
 import java.io.File;
@@ -36,17 +31,15 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static java.time.LocalDate.now;
-
 // ARGUMENTS: --> 1 C:\flinkJobs\input\ca-AstroPh.txt hdrf 100 2 2 streamInput flinkJobOutput\statistics\statistics.csv flinkJobOutput 1000   0    localTest
 //                      input                         algo     k kModel  name              stats                        outputfolder   wind sleep  test/cluster
+
 /**
  *
  *
@@ -73,7 +66,7 @@ import static java.time.LocalDate.now;
  *   1 C:\flinkJobs\input\streamInput199.txt dbh 100 2 2 streamInput
  *
  */
-public class GraphPartitionerImpl {
+public class GraphPartitionerTimed {
 
     public static final OutputTag<String> outputTag = new OutputTag<String>("side-output"){};
 
@@ -96,8 +89,6 @@ public class GraphPartitionerImpl {
     private static String testing = null;
     public static int k = 2; // parallelism - partitions
     public static double lambda = 1.0;
-    //public static boolean debugMode = false;
-    //public static int printModulo = 20000;
     public static boolean localRun = false;
 
     public static void main(String[] args) throws Exception {
@@ -110,8 +101,8 @@ public class GraphPartitionerImpl {
         String outputPathPartitions = outputPath + "/" + folderName;
         loggingPath = outputPath + "/logs_" + folderName;
 
-        ProcessWindowGelly firstPhaseProcessor = new ProcessWindowGelly();
-        MatchFunctionPartitioner matchFunction = new MatchFunctionPartitioner(algorithm, k, lambda);
+        ProcessWindowGellyTimed firstPhaseProcessor = new ProcessWindowGellyTimed();
+        MatchFunctionTimed matchFunction = new MatchFunctionTimed(algorithm, k, lambda);
         MapStateDescriptor<String, Tuple2<Integer, ArrayList<Integer>>> rulesStateDescriptor = new MapStateDescriptor<>("RulesBroadcastState", BasicTypeInfo.STRING_TYPE_INFO,tupleTypeInfo);
 
         //System.out.println(new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()) + " timestamp for whatever you want");
@@ -135,6 +126,7 @@ public class GraphPartitionerImpl {
         // Create a data stream (read from file)
         SimpleEdgeStream<Integer, NullValue> edges = getGraphStream(env);
 
+
         DataStream<Edge<Integer, NullValue>> partitionedEdges = null;
 
         if (algorithm.equals("hdrf") || algorithm.equals("dbh")) {
@@ -143,7 +135,7 @@ public class GraphPartitionerImpl {
             DataStream<HashMap<Integer, Integer>> phaseOneStream = edges.getEdges()
                     .keyBy(ks)
                     .timeWindow(Time.milliseconds(windowSizeInMs))
-                    .process(new ProcessWindowDegree());
+                    .process(new ProcessWindowDegreeTimed());
 
             // Process edges in the similar time windows to "wait" for phase 2
             DataStream<Edge<Integer, NullValue>> edgesWindowed = edges.getEdges()
@@ -170,7 +162,7 @@ public class GraphPartitionerImpl {
 
             DataStream<String> sideOutputStream = phaseTwoStream.getSideOutput(outputTag);
             sideOutputStream.print();
-            sideOutputStream.writeAsText(loggingPath.replaceAll(":","_"));
+            //sideOutputStream.writeAsText(loggingPath.replaceAll(":","_"));
 
             // Final Step -- Custom Partition, based on pre-calculated ID
             partitionedEdges = phaseTwoStream
@@ -295,9 +287,9 @@ public class GraphPartitionerImpl {
 
     }
 
-    private static org.myorg.quickstart.applications.SimpleEdgeStream<Integer, NullValue> getGraphStream(StreamExecutionEnvironment env) {
+    private static SimpleEdgeStream<Integer, NullValue> getGraphStream(StreamExecutionEnvironment env) {
 
-            return new org.myorg.quickstart.applications.SimpleEdgeStream<>(env.readTextFile(inputPath)
+            return new SimpleEdgeStream<>(env.readTextFile(inputPath)
                     .flatMap(new FlatMapFunction<String, Edge<Integer, NullValue>>() {
                         @Override
                         public void flatMap(String s, Collector<Edge<Integer, NullValue>> out) {

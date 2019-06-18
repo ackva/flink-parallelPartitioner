@@ -1,37 +1,39 @@
 package org.myorg.quickstart.utils;
 
+import org.apache.flink.api.common.state.ValueState;
+import org.apache.flink.api.common.state.ValueStateDescriptor;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.graph.Edge;
 import org.apache.flink.streaming.api.functions.co.KeyedBroadcastProcessFunction;
 import org.apache.flink.types.NullValue;
 import org.apache.flink.util.Collector;
-import org.apache.flink.util.MathUtils;
 import org.myorg.quickstart.partitioners.GraphPartitionerImpl;
+import org.myorg.quickstart.testsigma.CountWithTimestamp;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.util.*;
 
 import static java.lang.Math.toIntExact;
+public class MatchFunctionTimed extends KeyedBroadcastProcessFunction<Integer, Edge<Integer, NullValue>, HashMap<Integer, Integer>, Tuple2<Edge<Integer, NullValue>,Integer>> {
+//public class MatchFunctionTimed extends KeyedBroadcastProcessFunctionCustom<Integer, Edge<Integer, NullValue>, HashMap<Integer, Integer>, Tuple2<Edge<Integer, NullValue>,Integer>> {
 
-public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Integer, Edge<Integer, NullValue>, HashMap<Integer, Integer>, Tuple2<Edge<Integer, NullValue>,Integer>> {
-
-    int countBroadcastsOnWorker = 0;
-    int counterEdgesInstance = 0;
+    private int countBroadcastsOnWorker = 0;
+    private int counterEdgesInstance = 0;
     int avgWaitingEdges = 0;
     int totalEdgesInWait = 0;
     long totalTimeBroadcast = 0;
     long totalTimeWaitingEdges = 0;
     long broadcastResetCounter = 1;
-    long globalCounterForPrint = 0;
-    String algorithm;
-    HashMap<Integer, Integer> vertexDegreeMap = new HashMap<>();
-    ModelBuilderGelly modelBuilder;
-    List<Edge<Integer, NullValue>> waitingEdges;
-    long startTime = System.currentTimeMillis();
+    private long globalCounterForPrint = 0;
+    private String algorithm;
+    private HashMap<Integer, Integer> vertexDegreeMap = new HashMap<>();
+    private ModelBuilderGelly modelBuilder;
+    private List<Edge<Integer, NullValue>> waitingEdges;
+    private long startTime = System.currentTimeMillis();
+    /** The state that is maintained by this process function */
+    private ValueState<CountWithTimestamp> state;
 
-    public MatchFunctionPartitioner(String algorithm, Integer k, double lambda) {
+    public MatchFunctionTimed(String algorithm, Integer k, double lambda) {
         this.algorithm = algorithm;
         this.waitingEdges = new ArrayList<>();
         if (algorithm.equals("hdrf"))
@@ -40,6 +42,10 @@ public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Inte
             this.modelBuilder = new ModelBuilderGelly(algorithm, vertexDegreeMap, k);
     }
 
+    @Override
+    public void open(Configuration parameters) throws Exception {
+        state = getRuntimeContext().getState(new ValueStateDescriptor<>("myState", CountWithTimestamp.class));
+    }
 
     // This function is called every time when a broadcast state is processed from the previous phase
     @Override
@@ -49,10 +55,7 @@ public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Inte
         globalCounterForPrint++;
         countBroadcastsOnWorker++;
 
-        // Print for debugging
-        if (TEMPGLOBALVARIABLES.printPhaseTwo)
-            System.out.println("Phase 2: Broadcasting HashMap " + broadcastElement);
-
+        //System.out.println("Phase 2: Broadcasting HashMap " + waitingEdges.size() + " -- " + broadcastElement + " $ " + ctx.timestamp() + " $  current watermark: $ " + ctx.currentWatermark());
 
 
         if (this.algorithm.equals("hdrf")) {
@@ -87,89 +90,69 @@ public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Inte
             }
         }
 
-        //System.out.println("Current VertexDepr Partitioning Table: " + vertexPartition);
 
-        if (TEMPGLOBALVARIABLES.printPhaseTwo) {
+
+/*            if (TEMPGLOBALVARIABLES.printTime && (globalCounterForPrint %500) == 0) {
+                //ctx.output(GraphPartitionerImpl.outputTag, "REL > " + toBeRemoved.size() + " > " + globalCounterForPrint);
+                System.out.println("BRO$" + globalCounterForPrint + "$" + ctx.currentWatermark());
+                long endTime2 = System.nanoTime();
+            }*/
+
+
+/*        if (TEMPGLOBALVARIABLES.printPhaseTwo) {
             System.out.println(countBroadcastsOnWorker + ": " + vertexDegreeMap);
-        }
-
-        /*if(TEMPGLOBALVARIABLES.printTime)
-            ctx.output(GraphPartitionerImpl.outputTag,"WAI > " + waitingEdges.size() + " > " + globalCounterForPrint);*/
+        }*/
 
 
-
-        long waitEdgesTime = 0;
-
-        if (waitingEdges.size() > 0) {
-            long startTime2 = System.nanoTime();
-            List<Edge<Integer, NullValue>> toBeRemoved = new ArrayList<>();
-            for (Edge<Integer, NullValue> e : waitingEdges) {
-                if (checkIfEarlyArrived(e)) {
-                    int partitionId = modelBuilder.choosePartition(e);
-                    out.collect(new Tuple2<>(e, partitionId));
-                    toBeRemoved.add(e);
-                } else {
-                    break;
-                }
-            }
-            waitingEdges.removeAll(toBeRemoved);
-            /*if (TEMPGLOBALVARIABLES.printTime)
-                ctx.output(GraphPartitionerImpl.outputTag,"REL > " + toBeRemoved.size() + " > " + globalCounterForPrint);*/
-            long endTime2 = System.nanoTime();
-            waitEdgesTime = endTime2 - startTime2;
-        }
+       // long waitEdgesTime = 0;
 
 
-        if (TEMPGLOBALVARIABLES.printTime) {
-            long endTime = System.nanoTime();
-        }
-
-        if(TEMPGLOBALVARIABLES.printTime) {
-
-            long endTime = System.nanoTime();
-            totalTimeBroadcast = totalTimeBroadcast + (endTime - startTime);
-            totalTimeWaitingEdges = totalTimeWaitingEdges + waitEdgesTime;
-            totalEdgesInWait = totalEdgesInWait + waitingEdges.size();
-
-            if (countBroadcastsOnWorker % (TEMPGLOBALVARIABLES.printModulo/4) == 0 && countBroadcastsOnWorker > 0) {
-                long diff = endTime-startTime;
-                long totalBroadcastedCounter = countBroadcastsOnWorker*broadcastResetCounter;
-                float avgRatio = ((float) totalTimeWaitingEdges / totalTimeBroadcast);
-                long avgTime = totalTimeBroadcast / countBroadcastsOnWorker;
-                long avgWaiting = totalEdgesInWait / countBroadcastsOnWorker;
-                /*if (avgWaiting < 0)
-                    System.out.println(" -- minus : edgesWaiting" + totalEdgesInWait + " --- broadcastCounter " + countBroadcastsOnWorker);*/
-
-                //System.out.println("BRO > " + globalCounterForPrint  + " > " + avgTime + " > " + avgRatio + " > " + avgWaiting);
-                ctx.output(GraphPartitionerImpl.outputTag,"BRO > " + globalCounterForPrint  + " > " + avgTime + " > " + avgRatio + " > " + avgWaiting);
-                totalTimeWaitingEdges = 0;
-                totalTimeBroadcast = 0;
-                totalEdgesInWait = 0;
-                countBroadcastsOnWorker = 0;
-                broadcastResetCounter++;
-            }
-
-        }
-
-        //System.out.println("That took " + (endTime - startTime) + " milliseconds");
 
     }
 
     @Override
     public void processElement(Edge<Integer, NullValue> currentEdge, ReadOnlyContext ctx, Collector<Tuple2<Edge<Integer, NullValue>,Integer>> out) throws Exception {
 
+        //System.out.println("Edge in Match(" + currentEdge + " $ " + ctx.timestamp() + " $ current watermark:  $" + ctx.currentWatermark());
+
         //System.out.println("inside Process: Edge (" + currentEdge.getEdge().f0 + " " + currentEdge.getEdge().f1 + "): " + currentEdge.getEdge().f0.getClass() + " " + currentEdge.getEdge().f1.getClass() + " -- ");
         boolean checkInside = checkIfEarlyArrived(currentEdge);
+//
+
+        // retrieve the current count
+        CountWithTimestamp current = state.value();
+        if (current == null) {
+            current = new CountWithTimestamp();
+            current.key = currentEdge.f0.toString();
+        }
+
+        // update the state's count
+        current.count++;
+       // System.out.println(current.key + " - " + current.count);
+
+        // set the state's timestamp to the record's assigned event time timestamp
+        current.lastModified = ctx.timestamp();
+
+        // write the state back
+        state.update(current);
+
+        // schedule the next timer 60 seconds from the current event time
+        ctx.timerService().registerEventTimeTimer(current.lastModified + 60000);
+
+
 
         if (!checkInside) {
             //System.out.println("EdgeDepr (" + currentEdge.getEdge().f0 + " " + currentEdge.getEdge().f1 + ") not inside. added to queue");
             waitingEdges.add(currentEdge);
-            /*int partitionId = MathUtils.murmurHash(currentEdge.f0.hashCode()) % GraphPartitionerImpl.k;
+
+/*          int partitionId = MathUtils.murmurHash(currentEdge.f0.hashCode()) % GraphPartitionerImpl.k;
             out.collect(new Tuple2<>(currentEdge, partitionId));*/
+
         } else {
             int partitionId = modelBuilder.choosePartition(currentEdge);
             out.collect(new Tuple2<>(currentEdge, partitionId));
         }
+
 
         counterEdgesInstance++;
 
@@ -182,24 +165,50 @@ public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Inte
                 //System.out.println(progress);
                 ctx.output(GraphPartitionerImpl.outputTag, progress);
             }
-
-
-
         }
 
-        //int partitionId = modelBuilder.choosePartition(currentEdge);
-        //System.out.println("Phase 2: " + currentEdge.getEdge().getOriginVertexDepr() + " " + currentEdge.getEdge().getDestinVertexDepr() + " --> " + partitionId);
+/*        if (TEMPGLOBALVARIABLES.printTime && (counterEdgesInstance %500) == 0) {
+            //ctx.output(GraphPartitionerImpl.outputTag, "REL > " + toBeRemoved.size() + " > " + globalCounterForPrint);
+            System.out.println("ELE$" + counterEdgesInstance + "$" + ctx.currentWatermark());
+        }*/
 
-        // Add to "SINK" (TODO: Real Sink Function)
-        //edgeInPartition.put(currentEdge,partitionId);
+    }
 
-        //if (PhasePartitionerGelly.printPhaseTwo == true) {
-            //System.out.println(checkInside);
+    public void onTimer(
+            long timestamp,
+            OnTimerContext ctx,
+            Collector<Tuple2<Edge<Integer, NullValue>,Integer>> out) throws Exception {
 
-        //out.collect(new Tuple2<>(currentEdge,partitionId));
+        //System.out.println("hey leute");
+        // get the state for the key that scheduled the timer
+        CountWithTimestamp result = state.value();
 
-        //ctx.output(GraphPartitionerImpl.outputTag, "1: " + modelBuilder.getHdrf().getCurrentState().printState().toString());
+        // check if this is an outdated timer or the latest timer
+/*        if (timestamp == result.lastModified + 6000) {
+            // emit the state on timeout
+            out.collect(new Tuple2<>(new Edge<>(1,2,NullValue.getInstance()),1));
+        }*/
 
+        if (waitingEdges.size() > 0) {
+            System.out.println("calling this");
+            long startTime2 = System.nanoTime();
+            List<Edge<Integer, NullValue>> toBeRemoved = new ArrayList<>();
+            for (Edge<Integer, NullValue> e : waitingEdges) {
+                if (checkIfEarlyArrived(e)) {
+                    int partitionId = modelBuilder.choosePartition(e);
+                    out.collect(new Tuple2<>(e, partitionId));
+                    toBeRemoved.add(e);
+                } else {
+                    break;
+                }
+            }
+            totalEdgesInWait = totalEdgesInWait + toBeRemoved.size();
+            System.out.println("totalEdgesWaiting" + totalEdgesInWait);
+            waitingEdges.removeAll(toBeRemoved);
+        }
+
+        if (globalCounterForPrint % 20 == 0)
+            ctx.output(GraphPartitionerImpl.outputTag,"total waiting edges: " + totalEdgesInWait);
     }
 
     private boolean checkIfEarlyArrived(Edge<Integer, NullValue> currentEdge) {
@@ -221,8 +230,6 @@ public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Inte
             //System.out.println("Edge (" + currentEdge.getEdge().f0 + " " + currentEdge.getEdge().f1 + "): " + printState);
         }
 
-
-
         // Return TRUE if both vertices are in HashMap. Otherwise return false
         if (sourceInside && targetInside) {
             return true;
@@ -233,7 +240,6 @@ public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Inte
     }
 
     public String checkTimer() {
-
         long timeNow = System.currentTimeMillis();
         long difference = timeNow - startTime;
         return "MAT > " + counterEdgesInstance + " > "  + difference/1000 + " > s";
