@@ -127,7 +127,6 @@ public class GraphPartitionerImpl {
         // Create a data stream (read from file)
         SimpleEdgeStream<Integer, NullValue> edges = getGraphStream(env);
 
-
         DataStream<Edge<Integer, NullValue>> partitionedEdges = null;
 
         if (algorithm.equals("hdrf") || algorithm.equals("dbh")) {
@@ -297,7 +296,7 @@ public class GraphPartitionerImpl {
         return new SimpleEdgeStream<>(env.readTextFile(inputPath)
                 .flatMap(new FlatMapFunction<String, Edge<Integer, NullValue>>() {
                     @Override
-                    public void flatMap(String s, Collector<Edge<Integer, NullValue>> out) {
+                    public void flatMap(String s, Collector<Edge<Integer, NullValue>> out) throws InterruptedException {
                         String[] fields = s.replaceAll(","," ").split(" ");
                         //String[] fields = s.split("\\s");
                         if (!fields[0].equals("%")) {

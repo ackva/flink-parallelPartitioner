@@ -1,6 +1,7 @@
 package org.myorg.quickstart.utils;
 
 import org.apache.flink.graph.Edge;
+import org.apache.flink.types.NullValue;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,7 +11,8 @@ import java.util.List;
  */
 public class ProcessState {
 
-    public long key;
-    public Edge edge;
+    public Edge key;
+    public List<Edge<Integer, NullValue>> edgeList = new ArrayList<>();
     public long lastModified;
+    public int repetition = 0;
 }

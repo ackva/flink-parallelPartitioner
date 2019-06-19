@@ -20,6 +20,8 @@ public class ProcessWindowGellyTimed extends ProcessWindowFunction<Edge<Integer,
     public void process(Integer key, Context context, Iterable<Edge<Integer, NullValue>> edgeIterable, Collector<Edge<Integer, NullValue>> out) throws Exception {
 
 
+        //System.out.println("2$" + context.currentWatermark() + "$" + context.currentProcessingTime() + "$");
+
         // Temporary variables
         String printString = " - ";
         windowCounter++;

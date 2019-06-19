@@ -26,6 +26,8 @@ public class ProcessWindowDegreeTimed extends ProcessWindowFunction<Edge<Integer
 
         //System.out.println("new window (fake) " + context.currentProcessingTime() + " current watermark: " + context.currentWatermark());
 
+        //System.out.println("1$" + context.currentWatermark() + "$" + context.currentProcessingTime() + "$");
+
 
         windowCounter++;
         edgeCounter++;

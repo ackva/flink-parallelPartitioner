@@ -41,7 +41,8 @@ public class LoadBalanceCalculator {
 
         double load = highestLoad / (totalNumOfEdges / fileCounter);
 
-        this.totalNumberOfEdges = totalNumOfEdges;
+        // store in instance variable (-2 because newLine is always added to the original file)
+        this.totalNumberOfEdges = totalNumOfEdges - fileCounter;
 
         return load;
     }
