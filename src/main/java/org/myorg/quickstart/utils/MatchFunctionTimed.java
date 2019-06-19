@@ -18,6 +18,7 @@ import static java.lang.Math.toIntExact;
 
 public class MatchFunctionTimed extends KeyedBroadcastProcessFunction<Integer, Edge<Integer, NullValue>, HashMap<Integer, Integer>, Tuple2<Edge<Integer, NullValue>,Integer>> {
 
+    private int totalRepetitions = 0;
     private int collectedEdges = 0;
     private int stillNotInside = 0;
     private HashMap<String,Long> outputEdges = new HashMap<>();
@@ -151,7 +152,7 @@ public class MatchFunctionTimed extends KeyedBroadcastProcessFunction<Integer, E
             state.update(current);
 
             // schedule the next timer X seconds from the current event time
-            ctx.timerService().registerEventTimeTimer(current.lastModified + stateDelay*2);
+            ctx.timerService().registerEventTimeTimer(current.lastModified + (stateDelay));
         //System.out.println(current.key + " registered for " + (current.lastModified + 600));
             //ctx.timerService().registerEventTimeTimer(current.lastModified);
 
@@ -208,7 +209,6 @@ public class MatchFunctionTimed extends KeyedBroadcastProcessFunction<Integer, E
 
         List<Edge<Integer, NullValue>> toBeRemovedState = new ArrayList<>();
         List<Edge<Integer, NullValue>> toBeAddedToWaitingEdges = new ArrayList<>();
-        boolean repeatScan = false;
         for (Edge e : edgeState.edgeList) {
             boolean checkInside = checkIfEarlyArrived(e);
 
@@ -220,7 +220,6 @@ public class MatchFunctionTimed extends KeyedBroadcastProcessFunction<Integer, E
                     System.out.println("addedInState: " + addedInState);
                 //System.out.println("state$1");
             } else {
-                repeatScan = true;
                 toBeAddedToWaitingEdges.add(e);
             }
         }
@@ -254,15 +253,22 @@ public class MatchFunctionTimed extends KeyedBroadcastProcessFunction<Integer, E
             waitingEdges.removeAll(toBeRemoved);
         }
 
-
         if(toBeAddedToWaitingEdges.size() > 0) {
-            ctx.output(GraphPartitionerImpl.outputTag,"to be repeated " + edgeState.key + " " + edgeState.repetition + " total: " + toBeAddedToWaitingEdges.size());
+            totalRepetitions++;
+            if (totalRepetitions % 2000 == 0)
+                ctx.output(GraphPartitionerImpl.outputTag,ctx.currentWatermark() + " repetitions $ " + totalRepetitions);
+            if (edgeState.repetition > 5 ) {
+                ctx.output(GraphPartitionerImpl.outputTag, ctx.currentWatermark() + " $ to be repeated $ " + edgeState.key + " " + edgeState.repetition + " $ total: $ " + toBeAddedToWaitingEdges.size());
+            }
+            if (edgeState.repetition > 5000 ) {
+                throw new Exception("FATAL ERROR");
+            }
             edgeState.repetition++;
             //waitingEdges.addAll(toBeAddedToWaitingEdges);
             edgeState.edgeList = toBeAddedToWaitingEdges;
             edgeState.lastModified = ctx.currentWatermark();
             state.update(edgeState);
-            ctx.timerService().registerEventTimeTimer(edgeState.lastModified + stateDelay);
+            ctx.timerService().registerEventTimeTimer(edgeState.lastModified + stateDelay/2);
         }
 
 
