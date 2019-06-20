@@ -1,4 +1,4 @@
-package org.myorg.quickstart.utils;
+package org.myorg.quickstart.partitioners.matchFunctions;
 
 import org.apache.flink.api.common.state.ValueState;
 import org.apache.flink.api.common.state.ValueStateDescriptor;
@@ -10,14 +10,24 @@ import org.apache.flink.streaming.api.functions.co.KeyedBroadcastProcessFunction
 import org.apache.flink.types.NullValue;
 import org.apache.flink.util.Collector;
 import org.myorg.quickstart.partitioners.GraphPartitionerImpl;
+import org.myorg.quickstart.utils.ModelBuilderGelly;
+import org.myorg.quickstart.utils.ProcessState;
+import org.myorg.quickstart.utils.TEMPGLOBALVARIABLES;
 
 import java.util.*;
 
 import static java.lang.Math.toIntExact;
 
+/**
+ *
+ * This match function uses the "on Timer" approach. When processElement() is called, it sets an event to a later watermark and processes the edge(s) later.
+ * This shall help to reduce the overall "waiting" time with unnecessary loop iterations.
+ *
+ */
 
-public class MatchFunctionTimed extends KeyedBroadcastProcessFunction<Integer, Edge<Integer, NullValue>, HashMap<Integer, Integer>, Tuple2<Edge<Integer, NullValue>,Integer>> {
+public class MatchFunctionTimedAAAbackup extends KeyedBroadcastProcessFunction<Integer, Edge<Integer, NullValue>, HashMap<Integer, Integer>, Tuple2<Edge<Integer, NullValue>,Integer>> {
 
+    private HashMap<String,Integer> repeatMap = new HashMap<>();
     private int totalRepetitions = 0;
     private int collectedEdges = 0;
     private int stillNotInside = 0;
@@ -46,7 +56,7 @@ public class MatchFunctionTimed extends KeyedBroadcastProcessFunction<Integer, E
    // private ListState<ProcessState> state1;
 
 
-    public MatchFunctionTimed(String algorithm, Integer k, double lambda, int stateDelay) {
+    public MatchFunctionTimedAAAbackup(String algorithm, Integer k, double lambda, int stateDelay) {
         this.algorithm = algorithm;
         this.stateDelay = stateDelay;
         this.waitingEdges = new ArrayList<>();
@@ -159,16 +169,21 @@ public class MatchFunctionTimed extends KeyedBroadcastProcessFunction<Integer, E
         //}
 
 
-/*        if(TEMPGLOBALVARIABLES.printTime) {
-            if (counterEdgesInstance < 2)
+        if(TEMPGLOBALVARIABLES.printTime) {
+            if (counterEdgesInstance < 2) {
                 ctx.output(GraphPartitionerImpl.outputTag, "new Job started");
-                //System.out.println("new Job started");
+                ctx.output(GraphPartitionerImpl.outputTag,"REP > CurrentWatermark > totalNumRepetitions");
+
+
+            }
+            //System.out.println("new Job started");
             if (counterEdgesInstance % TEMPGLOBALVARIABLES.printModulo == 0) {
                 String progress = checkTimer();
                 //System.out.println(progress);
                 ctx.output(GraphPartitionerImpl.outputTag, progress);
             }
-        }*/
+        }
+
 
 /*        if (TEMPGLOBALVARIABLES.printTime && (counterEdgesInstance %500) == 0) {
             //ctx.output(GraphPartitionerImpl.outputTag, "REL > " + toBeRemoved.size() + " > " + globalCounterForPrint);
@@ -255,14 +270,23 @@ public class MatchFunctionTimed extends KeyedBroadcastProcessFunction<Integer, E
 
         if(toBeAddedToWaitingEdges.size() > 0) {
             totalRepetitions++;
-            if (totalRepetitions % 2000 == 0)
-                ctx.output(GraphPartitionerImpl.outputTag,ctx.currentWatermark() + " repetitions $ " + totalRepetitions);
+            if (edgeState.repetition > 0 ) {
+                if (repeatMap.containsKey(edgeState.key.toString())) {
+                    int oldVal = repeatMap.get(edgeState.key.toString());
+                    int newVal = oldVal + 1;
+                    repeatMap.replace(edgeState.key.toString(),oldVal,newVal);
+                } else {
+                    repeatMap.put(edgeState.key.toString(),1);
+                }
+            }
             if (edgeState.repetition > 5 ) {
                 ctx.output(GraphPartitionerImpl.outputTag, ctx.currentWatermark() + " $ to be repeated $ " + edgeState.key + " " + edgeState.repetition + " $ total: $ " + toBeAddedToWaitingEdges.size());
             }
-            if (edgeState.repetition > 5000 ) {
-                throw new Exception("FATAL ERROR");
+            if (edgeState.repetition > 50 ) {
+                throw new Exception("edgeState " + edgeState.key + " repeated > 50 times");
             }
+            if (totalRepetitions % (TEMPGLOBALVARIABLES.printModulo/1000) == 0)
+                ctx.output(GraphPartitionerImpl.outputTag,"REP > " + ctx.currentWatermark() + " > " + totalRepetitions + " >  " + repeatMap.size());
             edgeState.repetition++;
             //waitingEdges.addAll(toBeAddedToWaitingEdges);
             edgeState.edgeList = toBeAddedToWaitingEdges;

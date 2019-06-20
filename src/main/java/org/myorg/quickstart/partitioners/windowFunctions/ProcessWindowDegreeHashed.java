@@ -1,4 +1,4 @@
-package org.myorg.quickstart.utils;
+package org.myorg.quickstart.partitioners.windowFunctions;
 
 import org.apache.flink.graph.Edge;
 import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
@@ -11,23 +11,37 @@ import java.util.HashMap;
 import java.util.List;
 
 
-public class ProcessWindowDegreeTimed extends ProcessWindowFunction<Edge<Integer, NullValue>, HashMap<Integer, Integer>, Integer, TimeWindow> {
+public class ProcessWindowDegreeHashed extends ProcessWindowFunction<Edge<Integer, Long>, HashMap<Integer, Integer>, Integer, TimeWindow> {
 
     private String algorithm;
     int windowCounter = 0;
     int edgeCounter = 0;
     long startTime = System.currentTimeMillis();
-    public ProcessWindowDegreeTimed() {
+    long currentWatermark = 1;
+    List<Long> watermarks = new ArrayList<>();
+    HashMap<Long, List<Edge>> edgesInWatermark = new HashMap<>();
+
+    public ProcessWindowDegreeHashed() {
 
     }
 
     // The process function keeps a hashmap that tracks the vertex degrees ** per Window AND key **
-    public void process(Integer key, Context context, Iterable<Edge<Integer, NullValue>> edgeIterable, Collector<HashMap<Integer, Integer>> out) throws Exception {
+    public void process(Integer key, Context context, Iterable<Edge<Integer, Long>> edgeIterable, Collector<HashMap<Integer, Integer>> out) throws Exception {
+
+        if (currentWatermark != context.currentWatermark()) {
+            watermarks.add(context.currentWatermark());
+            currentWatermark = context.currentWatermark();
+            System.out.println(" DEG _ new Watermark = " + currentWatermark + " old: " + watermarks);
+
+        }
 
         //System.out.println("new window (fake) " + context.currentProcessingTime() + " current watermark: " + context.currentWatermark());
 
         //System.out.println("1$" + context.currentWatermark() + "$" + context.currentProcessingTime() + "$");
 
+        long nextPrime = 4294967311L;
+        //float newHash = (123 * 124) % nextPrime;
+        //System.out.println(newHash);
 
         windowCounter++;
         edgeCounter++;
@@ -38,11 +52,14 @@ public class ProcessWindowDegreeTimed extends ProcessWindowFunction<Edge<Integer
         List<Edge> edgesInWindow = storeElementsOfWindow(edgeIterable);
 
         // Maintain degree HashMap (Key: vertex || Value: degree)
+        String hashString = "Degree Count: ";
         for(Edge e: edgesInWindow) {
-
             int source = Integer.parseInt(e.f0.toString());
             int target = Integer.parseInt(e.f1.toString());
+            //System.out.println(context.currentWatermark() + ": " + source + "," + target);
             // Add source vertex with degree 1, if no map entry exists. Otherwise, increment by 1
+            //float newHash = (source * target) % nextPrime;
+            //hashString = hashString + newHash + ", ";
             if (!vertexDegreeMap.containsKey(source))
                 vertexDegreeMap.put(source, 1);
             else
@@ -54,6 +71,8 @@ public class ProcessWindowDegreeTimed extends ProcessWindowFunction<Edge<Integer
             else
                 vertexDegreeMap.put(target, vertexDegreeMap.get(target) + 1);
         }
+        //System.out.println(hashString);
+
 
         // Print operations for debugging
 /*        if (TEMPGLOBALVARIABLES.printPhaseOne) {
@@ -79,7 +98,7 @@ public class ProcessWindowDegreeTimed extends ProcessWindowFunction<Edge<Integer
 
     }
 
-    public List<Edge> storeElementsOfWindow(Iterable<Edge<Integer, NullValue>> edgeIterable) {
+    public List<Edge> storeElementsOfWindow(Iterable<Edge<Integer, Long>> edgeIterable) {
 
         // Save into List
         List<Edge> edgesInWindow = new ArrayList<>();

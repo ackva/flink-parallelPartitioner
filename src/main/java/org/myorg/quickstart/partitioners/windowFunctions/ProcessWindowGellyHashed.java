@@ -1,24 +1,34 @@
-package org.myorg.quickstart.utils;
+package org.myorg.quickstart.partitioners.windowFunctions;
 
 import org.apache.flink.graph.Edge;
 import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.types.NullValue;
 import org.apache.flink.util.Collector;
+import org.myorg.quickstart.utils.TEMPGLOBALVARIABLES;
 
 import java.util.ArrayList;
 import java.util.List;
 
 
-public class ProcessWindowGellyTimed extends ProcessWindowFunction<Edge<Integer, NullValue>, Edge<Integer, NullValue>, Integer, TimeWindow> {
+public class ProcessWindowGellyHashed extends ProcessWindowFunction<Edge<Integer, Long>, Edge<Integer, Long>, Integer, TimeWindow> {
 
     private int windowCounter = 0;
     private int avgEdgesPerWindow = 0;
     private int edgeCounter = 0;
+    long currentWatermark = 1;
+    List<Long> watermarks = new ArrayList<>();
 
 
-    public void process(Integer key, Context context, Iterable<Edge<Integer, NullValue>> edgeIterable, Collector<Edge<Integer, NullValue>> out) throws Exception {
+    public void process(Integer key, Context context, Iterable<Edge<Integer, Long>> edgeIterable, Collector<Edge<Integer, Long>> out) throws Exception {
 
+
+        if (currentWatermark != context.currentWatermark()) {
+            watermarks.add(context.currentWatermark());
+            currentWatermark = context.currentWatermark();
+            System.out.println(" ELE _ new Watermark = " + currentWatermark + " old: " + watermarks);
+
+        }
 
         //System.out.println("2$" + context.currentWatermark() + "$" + context.currentProcessingTime() + "$");
 
@@ -30,10 +40,11 @@ public class ProcessWindowGellyTimed extends ProcessWindowFunction<Edge<Integer,
 
 
         // Store all edges of current window
-        List<Edge<Integer, NullValue>> edgesInWindow = storeElementsOfWindow(edgeIterable);
+        List<Edge<Integer, Long>> edgesInWindow = storeElementsOfWindow(edgeIterable);
         //printWindowElements(edgesInWindow);
 
-        for(Edge<Integer, NullValue> e: edgesInWindow) {
+        for(Edge<Integer, Long> e: edgesInWindow) {
+            //System.out.println(context.currentWatermark() + ": " + e);
             out.collect(e);
             //printString = printString + e.f0 + " " + e.f0 + ", ";
         }
@@ -53,7 +64,7 @@ public class ProcessWindowGellyTimed extends ProcessWindowFunction<Edge<Integer,
 
     }
 
-    public String printWindowElements(List<Edge<Integer, NullValue>> edgeList) {
+    public String printWindowElements(List<Edge<Integer, Long>> edgeList) {
 
         // Create human-readable String with current window
         String printString = "";
@@ -65,10 +76,10 @@ public class ProcessWindowGellyTimed extends ProcessWindowFunction<Edge<Integer,
 
     }
 
-    public List<Edge<Integer, NullValue>> storeElementsOfWindow(Iterable<Edge<Integer, NullValue>> edgeIterable) {
+    public List<Edge<Integer, Long>> storeElementsOfWindow(Iterable<Edge<Integer, Long>> edgeIterable) {
 
         // Save into List
-        List<Edge<Integer, NullValue>> edgesInWindow = new ArrayList<>();
+        List<Edge<Integer, Long>> edgesInWindow = new ArrayList<>();
         edgeIterable.forEach(edgesInWindow::add);
 
         return edgesInWindow;

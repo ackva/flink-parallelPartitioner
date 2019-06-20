@@ -24,6 +24,9 @@ import org.apache.flink.util.OutputTag;
 import org.myorg.quickstart.applications.SimpleEdgeStream;
 import org.myorg.quickstart.jobstatistics.LoadBalanceCalculator;
 import org.myorg.quickstart.jobstatistics.VertexCut;
+import org.myorg.quickstart.partitioners.matchFunctions.MatchFunctionTimed;
+import org.myorg.quickstart.partitioners.windowFunctions.ProcessWindowDegreeTimed;
+import org.myorg.quickstart.partitioners.windowFunctions.ProcessWindowGellyTimed;
 import org.myorg.quickstart.utils.*;
 
 import java.io.File;
