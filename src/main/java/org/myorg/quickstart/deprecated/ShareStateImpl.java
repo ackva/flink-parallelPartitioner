@@ -17,7 +17,8 @@
  *//*
 
 
-package org.myorg.quickstart.sharedState;
+
+package org.myorg.quickstart.deprecated;
 
 import org.apache.flink.api.common.JobExecutionResult;
 import org.apache.flink.api.common.functions.FlatMapFunction;
@@ -41,6 +42,7 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.co.BroadcastProcessFunction;
 import org.apache.flink.streaming.api.functions.co.KeyedBroadcastProcessFunction;
 import org.apache.flink.util.Collector;
+import org.myorg.quickstart.deprecated.old.EdgeDepr;
 import org.myorg.quickstart.jobstatistics.JobVertex;
 
 import javax.xml.crypto.Data;
@@ -54,6 +56,7 @@ import java.util.*;
 import static java.lang.System.out;
 import static java.lang.System.setOut;
 
+
 */
 /**
  *
@@ -61,6 +64,7 @@ import static java.lang.System.setOut;
  * @parameters: -- not required --
  *
  *//*
+
 
 
 public class ShareStateImpl {
@@ -142,88 +146,88 @@ public class ShareStateImpl {
                         //   4. the type of the result, here a string
                         //   new KeyedBroadcastProcessFunction<DestinVertex, EdgeDepr, Rule, String>() {
 
-            // store partial matches, i.e. first elements of the pair waiting for their second element
-            // we keep a list as we may have many first elements waiting
-            final MapStateDescriptor<String, List<EdgeDepr>> mapStateDesc =
-                    new MapStateDescriptor<>(
-                            "items",
-                            BasicTypeInfo.STRING_TYPE_INFO,
-                            new ListTypeInfo<>(EdgeDepr.class));
+                        // store partial matches, i.e. first elements of the pair waiting for their second element
+                        // we keep a list as we may have many first elements waiting
+        final MapStateDescriptor<String, List<EdgeDepr>> mapStateDesc =
+                new MapStateDescriptor<>(
+                        "items",
+                        BasicTypeInfo.STRING_TYPE_INFO,
+                        new ListTypeInfo<>(EdgeDepr.class));
 
-            @Override
-            public void processBroadcastElement(Rule value,
-                                                Context ctx,
-                                                Collector<String> out) throws Exception {
-                ctx.getBroadcastState(ruleStateDescriptor).put(value.name, value);
-            }
+        @Override
+        public void processBroadcastElement(Rule value,
+                Context ctx,
+                Collector<String> out) throws Exception {
+            ctx.getBroadcastState(ruleStateDescriptor).put(value.name, value);
+        }
 
-            @Override
-            public void processElement(EdgeDepr value,
-                                       ReadOnlyContext ctx,
-                                       Collector<String> out) throws Exception {
+        @Override
+        public void processElement(EdgeDepr value,
+                ReadOnlyContext ctx,
+                Collector<String> out) throws Exception {
 
-                final MapState<String, List<EdgeDepr>> state = getRuntimeContext().getMapState(mapStateDesc);
-                final OriginVertex shape = value.getOriginVertexDepr();
+            final MapState<String, List<EdgeDepr>> state = getRuntimeContext().getMapState(mapStateDesc);
+            final OriginVertex shape = value.getOriginVertexDepr();
 
-                for (Map.Entry<String, Rule> entry :
-                        ctx.getBroadcastState(ruleStateDescriptor).immutableEntries()) {
-                    final String ruleName = entry.getKey();
-                    final Rule rule = entry.getValue();
+            for (Map.Entry<String, Rule> entry :
+                    ctx.getBroadcastState(ruleStateDescriptor).immutableEntries()) {
+                final String ruleName = entry.getKey();
+                final Rule rule = entry.getValue();
 
-                    List<EdgeDepr> stored = state.get(ruleName);
-                    if (stored == null) {
-                        stored = new ArrayList<>();
+                List<EdgeDepr> stored = state.get(ruleName);
+                if (stored == null) {
+                    stored = new ArrayList<>();
+                }
+
+                if (shape == rule.second && !stored.isEmpty()) {
+                    for (EdgeDepr i : stored) {
+                        out.collect("MATCH: " + i + " - " + value);
                     }
+                    stored.clear();
+                }
 
-                    if (shape == rule.second && !stored.isEmpty()) {
-                        for (EdgeDepr i : stored) {
-                            out.collect("MATCH: " + i + " - " + value);
-                        }
-                        stored.clear();
-                    }
+                // there is no else{} to cover if rule.first == rule.second
+                if (shape.equals(rule.first)) {
+                    stored.add(value);
+                }
 
-                    // there is no else{} to cover if rule.first == rule.second
-                    if (shape.equals(rule.first)) {
-                        stored.add(value);
-                    }
-
-                    if (stored.isEmpty()) {
-                        state.remove(ruleName);
-                    } else {
-                        state.put(ruleName, stored);
-                    }
+                if (stored.isEmpty()) {
+                    state.remove(ruleName);
+                } else {
+                    state.put(ruleName, stored);
                 }
             }
         }
-
-
-
-
-
-        // Execute program
-        JobExecutionResult result = env.execute("Streaming Items and Partitioning");
-        long executionTime = result.getNetRuntime();
-
     }
 
-    public static class PartitionByTag implements Partitioner<Integer> {
-        @Override
-        public int partition(Integer key, int numPartitions) {
-            return key % numPartitions;
-        }
-    }
 
-    public class WhatEver {
-    }
 
-    public class Match {
+
+
+    // Execute program
+    JobExecutionResult result = env.execute("Streaming Items and Partitioning");
+    long executionTime = result.getNetRuntime();
+
+}
+
+public static class PartitionByTag implements Partitioner<Integer> {
+    @Override
+    public int partition(Integer key, int numPartitions) {
+        return key % numPartitions;
     }
+}
+
+public class WhatEver {
+}
+
+public class Match {
+}
 
 }
 
 
-*/
-/*
+
+
 
 
     // Get fake state table
@@ -368,7 +372,8 @@ final Rule rule = entry.getValue();
         }
 
 
-        /*{
+        */
+/*{
             @Override
             //public void processElement(Object o, ReadOnlyContext readOnlyContext, Collector collector) throws Exception {
             //@Override public void flatMap(String streamInput, Collector<Tuple2<String, String>> out) {
@@ -382,7 +387,6 @@ final Rule rule = entry.getValue();
                 collector.collect(new String());
             }
         });
-*//*
 
 
 */

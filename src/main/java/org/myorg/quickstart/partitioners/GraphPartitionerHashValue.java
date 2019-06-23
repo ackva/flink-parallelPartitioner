@@ -18,19 +18,18 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.windowing.time.Time;
-import org.apache.flink.types.NullValue;
 import org.apache.flink.util.Collector;
 import org.apache.flink.util.MathUtils;
 import org.apache.flink.util.OutputTag;
 import org.myorg.quickstart.applications.SimpleEdgeStream;
 import org.myorg.quickstart.jobstatistics.LoadBalanceCalculator;
 import org.myorg.quickstart.jobstatistics.VertexCut;
-import org.myorg.quickstart.partitioners.matchFunctions.MatchFunctionTimedTagged;
-import org.myorg.quickstart.partitioners.windowFunctions.ProcessWindowDegreeHashed;
-import org.myorg.quickstart.partitioners.windowFunctions.ProcessWindowDegreeTimed;
-import org.myorg.quickstart.partitioners.windowFunctions.ProcessWindowGellyHashed;
-import org.myorg.quickstart.partitioners.windowFunctions.ProcessWindowGellyTimed;
-import org.myorg.quickstart.utils.*;
+import org.myorg.quickstart.partitioners.matchFunctions.MatchFunctionHashValue;
+import org.myorg.quickstart.partitioners.windowFunctions.ProcessWindowDegreeWatermark;
+import org.myorg.quickstart.partitioners.windowFunctions.ProcessWindowGellyHashValue;
+import org.myorg.quickstart.utils.CustomKeySelector6;
+import org.myorg.quickstart.utils.HashPartitioner;
+import org.myorg.quickstart.utils.TEMPGLOBALVARIABLES;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -72,7 +71,7 @@ import java.util.concurrent.TimeUnit;
  *   1 C:\flinkJobs\input\streamInput199.txt dbh 100 2 2 streamInput
  *
  */
-public class GraphPartitionerTagging {
+public class GraphPartitionerHashValue {
 
     public static final OutputTag<String> outputTag = new OutputTag<String>("side-output"){};
 
@@ -108,8 +107,8 @@ public class GraphPartitionerTagging {
         String outputPathPartitions = outputPath + "/" + folderName;
         loggingPath = outputPath + "/logs_" + folderName;
 
-        ProcessWindowGellyHashed firstPhaseProcessor = new ProcessWindowGellyHashed();
-        MatchFunctionTimedTagged matchFunction = new MatchFunctionTimedTagged(algorithm, k, lambda, stateDelay);
+        ProcessWindowGellyHashValue firstPhaseProcessor = new ProcessWindowGellyHashValue();
+        MatchFunctionHashValue matchFunction = new MatchFunctionHashValue(algorithm, k, lambda, stateDelay);
         MapStateDescriptor<String, Tuple2<Integer, ArrayList<Integer>>> rulesStateDescriptor = new MapStateDescriptor<>("RulesBroadcastState", BasicTypeInfo.STRING_TYPE_INFO,tupleTypeInfo);
 
         //System.out.println(new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()) + " timestamp for whatever you want");
@@ -141,7 +140,7 @@ public class GraphPartitionerTagging {
             DataStream<Tuple2<HashMap<Integer, Integer>,Long>> phaseOneStream = edges.getEdges()
                     .keyBy(ks)
                     .timeWindow(Time.milliseconds(windowSizeInMs))
-                    .process(new ProcessWindowDegreeHashed());
+                    .process(new ProcessWindowDegreeWatermark());
 
             // Process edges in the similar time windows to "wait" for phase 2
             DataStream<Edge<Integer, Long>> edgesWindowed = edges.getEdges()

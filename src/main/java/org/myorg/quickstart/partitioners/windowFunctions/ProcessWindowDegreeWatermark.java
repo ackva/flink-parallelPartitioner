@@ -1,11 +1,9 @@
 package org.myorg.quickstart.partitioners.windowFunctions;
 
-import org.apache.flink.api.common.state.ValueState;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.graph.Edge;
 import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
-import org.apache.flink.types.NullValue;
 import org.apache.flink.util.Collector;
 
 import java.util.ArrayList;
@@ -13,7 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 
 
-public class ProcessWindowDegreeHashed extends ProcessWindowFunction<Edge<Integer, Long>, Tuple2<HashMap<Integer, Integer>,Long>, Integer, TimeWindow> {
+public class ProcessWindowDegreeWatermark extends ProcessWindowFunction<Edge<Integer, Long>, Tuple2<HashMap<Integer, Integer>,Long>, Integer, TimeWindow> {
 
     private String algorithm;
     int windowCounter = 0;
@@ -23,7 +21,7 @@ public class ProcessWindowDegreeHashed extends ProcessWindowFunction<Edge<Intege
     List<Long> watermarks = new ArrayList<>();
     HashMap<Long, List<Edge>> edgesInWatermark = new HashMap<>();
 
-    public ProcessWindowDegreeHashed() {
+    public ProcessWindowDegreeWatermark() {
 
     }
 
@@ -33,7 +31,7 @@ public class ProcessWindowDegreeHashed extends ProcessWindowFunction<Edge<Intege
         if (currentWatermark != context.currentWatermark()) {
             watermarks.add(context.currentWatermark());
             currentWatermark = context.currentWatermark();
-            System.out.println("DEG _ new Watermark = " + currentWatermark + " old: " + watermarks);
+            //System.out.println("DEG _ new Watermark = " + currentWatermark + " old: " + watermarks);
         }
 
         //System.out.println("new window (fake) " + context.currentProcessingTime() + " current watermark: " + context.currentWatermark());
@@ -55,7 +53,7 @@ public class ProcessWindowDegreeHashed extends ProcessWindowFunction<Edge<Intege
             int target = Integer.parseInt(e.f1.toString());
             long edgeHash = Long.parseLong(e.f2.toString());
             windowHashValue = windowHashValue + edgeHash;
-            //System.out.println(context.currentWatermark() + ": " + source + "," + target);
+            //System.out.println("DEGRE > " + context.currentWatermark() + " > " + source + "|" + target + "|" + edgeHash);
             // Add source vertex with degree 1, if no map entry exists. Otherwise, increment by 1
             //float newHash = (source * target) % nextPrime;
             //hashString = hashString + newHash + ", ";

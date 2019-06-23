@@ -76,7 +76,7 @@ public class MatchFunctionTimedAAAbackup extends KeyedBroadcastProcessFunction<I
     @Override
     public void processBroadcastElement(HashMap<Integer, Integer> broadcastElement, Context ctx, Collector<Tuple2<Edge<Integer, NullValue>,Integer>> out) throws Exception {
 
-        //ctx.output(GraphPartitionerImpl.outputTag,ctx.currentWatermark() + "$" + broadcastElement + " ####### ALIVE ######");
+        //ctx.output(GraphPartitionerImpl.outputTag,ctx.broadcastWatermark() + "$" + broadcastElement + " ####### ALIVE ######");
         globalCounterForPrint++;
         countBroadcastsOnWorker++;
 
@@ -115,7 +115,7 @@ public class MatchFunctionTimedAAAbackup extends KeyedBroadcastProcessFunction<I
 
 /*        ProcessState testState = state.value();
         if (testState != null)
-            ctx.output(GraphPartitionerImpl.outputTag,ctx.currentWatermark() + "$" + testState.key + " -- hello from broadie");*/
+            ctx.output(GraphPartitionerImpl.outputTag,ctx.broadcastWatermark() + "$" + testState.key + " -- hello from broadie");*/
 
 
 
@@ -124,11 +124,11 @@ public class MatchFunctionTimedAAAbackup extends KeyedBroadcastProcessFunction<I
     @Override
     public void processElement(Edge<Integer, NullValue> currentEdge, ReadOnlyContext ctx, Collector<Tuple2<Edge<Integer, NullValue>,Integer>> out) throws Exception {
 
-        //System.out.println("Edge in Match(" + currentEdge + " $ " + ctx.timestamp() + " $ current watermark:  $" + ctx.currentWatermark());
+        //System.out.println("Edge in Match(" + currentEdge + " $ " + ctx.timestamp() + " $ current watermark:  $" + ctx.broadcastWatermark());
 
         //System.out.println("inside Process: Edge (" + currentEdge.getEdge().f0 + " " + currentEdge.getEdge().f1 + "): " + currentEdge.getEdge().f0.getClass() + " " + currentEdge.getEdge().f1.getClass() + " -- ");
 
-        //System.out.println("3$" + ctx.currentWatermark() + "$" + ctx.currentProcessingTime() + "$" + ctx.timerService().currentProcessingTime() + "$" + currentEdge);
+        //System.out.println("3$" + ctx.broadcastWatermark() + "$" + ctx.currentProcessingTime() + "$" + ctx.timerService().currentProcessingTime() + "$" + currentEdge);
         counterEdgesInstance++;
 
         //boolean checkInside = checkIfEarlyArrived(currentEdge);
@@ -187,7 +187,7 @@ public class MatchFunctionTimedAAAbackup extends KeyedBroadcastProcessFunction<I
 
 /*        if (TEMPGLOBALVARIABLES.printTime && (counterEdgesInstance %500) == 0) {
             //ctx.output(GraphPartitionerImpl.outputTag, "REL > " + toBeRemoved.size() + " > " + globalCounterForPrint);
-            System.out.println("ELE$" + counterEdgesInstance + "$" + ctx.currentWatermark());
+            System.out.println("ELE$" + counterEdgesInstance + "$" + ctx.broadcastWatermark());
         }*/
 
     }
@@ -215,9 +215,9 @@ public class MatchFunctionTimedAAAbackup extends KeyedBroadcastProcessFunction<I
         //onTimerCount=onTimerCount+edgeState.edgeList.size();
         //System.out.println("onTimer$"+onTimerCount);
         //ctx.output(GraphPartitionerImpl.outputTag,"onTimer$"+onTimerCount);
-        //System.out.println(onTimerCount + " " + state.value().edgeList.size() + " " + state.value().key + " " + timestamp + " " + ctx.timerService().currentWatermark() + " " + System.currentTimeMillis());
+        //System.out.println(onTimerCount + " " + state.value().edgeList.size() + " " + state.value().key + " " + timestamp + " " + ctx.timerService().broadcastWatermark() + " " + System.currentTimeMillis());
 
-        //System.out.println("3$" + ctx.currentWatermark() + "$" + ctx.currentProcessingTime() + "$" + ctx.timerService().currentProcessingTime() + "$");
+        //System.out.println("3$" + ctx.broadcastWatermark() + "$" + ctx.currentProcessingTime() + "$" + ctx.timerService().currentProcessingTime() + "$");
         //System.out.println("onTimerCount$1");
 
         //System.out.println("waiting edges in onTime call: " + result.stateWaitList.size() + " ... waitingEdges local list " + waitingEdges.size());
@@ -242,7 +242,7 @@ public class MatchFunctionTimedAAAbackup extends KeyedBroadcastProcessFunction<I
         edgeState.edgeList.removeAll(toBeRemovedState);
 
         if (edgeState.edgeList.size() > 0)
-            //ctx.output(GraphPartitionerImpl.outputTag,ctx.currentWatermark() + "$ items left in state " + edgeState.key.f0 + "," + edgeState.key.f1 + " - " + edgeState.edgeList.size() + " out of " + edgeListSizeBefore + " --> all items: " + edgeState.edgeList);
+            //ctx.output(GraphPartitionerImpl.outputTag,ctx.broadcastWatermark() + "$ items left in state " + edgeState.key.f0 + "," + edgeState.key.f1 + " - " + edgeState.edgeList.size() + " out of " + edgeListSizeBefore + " --> all items: " + edgeState.edgeList);
 
         if (waitingEdges.size() > 0) {
             ctx.output(GraphPartitionerImpl.outputTag,ctx.currentWatermark() + " $ HALLO waiting edges: " + waitingEdges.size() + " -- " + waitingEdges);
@@ -297,7 +297,7 @@ public class MatchFunctionTimedAAAbackup extends KeyedBroadcastProcessFunction<I
 
 
         /*if (globalCounterForPrint % 20000 == 0)
-            ctx.output(GraphPartitionerImpl.outputTag,ctx.currentWatermark() + "$ total waiting edges: " + totalEdgesInWait);*/
+            ctx.output(GraphPartitionerImpl.outputTag,ctx.broadcastWatermark() + "$ total waiting edges: " + totalEdgesInWait);*/
         // get the state for the key that scheduled the timer
         //CountWithTimestamp result = state.value();
 
@@ -349,11 +349,11 @@ public class MatchFunctionTimedAAAbackup extends KeyedBroadcastProcessFunction<I
         int partitionId = modelBuilder.choosePartition(edge);
         collectedEdges++;
         if (collectedEdges % 100000 == 0)
-            //ctx.output(GraphPartitionerImpl.outputTag,ctx.currentWatermark() + "$ emitted$1$total$"+collectedEdges + "$" + edge + "$" + place + "$");
+            //ctx.output(GraphPartitionerImpl.outputTag,ctx.broadcastWatermark() + "$ emitted$1$total$"+collectedEdges + "$" + edge + "$" + place + "$");
         if (place != 1)
             //ctx.output(GraphPartitionerImpl.outputTag,"WAITING__$1$total$"+collectedEdges + "$" + edge + "$" + place + "$$");
         if (outputEdges.containsKey(edge.toString())) {
-            //ctx.output(GraphPartitionerImpl.outputTag,ctx.currentWatermark() + "$ " + edge + " -- " + duplicates.size() + " duplicate (delayed by) " + (outputEdges.get(edge.toString())-currTime));
+            //ctx.output(GraphPartitionerImpl.outputTag,ctx.broadcastWatermark() + "$ " + edge + " -- " + duplicates.size() + " duplicate (delayed by) " + (outputEdges.get(edge.toString())-currTime));
             duplicates.add(edge);
 
             }

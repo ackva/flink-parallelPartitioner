@@ -3,7 +3,6 @@ package org.myorg.quickstart.partitioners.windowFunctions;
 import org.apache.flink.graph.Edge;
 import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
-import org.apache.flink.types.NullValue;
 import org.apache.flink.util.Collector;
 import org.myorg.quickstart.utils.TEMPGLOBALVARIABLES;
 
@@ -11,7 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-public class ProcessWindowGellyHashed extends ProcessWindowFunction<Edge<Integer, Long>, Edge<Integer, Long>, Integer, TimeWindow> {
+public class ProcessWindowGellyHashValue extends ProcessWindowFunction<Edge<Integer, Long>, Edge<Integer, Long>, Integer, TimeWindow> {
 
     private int windowCounter = 0;
     private int avgEdgesPerWindow = 0;
@@ -25,15 +24,15 @@ public class ProcessWindowGellyHashed extends ProcessWindowFunction<Edge<Integer
         if (context.currentWatermark() == Long.MAX_VALUE)
         //    System.out.println("found last item " + context.currentWatermark());
 
-        if (currentWatermark != context.currentWatermark()) {
+/*        if (currentWatermark != context.currentWatermark()) {
             watermarks.add(context.currentWatermark());
             currentWatermark = context.currentWatermark();
             System.out.println(" ELE _ new Watermark = " + currentWatermark + " old: " + watermarks);
 
-        }
+        }*/
 
         // Temporary variables
-        String printString = " - ";
+       // String printString = " - ";
         windowCounter++;
 
         //System.out.println("new window (" + windowCounter + ") " + context.currentProcessingTime() + " current watermark: " + context.currentWatermark());
@@ -56,6 +55,7 @@ public class ProcessWindowGellyHashed extends ProcessWindowFunction<Edge<Integer
             long edgeHash = Long.parseLong(e.f2.toString());
             //System.out.println(context.currentWatermark() + ": " + e);
             out.collect(new Edge<>(e.f0,e.f1,windowHashValue));
+            //System.out.println("FORWA > " + context.currentWatermark() + " > " + e.f0 + "|" + e.f1 + "|" + windowHashValue);
             //printString = printString + e.f0 + " " + e.f0 + ", ";
         }
 

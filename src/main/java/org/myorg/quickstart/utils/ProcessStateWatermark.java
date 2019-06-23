@@ -8,7 +8,7 @@ import java.util.List;
 /**
  * The data type stored in the state
  */
-public class ProcessStateLong {
+public class ProcessStateWatermark {
 
     public Long key;
     public List<Edge<Integer, Long>> edgeList = new ArrayList<>();
