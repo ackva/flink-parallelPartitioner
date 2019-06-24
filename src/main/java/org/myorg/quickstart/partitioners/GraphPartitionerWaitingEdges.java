@@ -1,7 +1,6 @@
 package org.myorg.quickstart.partitioners;
 
 import org.apache.flink.api.common.JobExecutionResult;
-import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.Partitioner;
@@ -24,9 +23,8 @@ import org.apache.flink.util.OutputTag;
 import org.myorg.quickstart.applications.SimpleEdgeStream;
 import org.myorg.quickstart.jobstatistics.LoadBalanceCalculator;
 import org.myorg.quickstart.jobstatistics.VertexCut;
-import org.myorg.quickstart.partitioners.matchFunctions.MatchFunctionTimed;
-import org.myorg.quickstart.partitioners.windowFunctions.ProcessWindowDegreeTimed;
-import org.myorg.quickstart.partitioners.windowFunctions.ProcessWindowGellyTimed;
+import org.myorg.quickstart.partitioners.matchFunctions.MatchFunctionWaitingEdges;
+import org.myorg.quickstart.partitioners.windowFunctions.ProcessWindowGelly;
 import org.myorg.quickstart.utils.*;
 
 import java.io.File;
@@ -45,8 +43,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  *
- *
- *
+
  * @Arguments:
  *      0) graphSource:
  *           "0": generated on Runtime
@@ -69,7 +66,7 @@ import java.util.concurrent.TimeUnit;
  *   1 C:\flinkJobs\input\streamInput199.txt dbh 100 2 2 streamInput
  *
  */
-public class GraphPartitionerTimed {
+public class GraphPartitionerWaitingEdges {
 
     public static final OutputTag<String> outputTag = new OutputTag<String>("side-output"){};
 
@@ -92,8 +89,9 @@ public class GraphPartitionerTimed {
     private static String testing = null;
     public static int k = 2; // parallelism - partitions
     public static double lambda = 1.0;
+    //public static boolean debugMode = false;
+    //public static int printModulo = 20000;
     public static boolean localRun = false;
-    public static int stateDelay = 600;
 
     public static void main(String[] args) throws Exception {
 
@@ -105,8 +103,8 @@ public class GraphPartitionerTimed {
         String outputPathPartitions = outputPath + "/" + folderName;
         loggingPath = outputPath + "/logs_" + folderName;
 
-        ProcessWindowGellyTimed firstPhaseProcessor = new ProcessWindowGellyTimed();
-        MatchFunctionTimed matchFunction = new MatchFunctionTimed(algorithm, k, lambda, stateDelay);
+        ProcessWindowGelly firstPhaseProcessor = new ProcessWindowGelly();
+        MatchFunctionWaitingEdges matchFunction = new MatchFunctionWaitingEdges(algorithm, k, lambda);
         MapStateDescriptor<String, Tuple2<Integer, ArrayList<Integer>>> rulesStateDescriptor = new MapStateDescriptor<>("RulesBroadcastState", BasicTypeInfo.STRING_TYPE_INFO,tupleTypeInfo);
 
         //System.out.println(new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()) + " timestamp for whatever you want");
@@ -130,7 +128,6 @@ public class GraphPartitionerTimed {
         // Create a data stream (read from file)
         SimpleEdgeStream<Integer, NullValue> edges = getGraphStream(env);
 
-
         DataStream<Edge<Integer, NullValue>> partitionedEdges = null;
 
         if (algorithm.equals("hdrf") || algorithm.equals("dbh")) {
@@ -139,7 +136,7 @@ public class GraphPartitionerTimed {
             DataStream<HashMap<Integer, Integer>> phaseOneStream = edges.getEdges()
                     .keyBy(ks)
                     .timeWindow(Time.milliseconds(windowSizeInMs))
-                    .process(new ProcessWindowDegreeTimed());
+                    .process(new ProcessWindowDegree());
 
             // Process edges in the similar time windows to "wait" for phase 2
             DataStream<Edge<Integer, NullValue>> edgesWindowed = edges.getEdges()
@@ -166,7 +163,7 @@ public class GraphPartitionerTimed {
 
             DataStream<String> sideOutputStream = phaseTwoStream.getSideOutput(outputTag);
             sideOutputStream.print();
-            //sideOutputStream.writeAsText(loggingPath.replaceAll(":","_"));
+            sideOutputStream.writeAsText(loggingPath.replaceAll(":","_"));
 
             // Final Step -- Custom Partition, based on pre-calculated ID
             partitionedEdges = phaseTwoStream
@@ -212,7 +209,6 @@ public class GraphPartitionerTimed {
             double totalNumEdgesInFile = lbc.getTotalNumberOfEdges();
             statistics = statistics + "," + replicationFactor + "," + load + "," + totalNumEdgesInFile;
             System.out.println(statistics);
-
         }
         //System.out.println("statistics: " + statistics);
         // graphName,algorithm,timestamp,durationInMs,durationInSec,partitions,parallelismModel,inputPath,replicationFactor,load
@@ -231,8 +227,6 @@ public class GraphPartitionerTimed {
     private static String createJobName(String algorithm, int k, String graphName) {
 
         String jobName = graphName + " Graph";
-
-
         return graphName + " Graph" + " partitioning with " + algorithm + ". parallelism " + k;
     }
 
@@ -271,27 +265,6 @@ public class GraphPartitionerTimed {
         public int partition(Integer key, int numPartitions) {
             return key % numPartitions;
         }
-    }
-
-    public static  DataStream<Edge<Integer, NullValue>> getGraphStream1(StreamExecutionEnvironment env) throws IOException {
-
-        return env.readTextFile(inputPath)
-                .filter(new FilterFunction<String>() {
-                    @Override
-                    public boolean filter(String value) throws Exception {
-                        return !value.contains("%");
-                    }
-                })
-                .map(new MapFunction<String, Edge<Integer, NullValue>>() {
-                    @Override
-                    public Edge<Integer, NullValue> map(String s) throws Exception {
-                        String[] fields = s.replaceAll(","," ").split(" ");
-                        int src = Integer.parseInt(fields[0]);
-                        int trg = Integer.parseInt(fields[1]);
-                        return new Edge<>(src, trg, NullValue.getInstance());
-                    }
-                });
-
     }
 
     private static SimpleEdgeStream<Integer, NullValue> getGraphStream(StreamExecutionEnvironment env) {

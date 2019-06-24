@@ -24,7 +24,6 @@ import org.apache.flink.util.OutputTag;
 import org.myorg.quickstart.applications.SimpleEdgeStream;
 import org.myorg.quickstart.jobstatistics.LoadBalanceCalculator;
 import org.myorg.quickstart.jobstatistics.VertexCut;
-import org.myorg.quickstart.partitioners.matchFunctions.MatchFunctionHashValue;
 import org.myorg.quickstart.partitioners.matchFunctions.MatchFunctionWatermarkTrigger;
 import org.myorg.quickstart.partitioners.windowFunctions.ProcessWindowDegreeWatermark;
 import org.myorg.quickstart.partitioners.windowFunctions.ProcessWindowGellyHashValue;

@@ -1,4 +1,4 @@
-package org.myorg.quickstart.partitioners;
+package org.myorg.quickstart.partitioners.deprecatedFunctions;
 
 import org.apache.flink.api.common.JobExecutionResult;
 import org.apache.flink.api.common.functions.FilterFunction;
@@ -18,13 +18,13 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.windowing.time.Time;
-import org.apache.flink.types.NullValue;
 import org.apache.flink.util.Collector;
+import org.apache.flink.util.MathUtils;
 import org.apache.flink.util.OutputTag;
 import org.myorg.quickstart.applications.SimpleEdgeStream;
 import org.myorg.quickstart.jobstatistics.LoadBalanceCalculator;
 import org.myorg.quickstart.jobstatistics.VertexCut;
-import org.myorg.quickstart.partitioners.matchFunctions.MatchFunctionPartitioner;
+import org.myorg.quickstart.partitioners.windowFunctions.ProcessWindowDegreeHashed;
 import org.myorg.quickstart.utils.*;
 
 import java.io.File;
@@ -67,7 +67,7 @@ import java.util.concurrent.TimeUnit;
  *   1 C:\flinkJobs\input\streamInput199.txt dbh 100 2 2 streamInput
  *
  */
-public class GraphPartitionerImpl_old {
+public class GraphPartitionerTagging {
 
     public static final OutputTag<String> outputTag = new OutputTag<String>("side-output"){};
 
@@ -83,16 +83,15 @@ public class GraphPartitionerImpl_old {
     private static String algorithm = "";
     public static int keyParam = 0;
     private static int globalPhase = 0;
-    private static String graphName;
+    public static String graphName;
     private static String outputStatistics = null;
     private static String outputPath = null;
     private static String loggingPath = null;
     private static String testing = null;
     public static int k = 2; // parallelism - partitions
     public static double lambda = 1.0;
-    //public static boolean debugMode = false;
-    //public static int printModulo = 20000;
     public static boolean localRun = false;
+    public static int stateDelay = 0;
 
     public static void main(String[] args) throws Exception {
 
@@ -104,8 +103,8 @@ public class GraphPartitionerImpl_old {
         String outputPathPartitions = outputPath + "/" + folderName;
         loggingPath = outputPath + "/logs_" + folderName;
 
-        ProcessWindowGelly firstPhaseProcessor = new ProcessWindowGelly();
-        MatchFunctionPartitioner matchFunction = new MatchFunctionPartitioner(algorithm, k, lambda);
+        ProcessWindowGellyHashed firstPhaseProcessor = new ProcessWindowGellyHashed();
+        MatchFunctionTimedTagged matchFunction = new MatchFunctionTimedTagged(algorithm, k, lambda, stateDelay);
         MapStateDescriptor<String, Tuple2<Integer, ArrayList<Integer>>> rulesStateDescriptor = new MapStateDescriptor<>("RulesBroadcastState", BasicTypeInfo.STRING_TYPE_INFO,tupleTypeInfo);
 
         //System.out.println(new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()) + " timestamp for whatever you want");
@@ -114,9 +113,9 @@ public class GraphPartitionerImpl_old {
         env.setParallelism(k);
         env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
 
-        KeySelector<Edge<Integer, NullValue>, Integer> ks = new KeySelector<Edge<Integer, NullValue>, Integer>() {
+        KeySelector<Edge<Integer, Long>, Integer> ks = new KeySelector<Edge<Integer, Long>, Integer>() {
             @Override
-            public Integer getKey(Edge<Integer, NullValue> value) throws Exception {
+            public Integer getKey(Edge<Integer, Long> value) throws Exception {
                 //System.out.println(value.f0 % 10);
                 if (keyParam > 1)
                     return (value.f0 % keyParam);
@@ -127,32 +126,32 @@ public class GraphPartitionerImpl_old {
         };
 
         // Create a data stream (read from file)
-        SimpleEdgeStream<Integer, NullValue> edges = getGraphStream(env);
+        SimpleEdgeStream<Integer, Long> edges = getGraphStream(env);
 
-        DataStream<Edge<Integer, NullValue>> partitionedEdges = null;
+        DataStream<Edge<Integer, Long>> partitionedEdges = null;
 
         if (algorithm.equals("hdrf") || algorithm.equals("dbh")) {
             // *** PHASE 1 ***
             //Process edges to build the local model for broadcast
-            DataStream<HashMap<Integer, Integer>> phaseOneStream = edges.getEdges()
+            DataStream<Tuple2<HashMap<Integer, Integer>,Long>> phaseOneStream = edges.getEdges()
                     .keyBy(ks)
                     .timeWindow(Time.milliseconds(windowSizeInMs))
-                    .process(new ProcessWindowDegree());
+                    .process(new ProcessWindowDegreeHashed());
 
             // Process edges in the similar time windows to "wait" for phase 2
-            DataStream<Edge<Integer, NullValue>> edgesWindowed = edges.getEdges()
+            DataStream<Edge<Integer, Long>> edgesWindowed = edges.getEdges()
                     .keyBy(ks)
                     .timeWindow(Time.milliseconds(windowSizeInMs))
                     .process(firstPhaseProcessor);
 
             // *** Phase 2 ***
             // Broadcast local state from Phase 1 to all Task Managers
-            BroadcastStream<HashMap<Integer, Integer>> broadcastStateStream = phaseOneStream
+            BroadcastStream<Tuple2<HashMap<Integer, Integer>,Long>> broadcastStateStream = phaseOneStream
                     .broadcast(rulesStateDescriptor);
 
             // Connect Broadcast Stream and EdgeDepr Stream to build global model
-            SingleOutputStreamOperator<Tuple2<Edge<Integer, NullValue>, Integer>> phaseTwoStream = edgesWindowed
-                    .keyBy(new KeySelector<Edge<Integer, NullValue>, Integer>() {
+            SingleOutputStreamOperator<Tuple2<Edge<Integer, Long>, Integer>> phaseTwoStream = edgesWindowed
+                    .keyBy(new KeySelector<Edge<Integer, Long>, Integer>() {
                         @Override
                         public Integer getKey(Edge value) throws Exception {
                             return Integer.parseInt(value.f0.toString());
@@ -169,13 +168,13 @@ public class GraphPartitionerImpl_old {
             // Final Step -- Custom Partition, based on pre-calculated ID
             partitionedEdges = phaseTwoStream
                     .partitionCustom(new PartitionByTag(), 1)
-                    .map(new MapFunction<Tuple2<Edge<Integer, NullValue>, Integer>, Edge<Integer, NullValue>>() {
-                        public Edge<Integer, NullValue> map(Tuple2<Edge<Integer, NullValue>, Integer> input) {
+                    .map(new MapFunction<Tuple2<Edge<Integer, Long>, Integer>, Edge<Integer, Long>>() {
+                        public Edge<Integer, Long> map(Tuple2<Edge<Integer, Long>, Integer> input) {
                             return input.f0;
                         }});
         } else if (algorithm.equals("hash")) {
             partitionedEdges = edges.getEdges()
-                    .partitionCustom(new HashPartitioner<>(k),new CustomKeySelector5<>(0));
+                    .partitionCustom(new HashPartitioner<>(k),new CustomKeySelector6<>(0));
         } else {
             throw new Exception("WRONG ALGO!!");
         }
@@ -210,6 +209,7 @@ public class GraphPartitionerImpl_old {
             double totalNumEdgesInFile = lbc.getTotalNumberOfEdges();
             statistics = statistics + "," + replicationFactor + "," + load + "," + totalNumEdgesInFile;
             System.out.println(statistics);
+
         }
         //System.out.println("statistics: " + statistics);
         // graphName,algorithm,timestamp,durationInMs,durationInSec,partitions,parallelismModel,inputPath,replicationFactor,load
@@ -233,7 +233,7 @@ public class GraphPartitionerImpl_old {
         return graphName + " Graph" + " partitioning with " + algorithm + ". parallelism " + k;
     }
 
-    private static boolean parseParameters(String[] args) {
+    private static boolean parseParameters(String[] args) throws Exception {
 
         if (args.length > 0) {
             printInfo = args[0];
@@ -250,18 +250,19 @@ public class GraphPartitionerImpl_old {
             outputPath = args[8];
             windowSizeInMs = Long.parseLong(args[9]);
             wait = Long.parseLong(args[10]);
-            testing = args[11];
+            stateDelay = Integer.valueOf(args[11]);
+            testing = args[12];
             if (testing.equals("localTest")) {
                 localRun = true;
             }
-            if (testing.equals("cluster") && TEMPGLOBALVARIABLES.printModulo < 100000)
-                System.out.println("PRINTING MODULO < 100000 !!!!!");
+            if (testing.equals("cluster") && TEMPGLOBALVARIABLES.printModulo < 1000000)
+                throw new Exception("PRINT MODULO is " + TEMPGLOBALVARIABLES.printModulo + " . Change it please to avoid excessive logging");
         } else {
             System.out.println("Please provide parameters.");
             System.out.println(" --> Usage: PhasePartitioner <TODO>");
         }
         return true;
-}
+    }
 
     public static class PartitionByTag implements Partitioner<Integer> {
         @Override
@@ -270,7 +271,7 @@ public class GraphPartitionerImpl_old {
         }
     }
 
-    public static  DataStream<Edge<Integer, NullValue>> getGraphStream1(StreamExecutionEnvironment env) throws IOException {
+    public static  DataStream<Edge<Integer, Long>> getGraphStream1(StreamExecutionEnvironment env) throws IOException {
 
         return env.readTextFile(inputPath)
                 .filter(new FilterFunction<String>() {
@@ -279,34 +280,40 @@ public class GraphPartitionerImpl_old {
                         return !value.contains("%");
                     }
                 })
-                .map(new MapFunction<String, Edge<Integer, NullValue>>() {
+                .map(new MapFunction<String, Edge<Integer, Long>>() {
                     @Override
-                    public Edge<Integer, NullValue> map(String s) throws Exception {
+                    public Edge<Integer, Long> map(String s) throws Exception {
                         String[] fields = s.replaceAll(","," ").split(" ");
                         int src = Integer.parseInt(fields[0]);
                         int trg = Integer.parseInt(fields[1]);
-                        return new Edge<>(src, trg, NullValue.getInstance());
+                        long value = 0;
+                        return new Edge<>(src, trg, value);
                     }
                 });
 
     }
 
-    private static SimpleEdgeStream<Integer, NullValue> getGraphStream(StreamExecutionEnvironment env) {
+    private static SimpleEdgeStream<Integer, Long> getGraphStream(StreamExecutionEnvironment env) {
 
-            return new SimpleEdgeStream<>(env.readTextFile(inputPath)
-                    .flatMap(new FlatMapFunction<String, Edge<Integer, NullValue>>() {
-                        @Override
-                        public void flatMap(String s, Collector<Edge<Integer, NullValue>> out) {
-                            String[] fields = s.replaceAll(","," ").split(" ");
-                            //String[] fields = s.split("\\s");
-                            if (!fields[0].equals("%")) {
-                                int src = Integer.parseInt(fields[0]);
-                                int trg = Integer.parseInt(fields[1]);
-                                out.collect(new Edge<Integer, NullValue>(src, trg, NullValue.getInstance()));
-                            }
+        return new SimpleEdgeStream<>(env.readTextFile(inputPath)
+                .flatMap(new FlatMapFunction<String, Edge<Integer, Long>>() {
+                    @Override
+                    public void flatMap(String s, Collector<Edge<Integer, Long>> out) throws InterruptedException {
+                        String[] fields = s.replaceAll(","," ").split(" ");
+                        //String[] fields = s.split("\\s");
+                        if (!fields[0].equals("%")) {
+                            int src = Integer.parseInt(fields[0]);
+                            int trg = Integer.parseInt(fields[1]);
+                            int srcHash = MathUtils.murmurHash(src);
+                            int trgHash = MathUtils.murmurHash(trg);
+                            long value = Math.abs(srcHash*trgHash);
+                            //long valuePrime = srcHash*trgHash % nextPrime;
+                            //System.out.println(src + " " + trg + " --> " + srcHash + " --- " + trgHash + " --> " + value);
+                            out.collect(new Edge<>(src, trg, value));
                         }
-                    }), env);
-        }
+                    }
+                }), env);
+    }
 
 }
 

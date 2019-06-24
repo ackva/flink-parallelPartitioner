@@ -12,6 +12,7 @@ import org.apache.flink.types.NullValue;
 import org.myorg.quickstart.utils.CustomKeySelector;
 import org.myorg.quickstart.utils.StoredObject;
 import org.myorg.quickstart.utils.StoredState;
+import org.myorg.quickstart.utils.TEMPGLOBALVARIABLES;
 
 import java.io.IOException;
 import java.util.LinkedList;
@@ -95,11 +96,18 @@ public class HdrfZainab {
         private StoredState currentState;
         private int k = 0;
 
+        // logging variables
+        private long startTime;
+        private int counterEdgesInstance;
+
         public HDRF(CustomKeySelector keySelector, int k ,double lamda) {
             this.keySelector = keySelector;
             this.currentState = new StoredState(k);
             this.lamda = lamda;
             this.k=k;
+            // logging
+            this.startTime = System.currentTimeMillis();
+
 
 
         }
@@ -216,11 +224,30 @@ public class HdrfZainab {
 				System.out.println("target"+target);
 				System.out.println("machineid"+machine_id);*/
 
+
+            // logging
+            counterEdgesInstance++;
+
+            if (counterEdgesInstance % TEMPGLOBALVARIABLES.printModulo == 0) {
+                String progress = checkTimer(startTime, counterEdgesInstance);
+                //System.out.println(progress);
+                System.out.println(progress);
+            }
+
+
             return machine_id;
+
 
         }
     }
 
+
+    public static String checkTimer(long startTime, int counterEdgesInstance) {
+
+        long timeNow = System.currentTimeMillis();
+        long difference = timeNow - startTime;
+        return "MAT > " + System.currentTimeMillis() + " > " + counterEdgesInstance + " > "  + difference/1000 + " > sec";
+    }
 
     public static  DataStream<Edge<Long, NullValue>> getGraphStream(StreamExecutionEnvironment env) throws IOException {
 

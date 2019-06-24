@@ -93,16 +93,12 @@ public class MatchFunctionWatermarkTrigger extends KeyedBroadcastProcessFunction
             this.modelBuilder = new ModelBuilderGellyLong(algorithm, vertexDegreeMap, k);
     }
 
-    @Override
-    public void open(Configuration parameters) throws Exception {
-        state = getRuntimeContext().getState(new ValueStateDescriptor<>("myState", ProcessStateWatermark.class));
-        //System.out.println("state delay: " + stateDelay);
-    }
-
-
     // This function is called every time when a broadcast state is processed from the previous phase
     @Override
     public void processBroadcastElement(Tuple2<HashMap<Integer, Integer>,Long> broadcastElement, Context ctx, Collector<Tuple2<Edge<Integer, Long>,Integer>> out) throws Exception {
+
+        System.out.println("BROAD > " + ctx.currentWatermark() + " > " + broadcastElement.f0 + "|" + broadcastElement.f1);
+
 
 /*        if (currentWatermarkBro != ctx.currentWatermark()) {
             watermarksBro.add(ctx.currentWatermark());
@@ -110,13 +106,7 @@ public class MatchFunctionWatermarkTrigger extends KeyedBroadcastProcessFunction
             //ctx.output(GraphPartitionerImpl.outputTag," BRO _ new Watermark = " + currentWatermarkBro + " size: " + watermarksBro.size() + " old: " + watermarksBro);
         }*/
 
-
         int sizeOfMap = broadcastElement.f0.size();
-
-
-        //System.out.println("BROAD > " + ctx.broadcastWatermark() + " > " + broadcastElement.f0 + "|" + broadcastElement.f1);
-
-        // ctx.output(GraphPartitionerImpl.outputTag,ctx.broadcastWatermark() + " > " + broadcastElement + " > BROADCAST ");
 
         globalCounterForPrint++;
         countBroadcastsOnWorker++;
@@ -168,25 +158,14 @@ public class MatchFunctionWatermarkTrigger extends KeyedBroadcastProcessFunction
             watermarkReady = currentWatermarkBro;
         }
 
-
-
-
-
         numEdgesInBroadcast *= 0.5;
         //edgesInBroadcast = numEdgesInBroadcast / 4;
 
         //System.out.println("BROAD > " + broadcastElement.f1 + "|" + numEdgesInBroadcast +  "|" + broadcastElement.f0);
-     //   checkDifference(broadcastElement.f1, 0,ctx.currentWatermark(),ctx.currentProcessingTime(), numEdgesInBroadcast);
+        //checkDifference(broadcastElement.f1, 0,ctx.currentWatermark(),ctx.currentProcessingTime(), numEdgesInBroadcast);
 
        // checkWatermark(ctx.currentWatermark());
         readyToGo.put(broadcastElement.f1,true);
-        //ctx.getBroadcastState(readyToGoStateDescriptor).put(broadcastElement.f1,true);
-        //ctx.output(GraphPartitionerImpl.outputTag,"BROAD: added to state > " + System.currentTimeMillis() + " -- "+ broadcastElement.f0 + " -- " + broadcastElement.f1);
-
-/*        ProcessState testState = state.value();
-        if (testState != null)
-            ctx.output(GraphPartitionerImpl.outputTag,ctx.broadcastWatermark() + "$" + testState.key + " -- hello from broadie");*/
-
 
 
     }
@@ -279,18 +258,14 @@ public class MatchFunctionWatermarkTrigger extends KeyedBroadcastProcessFunction
 
     public void onTimer(long timestamp, OnTimerContext ctx, Collector<Tuple2<Edge<Integer, Long>,Integer>> out) throws Exception {
 
-        //System.out.println("hey leute");
         ProcessStateWatermark edgeState = state.value();
         onTimerCount++;
         //ctx.output(GraphPartitionerImpl.outputTag,"timer called with key " + state.value().key + " -- and edges: " + state.value().edgeList.size());
 
         if (onTimerCount < 2)
             ctx.output(GraphPartitionerImpl.outputTag,"TIME > states/totalCount > repetitions/totalCount > nullCount/totalCount");
-
         if (onTimerCount % 1 == 0)
             ctx.output(GraphPartitionerImpl.outputTag,"TIME > " + df.format((double) stateCounter / (double) onTimerCount) + " > " + df.format((double) totalRepetitions / (double) onTimerCount)+ " > " + df.format((double) totalRepetitions / (double) onTimerCount) + " (total: " + onTimerCount + " timer calls)");
-
-
 
         //ctx.output(GraphPartitionerImpl.outputTag,onTimerCount + " total timer calls");
 
@@ -426,6 +401,13 @@ public class MatchFunctionWatermarkTrigger extends KeyedBroadcastProcessFunction
         }*/
 
 
+    }
+
+
+    @Override
+    public void open(Configuration parameters) throws Exception {
+        state = getRuntimeContext().getState(new ValueStateDescriptor<>("myState", ProcessStateWatermark.class));
+        //System.out.println("state delay: " + stateDelay);
     }
 
 

@@ -1,19 +1,21 @@
-package org.myorg.quickstart.partitioners.matchFunctions;
+package org.myorg.quickstart.partitioners.deprecatedFunctions;
 
+import org.apache.flink.api.common.state.MapStateDescriptor;
 import org.apache.flink.api.common.state.ValueState;
 import org.apache.flink.api.common.state.ValueStateDescriptor;
+import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
+import org.apache.flink.api.common.typeinfo.TypeHint;
+import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.graph.Edge;
 import org.apache.flink.streaming.api.functions.co.BaseBroadcastProcessFunction;
 import org.apache.flink.streaming.api.functions.co.KeyedBroadcastProcessFunction;
-import org.apache.flink.types.NullValue;
 import org.apache.flink.util.Collector;
 import org.myorg.quickstart.partitioners.GraphPartitionerImpl;
-import org.myorg.quickstart.utils.ModelBuilderGelly;
-import org.myorg.quickstart.utils.ProcessState;
-import org.myorg.quickstart.utils.TEMPGLOBALVARIABLES;
+import org.myorg.quickstart.utils.*;
 
+import java.text.DecimalFormat;
 import java.util.*;
 
 import static java.lang.Math.toIntExact;
@@ -25,14 +27,29 @@ import static java.lang.Math.toIntExact;
  *
  */
 
-public class MatchFunctionTimedAAAbackup extends KeyedBroadcastProcessFunction<Integer, Edge<Integer, NullValue>, HashMap<Integer, Integer>, Tuple2<Edge<Integer, NullValue>,Integer>> {
+public class MatchFunctionTimedTagged extends KeyedBroadcastProcessFunction<Integer, Edge<Integer, Long>, Tuple2<HashMap<Integer, Integer>,Long>, Tuple2<Edge<Integer, Long>,Integer>> {
 
-    private HashMap<String,Integer> repeatMap = new HashMap<>();
+    private HashMap<Long,Integer> repeatMap = new HashMap<>();
+    private HashMap<ProcessStateLong,Long> allStates = new HashMap<>();
+    private List<ProcessStateLong> allStateList = new ArrayList<>();
+
+    MapStateDescriptor<Long, Boolean> stateDescriptor = new MapStateDescriptor<>
+            ("TestBroadCastState", BasicTypeInfo.LONG_TYPE_INFO, TypeInformation.of(new TypeHint<Boolean>() {}));
+
+    private final MapStateDescriptor<Long, Boolean> readyToGoStateDescriptor =
+            new MapStateDescriptor<>(
+                    "RulesBroadcastState",
+                    BasicTypeInfo.LONG_TYPE_INFO,
+                    TypeInformation.of(new TypeHint<Boolean>() {}));
+
+
+    private HashMap<Long,Boolean> readyToGo = new HashMap<>();
     private int totalRepetitions = 0;
     private int collectedEdges = 0;
     private int stillNotInside = 0;
     private HashMap<String,Long> outputEdges = new HashMap<>();
     private List<Edge> duplicates = new ArrayList<>();
+    private DecimalFormat df = new DecimalFormat("#.###");
     private int onTimerCount = 0;
     private int addedInState = 0;
     private int addedDirectly = 0;
@@ -47,42 +64,46 @@ public class MatchFunctionTimedAAAbackup extends KeyedBroadcastProcessFunction<I
     private long globalCounterForPrint = 0;
     private String algorithm;
     private HashMap<Integer, Integer> vertexDegreeMap = new HashMap<>();
-    private ModelBuilderGelly modelBuilder;
-    private List<Edge<Integer, NullValue>> waitingEdges;
+    private ModelBuilderGellyLong modelBuilder;
+    private List<Edge<Integer, Long>> waitingEdges;
     private long startTime = System.currentTimeMillis();
     private int stateDelay = 0;
     /** The state that is maintained by this process function */
-    private ValueState<ProcessState> state;
+    private ValueState<ProcessStateLong> state;
    // private ListState<ProcessState> state1;
+   //MapStateDescriptor<String, Tuple2<Long,Boolean>> updatedStateDescriptor = new MapStateDescriptor<>("keineAhnung", BasicTypeInfo.STRING_TYPE_INFO, ValueTypeInfo.BOOLEAN_VALUE_TYPE_INFO);
 
 
-    public MatchFunctionTimedAAAbackup(String algorithm, Integer k, double lambda, int stateDelay) {
+    public MatchFunctionTimedTagged(String algorithm, Integer k, double lambda, int stateDelay) {
         this.algorithm = algorithm;
         this.stateDelay = stateDelay;
         this.waitingEdges = new ArrayList<>();
         if (algorithm.equals("hdrf"))
-            this.modelBuilder = new ModelBuilderGelly(algorithm, vertexDegreeMap, k, lambda);
+            this.modelBuilder = new ModelBuilderGellyLong(algorithm, vertexDegreeMap, k, lambda);
         if (algorithm.equals("dbh"))
-            this.modelBuilder = new ModelBuilderGelly(algorithm, vertexDegreeMap, k);
+            this.modelBuilder = new ModelBuilderGellyLong(algorithm, vertexDegreeMap, k);
     }
 
     @Override
     public void open(Configuration parameters) throws Exception {
-        state = getRuntimeContext().getState(new ValueStateDescriptor<>("myState", ProcessState.class));
+        state = getRuntimeContext().getState(new ValueStateDescriptor<>("myState", ProcessStateLong.class));
         //System.out.println("state delay: " + stateDelay);
     }
 
+
     // This function is called every time when a broadcast state is processed from the previous phase
     @Override
-    public void processBroadcastElement(HashMap<Integer, Integer> broadcastElement, Context ctx, Collector<Tuple2<Edge<Integer, NullValue>,Integer>> out) throws Exception {
+    public void processBroadcastElement(Tuple2<HashMap<Integer, Integer>,Long> broadcastElement, Context ctx, Collector<Tuple2<Edge<Integer, Long>,Integer>> out) throws Exception {
 
-        //ctx.output(GraphPartitionerImpl.outputTag,ctx.broadcastWatermark() + "$" + broadcastElement + " ####### ALIVE ######");
+        // ctx.output(GraphPartitionerImpl.outputTag,ctx.broadcastWatermark() + " > " + broadcastElement + " > BROADCAST ");
+
+
         globalCounterForPrint++;
         countBroadcastsOnWorker++;
 
         if (this.algorithm.equals("hdrf")) {
             // ### Merge local model from Phase 1 with global model, here in Phase 2
-            Iterator it = broadcastElement.entrySet().iterator();
+            Iterator it = broadcastElement.f0.entrySet().iterator();
             while (it.hasNext()) {
                 Map.Entry<Integer, Integer> stateEntry = (Map.Entry)it.next();
                 long vertex = stateEntry.getKey();
@@ -98,7 +119,7 @@ public class MatchFunctionTimedAAAbackup extends KeyedBroadcastProcessFunction<I
 
         if (this.algorithm.equals("dbh")) {
             // ### Merge local model from Phase 1 with global model, here in Phase 2
-            Iterator it = broadcastElement.entrySet().iterator();
+            Iterator it = broadcastElement.f0.entrySet().iterator();
             while (it.hasNext()) {
                 Map.Entry<Integer, Integer> stateEntry = (Map.Entry)it.next();
                 long vertex = stateEntry.getKey();
@@ -112,6 +133,9 @@ public class MatchFunctionTimedAAAbackup extends KeyedBroadcastProcessFunction<I
             }
         }
 
+        readyToGo.put(broadcastElement.f1,true);
+        ctx.getBroadcastState(readyToGoStateDescriptor).put(broadcastElement.f1,true);
+        System.out.println("added to state: " + broadcastElement.f0);
 
 /*        ProcessState testState = state.value();
         if (testState != null)
@@ -122,59 +146,46 @@ public class MatchFunctionTimedAAAbackup extends KeyedBroadcastProcessFunction<I
     }
 
     @Override
-    public void processElement(Edge<Integer, NullValue> currentEdge, ReadOnlyContext ctx, Collector<Tuple2<Edge<Integer, NullValue>,Integer>> out) throws Exception {
+    public void processElement(Edge<Integer, Long> currentEdge, ReadOnlyContext ctx, Collector<Tuple2<Edge<Integer, Long>,Integer>> out) throws Exception {
 
-        //System.out.println("Edge in Match(" + currentEdge + " $ " + ctx.timestamp() + " $ current watermark:  $" + ctx.broadcastWatermark());
+       // ctx.output(GraphPartitionerImpl.outputTag,ctx.broadcastWatermark() + " > " + currentEdge + " > EDGE ARRIVAL");
 
-        //System.out.println("inside Process: Edge (" + currentEdge.getEdge().f0 + " " + currentEdge.getEdge().f1 + "): " + currentEdge.getEdge().f0.getClass() + " " + currentEdge.getEdge().f1.getClass() + " -- ");
+        //ctx.getBroadcastState(readyToGoStateDescriptor).get(1L);
+        //ctx.getBroadcastState(readyToGoStateDescriptor).
 
-        //System.out.println("3$" + ctx.broadcastWatermark() + "$" + ctx.currentProcessingTime() + "$" + ctx.timerService().currentProcessingTime() + "$" + currentEdge);
         counterEdgesInstance++;
 
-        //boolean checkInside = checkIfEarlyArrived(currentEdge);
 
-/*        if (checkInside) {
-            out.collect(emitEdge(currentEdge,0));
-            addedDirectly++;
-            if (addedDirectly % 10000000 == 0)
-                System.out.println("addedDirectly: " + addedDirectly);
-            //System.out.println("direct$1");
-        } else {*/
-            // retrieve the current count
-            ProcessState current = state.value();
+        if (ctx.getBroadcastState(readyToGoStateDescriptor).contains(currentEdge.f2)) {
+            ctx.output(GraphPartitionerImpl.outputTag,currentEdge + " let's go ");
+            out.collect(emitEdge(currentEdge,0, System.currentTimeMillis(),ctx));
+        } else {
+            ctx.output(GraphPartitionerImpl.outputTag,currentEdge + " naah, let's wait then");
+            ProcessStateLong current = state.value();
             if (current == null) {
-                //System.out.println("new state created" + currentEdge);
-                current = new ProcessState();
-                current.key = currentEdge;
+                current = new ProcessStateLong();
+                current.key = currentEdge.f2;
+                state.update(current);
+                allStateList.add(current);
+                ctx.output(GraphPartitionerImpl.outputTag,"New state " + current.key + " -- " + current + " - Number of states: " + allStateList.size() + " --> ");
             } else {
-                //System.out.println("state exisits " + state.value().edgeList.get(0) + " -- this is current " + currentEdge);
-            }
-
-            // update the state's count
             current.edgeList.add(currentEdge);
-        //System.out.println(current.key.f0 + " .. size " + current.edgeList.size());
-            //System.out.println(current.key + " - " + current.edge);
-
-            // set the state's timestamp to the record's assigned event time timestamp
             current.lastModified = ctx.currentWatermark();
-
-            // write the state back
             state.update(current);
-
             // schedule the next timer X seconds from the current event time
-            ctx.timerService().registerEventTimeTimer(current.lastModified + (stateDelay));
-        //System.out.println(current.key + " registered for " + (current.lastModified + 600));
-            //ctx.timerService().registerEventTimeTimer(current.lastModified);
+            ctx.timerService().registerEventTimeTimer(current.lastModified + stateDelay);
+            }
+        }
 
-        //}
-
+/*        if (TEMPGLOBALVARIABLES.printTime && (counterEdgesInstance %500) == 0) {
+            //ctx.output(GraphPartitionerImpl.outputTag, "REL > " + toBeRemoved.size() + " > " + globalCounterForPrint);
+            System.out.println("ELE$" + counterEdgesInstance + "$" + ctx.broadcastWatermark());
+        }*/
 
         if(TEMPGLOBALVARIABLES.printTime) {
             if (counterEdgesInstance < 2) {
                 ctx.output(GraphPartitionerImpl.outputTag, "new Job started");
-                ctx.output(GraphPartitionerImpl.outputTag,"REP > CurrentWatermark > totalNumRepetitions");
-
-
+                ctx.output(GraphPartitionerImpl.outputTag,"REP > CurrentWatermark > ratioRepeats > totalNumRepetitions > keysInRepeatMap > keyDistributionRepeat");
             }
             //System.out.println("new Job started");
             if (counterEdgesInstance % TEMPGLOBALVARIABLES.printModulo == 0) {
@@ -183,47 +194,24 @@ public class MatchFunctionTimedAAAbackup extends KeyedBroadcastProcessFunction<I
                 ctx.output(GraphPartitionerImpl.outputTag, progress);
             }
         }
-
-
-/*        if (TEMPGLOBALVARIABLES.printTime && (counterEdgesInstance %500) == 0) {
-            //ctx.output(GraphPartitionerImpl.outputTag, "REL > " + toBeRemoved.size() + " > " + globalCounterForPrint);
-            System.out.println("ELE$" + counterEdgesInstance + "$" + ctx.broadcastWatermark());
-        }*/
-
     }
 
-    public void onTimer(long timestamp, OnTimerContext ctx, Collector<Tuple2<Edge<Integer, NullValue>,Integer>> out) throws Exception {
+    public void onTimer(long timestamp, OnTimerContext ctx, Collector<Tuple2<Edge<Integer, Long>,Integer>> out) throws Exception {
         //System.out.println("hey leute");
-        ProcessState edgeState = state.value();
+        ProcessStateLong edgeState = state.value();
+        System.out.println("timer called with key" + state.value().key + " -- and edges: " + state.value().edgeList.size());
 
-        /*if (edgeState.repetition > 0) {
-            boolean sourceInside = false;
-            boolean targetInside = false;
-            sourceInside = modelBuilder.getHdrf().getCurrentState().checkIfRecordExits(Long.parseLong(edgeState.key.f0.toString()));
-            targetInside = modelBuilder.getHdrf().getCurrentState().checkIfRecordExits(Long.parseLong(edgeState.key.f1.toString()));
-            if (sourceInside && targetInside)
-                ctx.output(GraphPartitionerImpl.outputTag,edgeState.key + " inside now");
-            if (!targetInside && sourceInside)
-                ctx.output(GraphPartitionerImpl.outputTag,edgeState.key.f1 + " still not inside state");
-            if (targetInside && !sourceInside)
-                ctx.output(GraphPartitionerImpl.outputTag,edgeState.key.f0 + " still not inside state");
-            if (!targetInside && !sourceInside)
-                ctx.output(GraphPartitionerImpl.outputTag,edgeState.key + " still not inside state");
-        }*/
+        if (readyToGo.keySet().contains(edgeState.key)) {
+            ctx.output(GraphPartitionerImpl.outputTag, "inside now for " + edgeState.key + " with # "  + edgeState.edgeList.size() + " edges ----> all items: " + edgeState.edgeList);
+            for (Edge e: edgeState.edgeList)
+                out.collect(emitEdge(e,1, System.currentTimeMillis(),ctx));
+        } else {
+            ctx.timerService().registerEventTimeTimer(edgeState.lastModified + stateDelay/2);
+            ctx.output(GraphPartitionerImpl.outputTag,"to be repeated for " + state.value().key + " with " + state.value().edgeList);
+        }
 
-        //onTimerCount++;
-        //onTimerCount=onTimerCount+edgeState.edgeList.size();
-        //System.out.println("onTimer$"+onTimerCount);
-        //ctx.output(GraphPartitionerImpl.outputTag,"onTimer$"+onTimerCount);
-        //System.out.println(onTimerCount + " " + state.value().edgeList.size() + " " + state.value().key + " " + timestamp + " " + ctx.timerService().broadcastWatermark() + " " + System.currentTimeMillis());
-
-        //System.out.println("3$" + ctx.broadcastWatermark() + "$" + ctx.currentProcessingTime() + "$" + ctx.timerService().currentProcessingTime() + "$");
-        //System.out.println("onTimerCount$1");
-
-        //System.out.println("waiting edges in onTime call: " + result.stateWaitList.size() + " ... waitingEdges local list " + waitingEdges.size());
-
-        List<Edge<Integer, NullValue>> toBeRemovedState = new ArrayList<>();
-        List<Edge<Integer, NullValue>> toBeAddedToWaitingEdges = new ArrayList<>();
+/*        List<Edge<Integer, Long>> toBeRemovedState = new ArrayList<>();
+        List<Edge<Integer, Long>> toBeAddedToWaitingEdges = new ArrayList<>();
         for (Edge e : edgeState.edgeList) {
             boolean checkInside = checkIfEarlyArrived(e);
 
@@ -242,13 +230,13 @@ public class MatchFunctionTimedAAAbackup extends KeyedBroadcastProcessFunction<I
         edgeState.edgeList.removeAll(toBeRemovedState);
 
         if (edgeState.edgeList.size() > 0)
-            //ctx.output(GraphPartitionerImpl.outputTag,ctx.broadcastWatermark() + "$ items left in state " + edgeState.key.f0 + "," + edgeState.key.f1 + " - " + edgeState.edgeList.size() + " out of " + edgeListSizeBefore + " --> all items: " + edgeState.edgeList);
+            ctx.output(GraphPartitionerImpl.outputTag,ctx.broadcastWatermark() + "$ items left in state " + edgeState.key + "," + edgeState.edgeList.size() + " out of " + edgeListSizeBefore + " --> all items: " + edgeState.edgeList);
 
         if (waitingEdges.size() > 0) {
-            ctx.output(GraphPartitionerImpl.outputTag,ctx.currentWatermark() + " $ HALLO waiting edges: " + waitingEdges.size() + " -- " + waitingEdges);
+            ctx.output(GraphPartitionerImpl.outputTag,ctx.broadcastWatermark() + " $ HALLO waiting edges: " + waitingEdges.size() + " -- " + waitingEdges);
             //ctx.output(GraphPartitionerImpl.outputTag,"waiting edges " + edgeState.key + "--" + waitingEdges.size());
-            List<Edge<Integer, NullValue>> toBeRemoved = new ArrayList<>();
-            for (Edge<Integer, NullValue> e : waitingEdges) {
+            List<Edge<Integer, Long>> toBeRemoved = new ArrayList<>();
+            for (Edge<Integer, Long> e : waitingEdges) {
                 if (checkIfEarlyArrived(e)) {
                     out.collect(emitEdge(e,2, System.currentTimeMillis(),ctx));
                     collectedEdges++;
@@ -259,7 +247,7 @@ public class MatchFunctionTimedAAAbackup extends KeyedBroadcastProcessFunction<I
                 } else {
                     stillNotInside++;
                     if (stillNotInside % 1000 == 0)
-                        ctx.output(GraphPartitionerImpl.outputTag,ctx.currentWatermark() + "$ still not inside$" + stillNotInside);
+                        ctx.output(GraphPartitionerImpl.outputTag,ctx.broadcastWatermark() + "$ still not inside$" + stillNotInside);
                     break;
                 }
             }
@@ -270,30 +258,37 @@ public class MatchFunctionTimedAAAbackup extends KeyedBroadcastProcessFunction<I
 
         if(toBeAddedToWaitingEdges.size() > 0) {
             totalRepetitions++;
-            if (edgeState.repetition > 0 ) {
-                if (repeatMap.containsKey(edgeState.key.toString())) {
-                    int oldVal = repeatMap.get(edgeState.key.toString());
+
+            if (repeatMap.containsKey(edgeState.key)) {
+                    int oldVal = repeatMap.get(edgeState.key);
                     int newVal = oldVal + 1;
-                    repeatMap.replace(edgeState.key.toString(),oldVal,newVal);
-                } else {
-                    repeatMap.put(edgeState.key.toString(),1);
-                }
+                    repeatMap.replace(edgeState.key,oldVal,newVal);
+            } else {
+                repeatMap.put(edgeState.key, 1);
             }
+
             if (edgeState.repetition > 5 ) {
-                ctx.output(GraphPartitionerImpl.outputTag, ctx.currentWatermark() + " $ to be repeated $ " + edgeState.key + " " + edgeState.repetition + " $ total: $ " + toBeAddedToWaitingEdges.size());
+                ctx.output(GraphPartitionerImpl.outputTag, ctx.broadcastWatermark() + " $ to be repeated $ " + edgeState.key + " " + edgeState.repetition + " $ total: $ " + toBeAddedToWaitingEdges.size());
             }
             if (edgeState.repetition > 50 ) {
                 throw new Exception("edgeState " + edgeState.key + " repeated > 50 times");
             }
-            if (totalRepetitions % (TEMPGLOBALVARIABLES.printModulo/1000) == 0)
-                ctx.output(GraphPartitionerImpl.outputTag,"REP > " + ctx.currentWatermark() + " > " + totalRepetitions + " >  " + repeatMap.size());
+            if (totalRepetitions % (TEMPGLOBALVARIABLES.printModulo/5000) == 0) {
+                HashMap<Integer, Integer> repeatDistribution = getRepetitionDistribution(repeatMap);
+                double ratioRepeats = (double) totalRepetitions/ (double) collectedEdges;
+                ctx.output(GraphPartitionerImpl.outputTag,"REP > " + ctx.broadcastWatermark() + " > " + df.format(ratioRepeats) + " > " + totalRepetitions + " >  " + repeatMap.size() + " > " + repeatDistribution);
+                ctx.output(GraphPartitionerImpl.outputTag,"REP > " + repeatMap.keySet());
+            }
             edgeState.repetition++;
             //waitingEdges.addAll(toBeAddedToWaitingEdges);
             edgeState.edgeList = toBeAddedToWaitingEdges;
-            edgeState.lastModified = ctx.currentWatermark();
+            edgeState.lastModified = ctx.broadcastWatermark();
             state.update(edgeState);
             ctx.timerService().registerEventTimeTimer(edgeState.lastModified + stateDelay/2);
-        }
+
+            }*/
+
+
 
 
         /*if (globalCounterForPrint % 20000 == 0)
@@ -311,7 +306,7 @@ public class MatchFunctionTimedAAAbackup extends KeyedBroadcastProcessFunction<I
     }
 
     private boolean
-    checkIfEarlyArrived(Edge<Integer, NullValue> currentEdge) {
+    checkIfEarlyArrived(Edge<Integer, Long> currentEdge) {
 
         //System.out.println(vertexDegreeMap.containsKey(currentEdge.getEdge().f0) + " " + currentEdge.getEdge().f0 + " __ " + currentEdge.getEdge().f1 + vertexDegreeMap.containsKey(currentEdge.getEdge().f1));
         boolean sourceInside = false;
@@ -342,10 +337,10 @@ public class MatchFunctionTimedAAAbackup extends KeyedBroadcastProcessFunction<I
     public String checkTimer() {
         long timeNow = System.currentTimeMillis();
         long difference = timeNow - startTime;
-        return "MAT > " + counterEdgesInstance + " > "  + difference/1000 + " > s";
+        return "MAT > " + System.currentTimeMillis() + " > "  + counterEdgesInstance + " > "  + difference/1000 + " > s";
     }
 
-    private Tuple2<Edge<Integer, NullValue>,Integer> emitEdge(Edge<Integer, NullValue> edge,int place, long currTime, BaseBroadcastProcessFunction.ReadOnlyContext ctx) throws Exception {
+    private Tuple2<Edge<Integer, Long>,Integer> emitEdge(Edge<Integer, Long> edge,int place, long currTime, BaseBroadcastProcessFunction.ReadOnlyContext ctx) throws Exception {
         int partitionId = modelBuilder.choosePartition(edge);
         collectedEdges++;
         if (collectedEdges % 100000 == 0)
@@ -360,6 +355,24 @@ public class MatchFunctionTimedAAAbackup extends KeyedBroadcastProcessFunction<I
         outputEdges.put(edge.toString(),currTime);
         //System.out.println(collectedEdges);
         return new Tuple2<>(edge, partitionId);
+    }
+
+
+    private HashMap getRepetitionDistribution(HashMap allRepeats) {
+        HashMap<Integer, Integer> repeatDistribution = new HashMap<>();
+        Iterator it = allRepeats.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry pair = (Map.Entry) it.next();
+            int value = Integer.parseInt(pair.getValue().toString());
+            if (repeatDistribution.containsKey(value)) {
+                int oldVal = repeatDistribution.get(value);
+                int newVal = oldVal + 1;
+                repeatDistribution.replace(value, oldVal, newVal);
+            } else {
+                repeatDistribution.put(value, 1);
+            }
+        }
+        return repeatDistribution;
     }
 
 }

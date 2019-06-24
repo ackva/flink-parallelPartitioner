@@ -30,7 +30,7 @@ import static java.lang.Math.toIntExact;
  *
  */
 
-public class MatchFunctionHashValue extends KeyedBroadcastProcessFunction<Integer, Edge<Integer, Long>, Tuple2<HashMap<Integer, Integer>,Long>, Tuple2<Edge<Integer, Long>,Integer>> {
+public class MatchFunctionWindowHash extends KeyedBroadcastProcessFunction<Integer, Edge<Integer, Long>, Tuple2<HashMap<Integer, Integer>,Long>, Tuple2<Edge<Integer, Long>,Integer>> {
 
     long currentWatermarkBro = 1;
     long currentWatermarkEle = 1;
@@ -86,7 +86,7 @@ public class MatchFunctionHashValue extends KeyedBroadcastProcessFunction<Intege
     private int nullCounter = 0;
 
 
-    public MatchFunctionHashValue(String algorithm, Integer k, double lambda, int stateDelay) {
+    public MatchFunctionWindowHash(String algorithm, Integer k, double lambda, int stateDelay) {
         this.algorithm = algorithm;
         this.stateDelay = stateDelay;
         this.waitingEdges = new ArrayList<>();

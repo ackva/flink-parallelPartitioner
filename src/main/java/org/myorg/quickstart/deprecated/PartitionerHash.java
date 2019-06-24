@@ -16,8 +16,8 @@ import org.apache.flink.util.OutputTag;
 import org.myorg.quickstart.partitioners.GraphPartitionerImpl;
 import org.myorg.quickstart.utils.EdgeEventGelly;
 import org.myorg.quickstart.utils.GraphCreatorGelly;
-import org.myorg.quickstart.partitioners.matchFunctions.MatchFunctionPartitioner;
-import org.myorg.quickstart.utils.ProcessWindowGelly;
+import org.myorg.quickstart.partitioners.deprecatedFunctions.MatchFunctionPartitioner;
+import org.myorg.quickstart.partitioners.windowFunctions.ProcessWindowGelly;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;

@@ -27,7 +27,7 @@ import org.apache.hadoop.yarn.state.Graph;
 import org.myorg.quickstart.jobstatistics.LoadBalanceCalculator;
 import org.myorg.quickstart.jobstatistics.VertexCut;
 import org.myorg.quickstart.jobstatistics.VertexCutImpl;
-import org.myorg.quickstart.utils.ProcessWindowGelly;
+import org.myorg.quickstart.partitioners.windowFunctions.ProcessWindowGelly;
 import org.myorg.quickstart.utils.CustomKeySelector5;
 import org.myorg.quickstart.utils.*;
 

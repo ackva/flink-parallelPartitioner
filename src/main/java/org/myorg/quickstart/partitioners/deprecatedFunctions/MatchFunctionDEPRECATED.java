@@ -1,18 +1,14 @@
-package org.myorg.quickstart.partitioners.matchFunctions;
+package org.myorg.quickstart.partitioners.deprecatedFunctions;
 
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.graph.Edge;
 import org.apache.flink.streaming.api.functions.co.KeyedBroadcastProcessFunction;
 import org.apache.flink.types.NullValue;
 import org.apache.flink.util.Collector;
-import org.apache.flink.util.MathUtils;
 import org.myorg.quickstart.partitioners.GraphPartitionerImpl;
 import org.myorg.quickstart.utils.ModelBuilderGelly;
 import org.myorg.quickstart.utils.TEMPGLOBALVARIABLES;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.text.DecimalFormat;
 import java.util.*;
 
@@ -23,7 +19,8 @@ import static java.lang.Math.toIntExact;
  * This method also uses a logging mechanism. After X calls, it produces SideoutputStream with different details, such as average waiting edges, etc.
  * See line 147 onwards.
  */
-public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Integer, Edge<Integer, NullValue>, HashMap<Integer, Integer>, Tuple2<Edge<Integer, NullValue>,Integer>> {
+
+public class MatchFunctionDEPRECATED extends KeyedBroadcastProcessFunction<Integer, Edge<Integer, NullValue>, HashMap<Integer, Integer>, Tuple2<Edge<Integer, NullValue>,Integer>> {
 
     int countBroadcastsOnWorker = 0;
     int totalWaitingEdgesCalls= 0;
@@ -42,7 +39,7 @@ public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Inte
     long startTime = System.currentTimeMillis();
     int edgeOutputCount = 0;
 
-    public MatchFunctionPartitioner(String algorithm, Integer k, double lambda) {
+    public MatchFunctionDEPRECATED(String algorithm, Integer k, double lambda) {
         this.algorithm = algorithm;
         this.waitingEdges = new ArrayList<>();
         if (algorithm.equals("hdrf"))
@@ -141,7 +138,6 @@ public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Inte
             }
         }
 
-
         if (TEMPGLOBALVARIABLES.printTime) {
             long endTime = System.nanoTime();
         }
@@ -214,9 +210,9 @@ public class MatchFunctionPartitioner extends KeyedBroadcastProcessFunction<Inte
                 ctx.output(GraphPartitionerImpl.outputTag, progress);
             }
 
-
-
         }
+
+
 
         //int partitionId = modelBuilder.choosePartition(currentEdge);
         //System.out.println("Phase 2: " + currentEdge.getEdge().getOriginVertexDepr() + " " + currentEdge.getEdge().getDestinVertexDepr() + " --> " + partitionId);

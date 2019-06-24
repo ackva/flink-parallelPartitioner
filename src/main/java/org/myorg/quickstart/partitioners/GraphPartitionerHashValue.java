@@ -24,7 +24,7 @@ import org.apache.flink.util.OutputTag;
 import org.myorg.quickstart.applications.SimpleEdgeStream;
 import org.myorg.quickstart.jobstatistics.LoadBalanceCalculator;
 import org.myorg.quickstart.jobstatistics.VertexCut;
-import org.myorg.quickstart.partitioners.matchFunctions.MatchFunctionHashValue;
+import org.myorg.quickstart.partitioners.matchFunctions.MatchFunctionWindowHash;
 import org.myorg.quickstart.partitioners.windowFunctions.ProcessWindowDegreeWatermark;
 import org.myorg.quickstart.partitioners.windowFunctions.ProcessWindowGellyHashValue;
 import org.myorg.quickstart.utils.CustomKeySelector6;
@@ -108,7 +108,7 @@ public class GraphPartitionerHashValue {
         loggingPath = outputPath + "/logs_" + folderName;
 
         ProcessWindowGellyHashValue firstPhaseProcessor = new ProcessWindowGellyHashValue();
-        MatchFunctionHashValue matchFunction = new MatchFunctionHashValue(algorithm, k, lambda, stateDelay);
+        MatchFunctionWindowHash matchFunction = new MatchFunctionWindowHash(algorithm, k, lambda, stateDelay);
         MapStateDescriptor<String, Tuple2<Integer, ArrayList<Integer>>> rulesStateDescriptor = new MapStateDescriptor<>("RulesBroadcastState", BasicTypeInfo.STRING_TYPE_INFO,tupleTypeInfo);
 
         //System.out.println(new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()) + " timestamp for whatever you want");

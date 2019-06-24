@@ -1,10 +1,11 @@
-package org.myorg.quickstart.utils;
+package org.myorg.quickstart.partitioners.windowFunctions;
 
 import org.apache.flink.graph.Edge;
 import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.types.NullValue;
 import org.apache.flink.util.Collector;
+import org.myorg.quickstart.utils.TEMPGLOBALVARIABLES;
 
 import java.util.ArrayList;
 import java.util.List;

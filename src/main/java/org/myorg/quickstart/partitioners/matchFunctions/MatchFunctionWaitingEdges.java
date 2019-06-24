@@ -13,34 +13,35 @@ import java.text.DecimalFormat;
 import java.util.*;
 
 import static java.lang.Math.toIntExact;
-
 /**
- * This match function uses the "waitingEdges" approach. If a vertex has not yet been put into state by processBroadcastElement(), the edge in processElement() adds it to a waitingEdges list.
+ * This match function uses the "waitingEdges" approach. If a vertex has not yet been put into state by processBroadcastElement(),
+ * the edge in processElement() adds it to a waitingEdges list.
  *
  * This method also uses a logging mechanism. After X calls, it produces SideoutputStream with different details, such as average waiting edges, etc.
  * See line 147 onwards.
  */
 
-public class MatchFunctionWaitingLogging extends KeyedBroadcastProcessFunction<Integer, Edge<Integer, NullValue>, HashMap<Integer, Integer>, Tuple2<Edge<Integer, NullValue>,Integer>> {
+public class MatchFunctionWaitingEdges extends KeyedBroadcastProcessFunction<Integer, Edge<Integer, NullValue>, HashMap<Integer, Integer>, Tuple2<Edge<Integer, NullValue>,Integer>> {
 
     int countBroadcastsOnWorker = 0;
+    int counterEdgesInstance = 0;
+    String algorithm;
+    HashMap<Integer, Integer> vertexDegreeMap = new HashMap<>();
+    ModelBuilderGelly modelBuilder;
+    List<Edge<Integer, NullValue>> waitingEdges;
     int totalWaitingEdgesCalls= 0;
     List<Double> ratioRemainingInWaitingList = new ArrayList<>();
-    int counterEdgesInstance = 0;
     int avgWaitingEdges = 0;
     int totalEdgesInWait = 0;
     long totalTimeBroadcast = 0;
     long totalTimeWaitingEdges = 0;
     long broadcastResetCounter = 1;
     long globalCounterForPrint = 0;
-    String algorithm;
-    HashMap<Integer, Integer> vertexDegreeMap = new HashMap<>();
-    ModelBuilderGelly modelBuilder;
-    List<Edge<Integer, NullValue>> waitingEdges;
     long startTime = System.currentTimeMillis();
     int edgeOutputCount = 0;
 
-    public MatchFunctionWaitingLogging(String algorithm, Integer k, double lambda) {
+
+    public MatchFunctionWaitingEdges(String algorithm, Integer k, double lambda) {
         this.algorithm = algorithm;
         this.waitingEdges = new ArrayList<>();
         if (algorithm.equals("hdrf"))
@@ -96,6 +97,7 @@ public class MatchFunctionWaitingLogging extends KeyedBroadcastProcessFunction<I
             }
         }
 
+
         //System.out.println("Current VertexDepr Partitioning Table: " + vertexPartition);
 
         if (TEMPGLOBALVARIABLES.printPhaseTwo) {
@@ -108,7 +110,6 @@ public class MatchFunctionWaitingLogging extends KeyedBroadcastProcessFunction<I
 
 
         long waitEdgesTime = 0;
-
         if (waitingEdges.size() > 0) {
             totalWaitingEdgesCalls++;
             long startTime2 = System.nanoTime();
@@ -139,11 +140,6 @@ public class MatchFunctionWaitingLogging extends KeyedBroadcastProcessFunction<I
             }
         }
 
-
-        if (TEMPGLOBALVARIABLES.printTime) {
-            long endTime = System.nanoTime();
-        }
-
         if(TEMPGLOBALVARIABLES.printTime) {
 
             long endTime = System.nanoTime();
@@ -165,8 +161,7 @@ public class MatchFunctionWaitingLogging extends KeyedBroadcastProcessFunction<I
             avgRatioLeftAfterWaitingEdges = avgRatioLeftAfterWaitingEdges/ratioRemainingInWaitingList.size();
             double ratioCallWaitingEdges = (double) totalWaitingEdgesCalls/ (double) globalCounterForPrint;
             DecimalFormat df = new DecimalFormat("#.###");
-            if (countBroadcastsOnWorker % (TEMPGLOBALVARIABLES.printModulo/10) == 0 && countBroadcastsOnWorker > 0) {
-
+            if (countBroadcastsOnWorker % (TEMPGLOBALVARIABLES.printModulo) == 0 && countBroadcastsOnWorker > 0) {
                 ctx.output(GraphPartitionerImpl.outputTag,"BRO > " + System.currentTimeMillis() + globalCounterForPrint  + " > " + totalWaitingEdgesCalls + " > " + df.format(ratioCallWaitingEdges) + " > " + df.format(avgRatioLeftAfterWaitingEdges) + " > " + avgTime + " > " + df.format(avgRatio) + " > " + avgWaiting);
                 totalTimeWaitingEdges = 0;
                 totalTimeBroadcast = 0;
@@ -177,9 +172,12 @@ public class MatchFunctionWaitingLogging extends KeyedBroadcastProcessFunction<I
 
         }
 
-        //System.out.println("That took " + (endTime - startTime) + " milliseconds");
 
-    }
+
+        }
+        //ctx.output(GraphPartitionerImpl.outputTag, "1: " + modelBuilder.getHdrf().getCurrentState().printState().toString());
+
+
 
     @Override
     public void processElement(Edge<Integer, NullValue> currentEdge, ReadOnlyContext ctx, Collector<Tuple2<Edge<Integer, NullValue>,Integer>> out) throws Exception {
@@ -200,6 +198,7 @@ public class MatchFunctionWaitingLogging extends KeyedBroadcastProcessFunction<I
 
         counterEdgesInstance++;
 
+
         if(TEMPGLOBALVARIABLES.printTime) {
             if (counterEdgesInstance < 2) {
                 ctx.output(GraphPartitionerImpl.outputTag, "new Job started");
@@ -212,18 +211,14 @@ public class MatchFunctionWaitingLogging extends KeyedBroadcastProcessFunction<I
                 ctx.output(GraphPartitionerImpl.outputTag, progress);
             }
 
-
-
         }
 
-        //int partitionId = modelBuilder.choosePartition(currentEdge);
-        //System.out.println("Phase 2: " + currentEdge.getEdge().getOriginVertexDepr() + " " + currentEdge.getEdge().getDestinVertexDepr() + " --> " + partitionId);
 
-        // Add to "SINK" (TODO: Real Sink Function)
+
         //edgeInPartition.put(currentEdge,partitionId);
 
         //if (PhasePartitionerGelly.printPhaseTwo == true) {
-            //System.out.println(checkInside);
+        //System.out.println(checkInside);
 
         //out.collect(new Tuple2<>(currentEdge,partitionId));
 
@@ -250,8 +245,6 @@ public class MatchFunctionWaitingLogging extends KeyedBroadcastProcessFunction<I
             //System.out.println("Edge (" + currentEdge.getEdge().f0 + " " + currentEdge.getEdge().f1 + "): " + printState);
         }
 
-
-
         // Return TRUE if both vertices are in HashMap. Otherwise return false
         if (sourceInside && targetInside) {
             return true;
@@ -265,10 +258,7 @@ public class MatchFunctionWaitingLogging extends KeyedBroadcastProcessFunction<I
 
         long timeNow = System.currentTimeMillis();
         long difference = timeNow - startTime;
-        return "MAT > " + System.currentTimeMillis() + counterEdgesInstance + " > "  + difference/1000 + " > s";
+        return "MAT > " + System.currentTimeMillis() + " > " + counterEdgesInstance + " > "  + difference/1000 + " > sec";
     }
 
 }
-
-
-

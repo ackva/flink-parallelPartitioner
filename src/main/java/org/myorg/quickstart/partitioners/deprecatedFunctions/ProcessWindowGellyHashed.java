@@ -1,4 +1,4 @@
-package org.myorg.quickstart.partitioners.windowFunctions;
+package org.myorg.quickstart.partitioners.deprecatedFunctions;
 
 import org.apache.flink.graph.Edge;
 import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
