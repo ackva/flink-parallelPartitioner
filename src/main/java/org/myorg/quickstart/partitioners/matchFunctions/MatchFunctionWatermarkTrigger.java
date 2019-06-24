@@ -35,89 +35,72 @@ public class MatchFunctionWatermarkTrigger extends KeyedBroadcastProcessFunction
     private HashMap<ProcessStateLong,Long> allStates = new HashMap<>();
     private List<ProcessStateLong> allStateList = new ArrayList<>();
 
-
-   /* MapStateDescriptor<Long, Boolean> stateDescriptor = new MapStateDescriptor<>
-            ("TestBroadCastState", BasicTypeInfo.LONG_TYPE_INFO, TypeInformation.of(new TypeHint<Boolean>() {}));*/
-
     private final MapStateDescriptor<Long, Boolean> readyToGoStateDescriptor =
             new MapStateDescriptor<>(
                     "RulesBroadcastState",
                     BasicTypeInfo.LONG_TYPE_INFO,
                     TypeInformation.of(new TypeHint<Boolean>() {}));
 
-    boolean lastcall;
+    private boolean lastcall;
     private long watermarkReady;
     private int stateCounter;
-    long broadcastWatermark = 1;
-    List<Long> watermarksBro = new ArrayList<>();
-    List<Long> watermarksEle = new ArrayList<>();
+    private List<Long> watermarksBro = new ArrayList<>();
+    private List<Long> watermarksEle = new ArrayList<>();
     private HashMap<Long,Boolean> readyToGo = new HashMap<>();
     private int totalRepetitions = 0;
     private int collectedEdges = 0;
-    private int stillNotInside = 0;
     private HashMap<String,Long> outputEdges = new HashMap<>();
     private List<Edge> duplicates = new ArrayList<>();
     private DecimalFormat df = new DecimalFormat("#.###");
     private int onTimerCount = 0;
     private int addedInState = 0;
-    private int addedDirectly = 0;
-    private long savedWatermark = 0;
-    private int countBroadcastsOnWorker = 0;
     private int counterEdgesInstance = 0;
-    int avgWaitingEdges = 0;
-    int totalEdgesInWait = 0;
-    long totalTimeBroadcast = 0;
-    long totalTimeWaitingEdges = 0;
-    long broadcastResetCounter = 1;
-    private long globalCounterForPrint = 0;
     private String algorithm;
     private HashMap<Integer, Integer> vertexDegreeMap = new HashMap<>();
     private ModelBuilderGellyLong modelBuilder;
-    private List<Edge<Integer, Long>> waitingEdges;
     private long startTime = System.currentTimeMillis();
-    private int stateDelay = 0;
-    /** The state that is maintained by this process function */
+    private int stateDelay;
     private ValueState<ProcessStateWatermark> state;
-   // private ListState<ProcessState> state1;
-   //MapStateDescriptor<String, Tuple2<Long,Boolean>> updatedStateDescriptor = new MapStateDescriptor<>("keineAhnung", BasicTypeInfo.STRING_TYPE_INFO, ValueTypeInfo.BOOLEAN_VALUE_TYPE_INFO);
     private int nullCounter = 0;
+    private List<Edge> outputEdgeList = new ArrayList<>();
+    private List<Edge> arrivedEdgeList = new ArrayList<>();
+
+
+    // logging/Not used
+    private long globalCounterForPrint = 0;
+    private int countBroadcastsOnWorker = 0;
+    //private List<Edge<Integer, Long>> waitingEdges;
+
+    /** The state that is maintained by this process function */
 
 
     public MatchFunctionWatermarkTrigger(String algorithm, Integer k, double lambda, int stateDelay) {
         this.algorithm = algorithm;
         this.stateDelay = stateDelay;
-        this.waitingEdges = new ArrayList<>();
+        //this.waitingEdges = new ArrayList<>();
         if (algorithm.equals("hdrf"))
             this.modelBuilder = new ModelBuilderGellyLong(algorithm, vertexDegreeMap, k, lambda);
         if (algorithm.equals("dbh"))
             this.modelBuilder = new ModelBuilderGellyLong(algorithm, vertexDegreeMap, k);
     }
 
-    // This function is called every time when a broadcast state is processed from the previous phase
     @Override
     public void processBroadcastElement(Tuple2<HashMap<Integer, Integer>,Long> broadcastElement, Context ctx, Collector<Tuple2<Edge<Integer, Long>,Integer>> out) throws Exception {
-
-        System.out.println("BROAD > " + ctx.currentWatermark() + " > " + broadcastElement.f0 + "|" + broadcastElement.f1);
-
-
-/*        if (currentWatermarkBro != ctx.currentWatermark()) {
-            watermarksBro.add(ctx.currentWatermark());
-            currentWatermarkBro = ctx.currentWatermark();
-            //ctx.output(GraphPartitionerImpl.outputTag," BRO _ new Watermark = " + currentWatermarkBro + " size: " + watermarksBro.size() + " old: " + watermarksBro);
-        }*/
-
-        int sizeOfMap = broadcastElement.f0.size();
 
         globalCounterForPrint++;
         countBroadcastsOnWorker++;
 
+        //System.out.println("BROAD > " + ctx.currentWatermark() + " > " + broadcastElement.f0 + "|" + broadcastElement.f1);
+
         int numEdgesInBroadcast = 0;
         double edgesInBroadcast = 0;
+        int sizeOfMap = broadcastElement.f0.size();
 
+        /* Update Model in HDRF  */
         if (this.algorithm.equals("hdrf")) {
             // ### Merge local model from Phase 1 with global model, here in Phase 2
             Iterator it = broadcastElement.f0.entrySet().iterator();
-            int degree = 0;
+            int degree;
             while (it.hasNext()) {
                 Map.Entry<Integer, Integer> stateEntry = (Map.Entry)it.next();
                 long vertex = stateEntry.getKey();
@@ -132,6 +115,7 @@ public class MatchFunctionWatermarkTrigger extends KeyedBroadcastProcessFunction
             }
         }
 
+        /* Update Model in DBH */
         if (this.algorithm.equals("dbh")) {
             // ### Merge local model from Phase 1 with global model, here in Phase 2
             Iterator it = broadcastElement.f0.entrySet().iterator();
@@ -148,8 +132,8 @@ public class MatchFunctionWatermarkTrigger extends KeyedBroadcastProcessFunction
                 numEdgesInBroadcast += stateEntry.getValue();
             }
         }
-        //System.out.println(ctx.currentWatermark() + " -- currentwatermarkBro " + currentWatermarkBro);
 
+        // Change/Add watermark, if new watermark appears
         if (currentWatermarkBro != ctx.currentWatermark()) {
             watermarksBro.add(ctx.currentWatermark());
             //System.out.println("currentwatermarkBro " + currentWatermarkBro);
@@ -162,7 +146,7 @@ public class MatchFunctionWatermarkTrigger extends KeyedBroadcastProcessFunction
         //edgesInBroadcast = numEdgesInBroadcast / 4;
 
         //System.out.println("BROAD > " + broadcastElement.f1 + "|" + numEdgesInBroadcast +  "|" + broadcastElement.f0);
-        //checkDifference(broadcastElement.f1, 0,ctx.currentWatermark(),ctx.currentProcessingTime(), numEdgesInBroadcast);
+        checkDifference(broadcastElement.f1, 0,ctx.currentWatermark(),ctx.currentProcessingTime(), numEdgesInBroadcast, broadcastElement.f0.toString());
 
        // checkWatermark(ctx.currentWatermark());
         readyToGo.put(broadcastElement.f1,true);
@@ -173,38 +157,52 @@ public class MatchFunctionWatermarkTrigger extends KeyedBroadcastProcessFunction
     @Override
     public void processElement(Edge<Integer, Long> currentEdge, ReadOnlyContext ctx, Collector<Tuple2<Edge<Integer, Long>,Integer>> out) throws Exception {
 
+        arrivedEdgeList.add(currentEdge);
+        counterEdgesInstance++;
+
         if (currentWatermarkEle != ctx.currentWatermark()) {
             watermarksEle.add(ctx.currentWatermark());
             currentWatermarkEle = ctx.currentWatermark();
-            //ctx.output(GraphPartitionerImpl.outputTag," PRO _ new Watermark = " + currentWatermarkEle + " size: " + watermarksEle.size() + " old: " + watermarksEle);
+            ctx.output(GraphPartitionerImpl.outputTag," ELEM _ new Watermark = " + currentWatermarkEle + " size: " + watermarksEle.size() + " old: " + watermarksEle);
         }
 
-        counterEdgesInstance++;
 
-     //   checkDifference(currentEdge.f2,1,ctx.currentWatermark(),ctx.currentProcessingTime(), 1);
+
+
+        checkDifference(currentEdge.f2,1,ctx.currentWatermark(),ctx.currentProcessingTime(), 1, currentEdge.toString());
+
+        String stateExists = "NULL";
 
         ProcessStateWatermark current = state.value();
             if (current == null) {
-                //System.out.println("new state created for edge" + currentEdge);
+                stateExists = "no";
+                //System.out.println("new state created for edge" + currentEdge + " -- " + state);
                 current = new ProcessStateWatermark();
                 current.key = ctx.currentWatermark();
                 stateCounter++;
                 //if (stateCounter % 1000 == 0)
                     //ctx.output(GraphPartitionerImpl.outputTag,stateCounter + " total states created");
             } else {
-                //System.out.println("state exists " + state.value().edgeList.get(0) + " -- this is current " + currentEdge);
+                stateExists = "yes";
+                //System.out.println("state exists " + state.value() + " -- this is current " + currentEdge);
             }
 
             // update the state's count
+            //System.out.println("size before (" + stateExists + "): " + current.edgeList.size());
             current.edgeList.add(currentEdge);
+            //System.out.println("size after (" + stateExists + "): " + current.edgeList.size());
             //System.out.println(current.key.f0 + " .. size " + current.edgeList.size());
             //System.out.println(current.key + " - " + current.edge);
 
             // set the state's timestamp to the record's assigned event time timestamp
+            //System.out.println("modified before (" + stateExists + "): " + current.lastModified);
             current.lastModified = ctx.currentWatermark();
+            //System.out.println("modified after (" + stateExists + "): " + current.lastModified);
 
             // write the state back
+        //System.out.println("State overview before update (" + stateExists + "): " + state.value().key + " -- " + state.value().lastModified + " -- " + state.value().repetition + " -- " + state.value().edgeList + " -- ");
             state.update(current);
+        //System.out.println("State overview after update (" + stateExists + "): " + state.value().key + " -- " + state.value().lastModified + " -- " + state.value().repetition + " -- " + state.value().edgeList + " -- ");
 
             // schedule the next timer X milliseconds from the current event time
             ctx.timerService().registerEventTimeTimer(current.lastModified + (stateDelay));
@@ -263,9 +261,9 @@ public class MatchFunctionWatermarkTrigger extends KeyedBroadcastProcessFunction
         //ctx.output(GraphPartitionerImpl.outputTag,"timer called with key " + state.value().key + " -- and edges: " + state.value().edgeList.size());
 
         if (onTimerCount < 2)
-            ctx.output(GraphPartitionerImpl.outputTag,"TIME > states/totalCount > repetitions/totalCount > nullCount/totalCount");
-        if (onTimerCount % 1 == 0)
-            ctx.output(GraphPartitionerImpl.outputTag,"TIME > " + df.format((double) stateCounter / (double) onTimerCount) + " > " + df.format((double) totalRepetitions / (double) onTimerCount)+ " > " + df.format((double) totalRepetitions / (double) onTimerCount) + " (total: " + onTimerCount + " timer calls)");
+            ctx.output(GraphPartitionerImpl.outputTag,"TIME > states/totalCount > repetitions/totalCount > nullCount/totalCount > emittedEdgesTotal");
+        if (onTimerCount % (TEMPGLOBALVARIABLES.printModulo/5000) == 0)
+            ctx.output(GraphPartitionerImpl.outputTag,"TIME > " + df.format((double) stateCounter / (double) onTimerCount) + " > " + df.format((double) totalRepetitions / (double) onTimerCount)+ " > " + df.format((double) totalRepetitions / (double) onTimerCount) + " > " + collectedEdges + " (total: " + onTimerCount + " timer calls)");
 
         //ctx.output(GraphPartitionerImpl.outputTag,onTimerCount + " total timer calls");
 
@@ -275,7 +273,7 @@ public class MatchFunctionWatermarkTrigger extends KeyedBroadcastProcessFunction
             nullCounter++;
             ctx.timerService().deleteEventTimeTimer(edgeState.lastModified + stateDelay);
             if (nullCounter % 1000 == 0)
-                ctx.output(GraphPartitionerImpl.outputTag,nullCounter + " total nullTimer calls");
+                ctx.output(GraphPartitionerImpl.outputTag,nullCounter + " total nullTimer calls (and " + collectedEdges + " edges emitted in total)");
             return;
         }
 
@@ -309,16 +307,16 @@ public class MatchFunctionWatermarkTrigger extends KeyedBroadcastProcessFunction
         List<Edge<Integer, Long>> toBeAddedToWaitingEdges = new ArrayList<>();
 
         //if (readyToGo.keySet().contains(edgeState.key)) {
-        if (edgeState.key >= watermarkReady) {
+        if (edgeState.key >= watermarkReady || edgeState.key < 0) {
             int sizeBefore = edgeState.edgeList.size();
-
+            //System.out.println("going through list now with state " + state.value().key + " with " + state.value().edgeList);
             //ctx.output(GraphPartitionerImpl.outputTag,"now inside " + edgeState.key + " with " +  edgeState.edgeList.size() + " edges");
 
             for (Edge e : edgeState.edgeList) {
                 boolean checkInside = checkIfEarlyArrived(e);
 
                 if (checkInside) {
-                    out.collect(emitEdge(e, 1, System.currentTimeMillis(), ctx));
+                    out.collect(emitEdge(e, 1, ctx.currentWatermark(), ctx));
                     addedInState++;
                     toBeRemovedState.add(e);
                     if (addedInState % 10000000 == 0)
@@ -427,9 +425,9 @@ public class MatchFunctionWatermarkTrigger extends KeyedBroadcastProcessFunction
 
     //private HashMap<Long, Integer> arrivedElemDiffSysTime = new HashMap<>();
 
-    private void checkDifference(long hashvalue, int sourceFunction, long watermark, long processingTime, int edgeCounter) throws Exception {
+    private void checkDifference(long hashvalue, int sourceFunction, long watermark, long processingTime, int edgeCounter, String currentElement) throws Exception {
 
-        if (watermark > 999999999 && !lastcall) {
+/*        if (watermark > 999999999 && !lastcall) {
             lastcall = true;
             System.out.println("last watermark !!!!!!!");
             for( EdgeArrivalChecker eac : edgeArrivedCheckerMap.values() ) {
@@ -437,26 +435,26 @@ public class MatchFunctionWatermarkTrigger extends KeyedBroadcastProcessFunction
                     System.out.println(eac.getHashValue() + "not complete. Still to do: " + eac.getCounterEdgesElements() + " / " + eac.getCounterEdgesBroadcast());
                 }
             }
-        }
+        }*/
 
 
         if (edgeArrivedCheckerMap.containsKey(hashvalue)) {
             EdgeArrivalChecker edgeArrival = edgeArrivedCheckerMap.get(hashvalue);
-            edgeArrival.updateDifferences(sourceFunction,watermark,processingTime,edgeCounter);
+            edgeArrival.updateDifferences(sourceFunction,watermark,processingTime,edgeCounter, currentElement);
             List<Integer> callHistory = edgeArrival.getCallHistory();
             if (edgeArrival.getCounterEdgesBroadcast() == edgeArrival.getCounterEdgesElements()) {
                 edgeArrival.isComplete();
                 completeCounter++;
-                if (completeCounter % 100 == 0)
+                if (completeCounter % 1 == 0)
                     System.out.println(hashvalue + " set is complete with " + edgeArrival.getCounterEdgesElements() + " vs " + edgeArrival.getCounterEdgesBroadcast() + " --- total: " + completeCounter + " out of " + edgeArrivedCheckerMap.size());
 
-                //System.out.println("complete: " + completeCounter + " out of " + edgeArrivedCheckerMap.size());
+                System.out.println("complete: " + completeCounter + " out of " + edgeArrivedCheckerMap.size());
             }
             //System.out.println(hashvalue + ": " + callHistory);
             //avgDiffWatermark = edgeArrival.get(hashvalue) / edgeCounter;
             //avgDiffWatermark = arrivedDiffProcessing.get(hashvalue) / edgeCounter;
         } else {
-            EdgeArrivalChecker edgeArrival = new EdgeArrivalChecker(hashvalue,sourceFunction,watermark,processingTime,edgeCounter);
+            EdgeArrivalChecker edgeArrival = new EdgeArrivalChecker(hashvalue,sourceFunction,watermark,processingTime,edgeCounter, currentElement);
             edgeArrivedCheckerMap.put(hashvalue,edgeArrival);
             edgeArrival.printCreateMessage();
 
@@ -522,11 +520,11 @@ public class MatchFunctionWatermarkTrigger extends KeyedBroadcastProcessFunction
         return "MAT > " + System.currentTimeMillis() + " > "  + counterEdgesInstance + " > "  + difference/1000 + " > s";
     }
 
-    private Tuple2<Edge<Integer, Long>,Integer> emitEdge(Edge<Integer, Long> edge,int place, long currTime, BaseBroadcastProcessFunction.ReadOnlyContext ctx) throws Exception {
+    private Tuple2<Edge<Integer, Long>,Integer> emitEdge(Edge<Integer, Long> edge,int place, long watermark, BaseBroadcastProcessFunction.ReadOnlyContext ctx) throws Exception {
         int partitionId = modelBuilder.choosePartition(edge);
         collectedEdges++;
         //if (collectedEdges % 100000 == 0)
-           // ctx.output(GraphPartitionerImpl.outputTag,ctx.broadcastWatermark() + "$ emitted$1$total$"+collectedEdges + "$" + edge + "$" + place + "$");
+           //ctx.output(GraphPartitionerImpl.outputTag,watermark + "$ emitted$1$total$"+collectedEdges + "$" + edge + "$" + place + "$" + watermarkReady);
         if (place != 1)
             //ctx.output(GraphPartitionerImpl.outputTag,"WAITING__$1$total$"+collectedEdges + "$" + edge + "$" + place + "$$");
         if (outputEdges.containsKey(edge.toString())) {
@@ -534,8 +532,7 @@ public class MatchFunctionWatermarkTrigger extends KeyedBroadcastProcessFunction
             duplicates.add(edge);
 
             }
-        outputEdges.put(edge.toString(),currTime);
-        //System.out.println(collectedEdges);
+        outputEdges.put(edge.toString(),watermark);
         return new Tuple2<>(edge, partitionId);
     }
 

@@ -31,8 +31,9 @@ public class EdgeArrivalChecker {
     private int numberOfWatermarks;
     private boolean broadcastArrived;
     private boolean complete;
+    private String createdWithElement;
 
-    public EdgeArrivalChecker(long hashValue, int sourceFunction, long watermark, long processingTime, int numOfElements) {
+    public EdgeArrivalChecker(long hashValue, int sourceFunction, long watermark, long processingTime, int numOfElements, String currentElement) {
         this.numberOfWatermarks = 1;
         this.hashValue = hashValue;
         this.firstArrivedIn = sourceFunction;
@@ -45,6 +46,7 @@ public class EdgeArrivalChecker {
             this.firstArrivalBroadcastProcessing = processingTime;
             this.firstArrivalBroadcastWatermark = watermark;
             broadcastArrived = true;
+            this.createdWithElement = currentElement;
 
         }
         if (sourceFunction == 1) { // edge
@@ -92,13 +94,10 @@ public class EdgeArrivalChecker {
         this.complete = true;
     }
 
-    public void updateDifferences(int sourceFunction, long watermark, long processingTime, int edgeCounter) throws Exception {
+    public void updateDifferences(int sourceFunction, long watermark, long processingTime, int edgeCounter, String currentElement) throws Exception {
             this.diffWatermarkTime = watermark - this.timestampWatermark;
             this.diffProcessTime = processingTime - this.timestampProcessTime;
 
-            if (sourceFunction == 0 && this.firstArrivedIn == 0) { // broadcast
-                System.out.println("two broadcast calls to update " + this.hashValue);
-            }
             if (sourceFunction == 1) {
                 this.counterEdgesElements++;
                 this.lastArrivalElementWatermark = watermark;
@@ -117,7 +116,7 @@ public class EdgeArrivalChecker {
                 } else if (callHistory.get(callHistory.size()-1) == 1 && sourceFunction == 1) {
                 // do nothing
             } else if (broadcastArrived && sourceFunction == 0) {
-                System.out.println("second broadcast arrived at " + hashValue);
+                System.out.println("second broadcast arrived at " + hashValue + " created with " + createdWithElement + " -- update request by " + currentElement);
                 callHistory.add(sourceFunction);
             } else {
                 System.out.println(callHistory + " wants to add " + sourceFunction);

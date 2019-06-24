@@ -27,6 +27,7 @@ import org.myorg.quickstart.jobstatistics.VertexCut;
 import org.myorg.quickstart.partitioners.matchFunctions.MatchFunctionWatermarkTrigger;
 import org.myorg.quickstart.partitioners.windowFunctions.ProcessWindowDegreeWatermark;
 import org.myorg.quickstart.partitioners.windowFunctions.ProcessWindowGellyHashValue;
+import org.myorg.quickstart.partitioners.windowFunctions.ProcessWindowGellyWatermark;
 import org.myorg.quickstart.utils.CustomKeySelector6;
 import org.myorg.quickstart.utils.HashPartitioner;
 import org.myorg.quickstart.utils.TEMPGLOBALVARIABLES;
@@ -107,7 +108,7 @@ public class GraphPartitionerWatermarkTrigger {
         String outputPathPartitions = outputPath + "/" + folderName;
         loggingPath = outputPath + "/logs_" + folderName;
 
-        ProcessWindowGellyHashValue firstPhaseProcessor = new ProcessWindowGellyHashValue();
+        ProcessWindowGellyWatermark firstPhaseProcessor = new ProcessWindowGellyWatermark();
         MatchFunctionWatermarkTrigger matchFunction = new MatchFunctionWatermarkTrigger(algorithm, k, lambda, stateDelay);
         MapStateDescriptor<String, Tuple2<Integer, ArrayList<Integer>>> rulesStateDescriptor = new MapStateDescriptor<>("RulesBroadcastState", BasicTypeInfo.STRING_TYPE_INFO,tupleTypeInfo);
 
@@ -154,7 +155,8 @@ public class GraphPartitionerWatermarkTrigger {
                     .broadcast(rulesStateDescriptor);
 
             // Connect Broadcast Stream and EdgeDepr Stream to build global model
-            SingleOutputStreamOperator<Tuple2<Edge<Integer, Long>, Integer>> phaseTwoStream = edgesWindowed
+            SingleOutputStreamOperator<Tuple2<Edge<Integer, Long>, Integer>> phaseTwoStream = edges
+                    .getEdges()
                     .keyBy(new KeySelector<Edge<Integer, Long>, Integer>() {
                         @Override
                         public Integer getKey(Edge value) throws Exception {
@@ -163,6 +165,18 @@ public class GraphPartitionerWatermarkTrigger {
                     })
                     .connect(broadcastStateStream)
                     .process(matchFunction).setParallelism(globalPhase);
+
+/*            // Connect Broadcast Stream and EdgeDepr Stream to build global model
+            SingleOutputStreamOperator<Tuple2<Edge<Integer, Long>, Integer>> phaseTwoStream = edgesWindowed
+                    .keyBy(new KeySelector<Edge<Integer, Long>, Integer>() {
+                        @Override
+                        public Integer getKey(Edge value) throws Exception {
+                            return Integer.parseInt(value.f0.toString());
+                        }
+                    })
+                    .connect(broadcastStateStream)
+                    .process(matchFunction).setParallelism(globalPhase);*/
+
             //phaseTwoStream.print();
 
             DataStream<String> sideOutputStream = phaseTwoStream.getSideOutput(outputTag);
@@ -308,9 +322,7 @@ public class GraphPartitionerWatermarkTrigger {
                         if (!fields[0].equals("%")) {
                             int src = Integer.parseInt(fields[0]);
                             int trg = Integer.parseInt(fields[1]);
-                            int srcHash = MathUtils.murmurHash(src);
-                            int trgHash = MathUtils.murmurHash(trg);
-                            long value = Math.abs(srcHash*trgHash);
+                            long value = 0;
                             //long valuePrime = srcHash*trgHash % nextPrime;
                             //System.out.println(src + " " + trg + " --> " + srcHash + " --- " + trgHash + " --> " + value);
                             out.collect(new Edge<>(src, trg, value));

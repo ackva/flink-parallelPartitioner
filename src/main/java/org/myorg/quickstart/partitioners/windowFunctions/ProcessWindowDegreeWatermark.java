@@ -47,12 +47,10 @@ public class ProcessWindowDegreeWatermark extends ProcessWindowFunction<Edge<Int
         List<Edge> edgesInWindow = storeElementsOfWindow(edgeIterable);
 
         // Maintain degree HashMap (Key: vertex || Value: degree)
-        long windowHashValue = 0;
         for(Edge e: edgesInWindow) {
             int source = Integer.parseInt(e.f0.toString());
             int target = Integer.parseInt(e.f1.toString());
             long edgeHash = Long.parseLong(e.f2.toString());
-            windowHashValue = windowHashValue + edgeHash;
             //System.out.println("DEGRE > " + context.currentWatermark() + " > " + source + "|" + target + "|" + edgeHash);
             // Add source vertex with degree 1, if no map entry exists. Otherwise, increment by 1
             //float newHash = (source * target) % nextPrime;
@@ -87,7 +85,7 @@ public class ProcessWindowDegreeWatermark extends ProcessWindowFunction<Edge<Int
 
 
         // Emit local model for next phase
-        out.collect(new Tuple2<>(vertexDegreeMap,windowHashValue));
+        out.collect(new Tuple2<>(vertexDegreeMap,0L));
 
 /*
         if (TEMPGLOBALVARIABLES.printTime && (windowCounter %500) == 0) {

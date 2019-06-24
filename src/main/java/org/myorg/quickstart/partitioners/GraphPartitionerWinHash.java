@@ -26,7 +26,6 @@ import org.myorg.quickstart.jobstatistics.LoadBalanceCalculator;
 import org.myorg.quickstart.jobstatistics.VertexCut;
 import org.myorg.quickstart.partitioners.matchFunctions.MatchFunctionWindowHash;
 import org.myorg.quickstart.partitioners.windowFunctions.ProcessWindowDegreeHashed;
-import org.myorg.quickstart.partitioners.windowFunctions.ProcessWindowDegreeWatermark;
 import org.myorg.quickstart.partitioners.windowFunctions.ProcessWindowGellyHashValue;
 import org.myorg.quickstart.utils.CustomKeySelector6;
 import org.myorg.quickstart.utils.HashPartitioner;
@@ -72,9 +71,10 @@ import java.util.concurrent.TimeUnit;
  *   1 C:\flinkJobs\input\streamInput199.txt dbh 100 2 2 streamInput
  *
  */
-public class GraphPartitionerHashValue {
+public class GraphPartitionerWinHash {
 
     public static final OutputTag<String> outputTag = new OutputTag<String>("side-output"){};
+    public static final OutputTag<String> outputTagError = new OutputTag<String>("side-error"){};
 
     public static StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
     final static Class<Tuple2<Integer, ArrayList<Integer>>> typedTuple = (Class<Tuple2<Integer, ArrayList<Integer>>>) (Class<?>) Tuple2.class;
@@ -82,6 +82,7 @@ public class GraphPartitionerHashValue {
 
     // Static variables for debugging, testing, etc.
     public static long windowSizeInMs = 0;
+    //public static int printModulo = 500_000;
     public static long wait = 0; //public static long sleep = windowSizeInMs/100;
     private static String inputPath = null;
     private static String printInfo = null;
@@ -98,9 +99,36 @@ public class GraphPartitionerHashValue {
     public static boolean localRun = false;
     public static int stateDelay = 0;
 
-    public static void main(String[] args) throws Exception {
+    public GraphPartitionerWinHash(
+            String printInfo, String inputPath, String algorithm, int keyParam, int k, int globalPhase, String graphName, String outputStatistics,
+            String outputPath, long windowSizeInMs, long wait, int stateDelay, String testing) throws Exception {
+        this.printInfo = printInfo;
+        if (printInfo.equals("0")) {
+            System.out.println("Debugging mode - more output can be found at logs_job_xyz: " + TEMPGLOBALVARIABLES.printTime);
+        }
+        this.inputPath = inputPath;
+        if (!inputPath.contains("validate") && TEMPGLOBALVARIABLES.printModulo < 100)
+            throw new Exception("change PRINTMODULO because validate.txt is not being partitioned");
+        this.algorithm = algorithm;
+        this.keyParam = keyParam;
+        this.k = k;
+        this.globalPhase = globalPhase;
+        this.graphName = graphName;
+        this.outputStatistics = outputStatistics;
+        this.outputPath = outputPath;
+        this.windowSizeInMs = windowSizeInMs;
+        this.wait = wait;
+        this.stateDelay = stateDelay;
+        this.testing = testing;
+        if (testing.equals("localTest")) {
+            localRun = true;
+        }
+        if (testing.equals("cluster") && TEMPGLOBALVARIABLES.printModulo < 1000000)
+            throw new Exception("PRINT MODULO is " + TEMPGLOBALVARIABLES.printModulo + " . Change it please to avoid excessive logging");
+    }
 
-        parseParameters(args);
+
+    public void partitionGraph() throws Exception {
 
         long windowSize2 = windowSizeInMs * 2;
         String timestamp = new SimpleDateFormat("yy-MM-dd_HH-mm-ss").format(new Date());
@@ -167,8 +195,10 @@ public class GraphPartitionerHashValue {
             //phaseTwoStream.print();
 
             DataStream<String> sideOutputStream = phaseTwoStream.getSideOutput(outputTag);
-            sideOutputStream.print();
-            sideOutputStream.writeAsText(loggingPath.replaceAll(":","_"));
+            DataStream<String> errorStream = phaseTwoStream.getSideOutput(outputTagError);
+            errorStream.print();
+            //sideOutputStream.print();
+            //sideOutputStream.writeAsText(loggingPath.replaceAll(":","_"));
 
             // Final Step -- Custom Partition, based on pre-calculated ID
             partitionedEdges = phaseTwoStream
@@ -313,7 +343,8 @@ public class GraphPartitionerHashValue {
                             int trg = Integer.parseInt(fields[1]);
                             int srcHash = MathUtils.murmurHash(src);
                             int trgHash = MathUtils.murmurHash(trg);
-                            long value = srcHash * nextPrime * trgHash;                            //long valuePrime = srcHash*trgHash % nextPrime;
+                            long value = srcHash * nextPrime * trgHash;
+                            //long valuePrime = srcHash*trgHash % nextPrime;
                             //System.out.println(src + " " + trg + " --> " + srcHash + " --- " + trgHash + " --> " + value);
                             out.collect(new Edge<>(src, trg, value));
                         }
