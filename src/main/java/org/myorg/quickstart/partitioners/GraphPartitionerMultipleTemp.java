@@ -18,7 +18,6 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.windowing.time.Time;
-import org.apache.flink.types.NullValue;
 import org.apache.flink.util.Collector;
 import org.apache.flink.util.MathUtils;
 import org.apache.flink.util.OutputTag;
@@ -32,7 +31,6 @@ import org.myorg.quickstart.partitioners.windowFunctions.ProcessWindowGellyHashV
 import org.myorg.quickstart.utils.CustomKeySelector6;
 import org.myorg.quickstart.utils.HashPartitioner;
 import org.myorg.quickstart.utils.TEMPGLOBALVARIABLES;
-import scala.xml.Null;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -74,7 +72,7 @@ import java.util.concurrent.TimeUnit;
  *   1 C:\flinkJobs\input\streamInput199.txt dbh 100 2 2 streamInput
  *
  */
-public class GraphPartitionerWinHash {
+public class GraphPartitionerMultipleTemp {
 
     public static final OutputTag<String> outputTag = new OutputTag<String>("side-output"){};
     public static final OutputTag<String> outputTagError = new OutputTag<String>("side-error"){};
@@ -102,7 +100,7 @@ public class GraphPartitionerWinHash {
     public static boolean localRun = false;
     public static int stateDelay = 0;
 
-    GraphPartitionerWinHash(
+    GraphPartitionerMultipleTemp(
             String printInfo, String inputPath, String algorithm, int keyParam, int k, int globalPhase, String graphName, String outputStatistics,
             String outputPath, long windowSizeInMs, long wait, int stateDelay, String testing) throws Exception {
         this.printInfo = printInfo;
@@ -140,7 +138,7 @@ public class GraphPartitionerWinHash {
         loggingPath = outputPath + "/logs_" + folderName;
 
         ProcessWindowGellyHashValue firstPhaseProcessor = new ProcessWindowGellyHashValue();
-        MatchFunctionWinHash matchFunction = new MatchFunctionWinHash(algorithm, k, lambda);
+        MatchFunctionWindowHash matchFunction = new MatchFunctionWindowHash(algorithm, k, lambda, stateDelay);
         MapStateDescriptor<String, Tuple2<Integer, ArrayList<Integer>>> rulesStateDescriptor = new MapStateDescriptor<>("RulesBroadcastState", BasicTypeInfo.STRING_TYPE_INFO,tupleTypeInfo);
 
         //System.out.println(new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()) + " timestamp for whatever you want");
@@ -164,53 +162,59 @@ public class GraphPartitionerWinHash {
         // Create a data stream (read from file)
         SimpleEdgeStream<Integer, Long> edges = getGraphStream(env);
 
+        DataStream<Edge<Integer, Long>> partitionedEdges = null;
 
-        DataStream<Edge<Integer,NullValue>> partitionedEdges = null;
+        if (algorithm.equals("hdrf") || algorithm.equals("dbh")) {
+            // *** PHASE 1 ***
+            //Process edges to build the local model for broadcast
+            DataStream<Tuple2<HashMap<Integer, Integer>,Long>> phaseOneStream = edges.getEdges()
+                    .keyBy(ks)
+                    .timeWindow(Time.milliseconds(windowSizeInMs))
+                    .process(new ProcessWindowDegreeHashed());
 
+            // Process edges in the similar time windows to "wait" for phase 2
+            DataStream<Edge<Integer, Long>> edgesWindowed = edges.getEdges()
+                    .keyBy(ks)
+                    .timeWindow(Time.milliseconds(windowSizeInMs))
+                    .process(firstPhaseProcessor);
 
-        // *** PHASE 1 ***
-        //Process edges to build the local model for broadcast
-        DataStream<Tuple2<HashMap<Integer, Integer>,Long>> phaseOneStream = edges.getEdges()
-                .keyBy(ks)
-                .timeWindow(Time.milliseconds(windowSizeInMs))
-                .process(new ProcessWindowDegreeHashed());
+            // *** Phase 2 ***
+            // Broadcast local state from Phase 1 to all Task Managers
+            BroadcastStream<Tuple2<HashMap<Integer, Integer>,Long>> broadcastStateStream = phaseOneStream
+                    .broadcast(rulesStateDescriptor);
 
-        // Process edges in the similar time windows to "wait" for phase 2
-        DataStream<Edge<Integer, Long>> edgesWindowed = edges.getEdges()
-                .keyBy(ks)
-                .timeWindow(Time.milliseconds(windowSizeInMs))
-                .process(firstPhaseProcessor);
+            // Connect Broadcast Stream and EdgeDepr Stream to build global model
+            SingleOutputStreamOperator<Tuple2<Edge<Integer, Long>, Integer>> phaseTwoStream = edgesWindowed
+                    .keyBy(new KeySelector<Edge<Integer, Long>, Integer>() {
+                        @Override
+                        public Integer getKey(Edge value) throws Exception {
+                            return Integer.parseInt(value.f0.toString());
+                        }
+                    })
+                    .connect(broadcastStateStream)
+                    .process(matchFunction).setParallelism(globalPhase);
+            //phaseTwoStream.print();
 
-        // *** Phase 2 ***
-        // Broadcast local state from Phase 1 to all Task Managers
-        BroadcastStream<Tuple2<HashMap<Integer, Integer>,Long>> broadcastStateStream = phaseOneStream
-                .broadcast(rulesStateDescriptor);
+            DataStream<String> sideOutputStream = phaseTwoStream.getSideOutput(outputTag);
+            //DataStream<String> errorStream = phaseTwoStream.getSideOutput(outputTagError);
+            //errorStream.print();
+            //sideOutputStream.print();
+            //sideOutputStream.writeAsText(loggingPath.replaceAll(":","_"));
 
-        // Connect Broadcast Stream and EdgeDepr Stream to build global model
-        SingleOutputStreamOperator<Tuple2<Edge<Integer, NullValue>, Integer>> phaseTwoStream = edgesWindowed
-                .keyBy(new KeySelector<Edge<Integer, Long>, Integer>() {
-                    @Override
-                    public Integer getKey(Edge value) throws Exception {
-                        return Integer.parseInt(value.f0.toString());
-                    }
-                })
-                .connect(broadcastStateStream)
-                .process(matchFunction).setParallelism(globalPhase);
-        //phaseTwoStream.print();
+            // Final Step -- Custom Partition, based on pre-calculated ID
+            partitionedEdges = phaseTwoStream
+                    .partitionCustom(new PartitionByTag(), 1)
+                    .map(new MapFunction<Tuple2<Edge<Integer, Long>, Integer>, Edge<Integer, Long>>() {
+                        public Edge<Integer, Long> map(Tuple2<Edge<Integer, Long>, Integer> input) {
+                            return input.f0;
+                        }});
+        } else if (algorithm.equals("hash")) {
+            partitionedEdges = edges.getEdges()
+                    .partitionCustom(new HashPartitioner<>(k),new CustomKeySelector6<>(0));
+        } else {
+            throw new Exception("WRONG ALGO!!");
+        }
 
-        DataStream<String> sideOutputStream = phaseTwoStream.getSideOutput(outputTag);
-        //DataStream<String> errorStream = phaseTwoStream.getSideOutput(outputTagError);
-        //errorStream.print();
-        sideOutputStream.print();
-        //sideOutputStream.writeAsText(loggingPath.replaceAll(":","_"));
-
-        // Final Step -- Custom Partition, based on pre-calculated ID
-        partitionedEdges = phaseTwoStream
-                .partitionCustom(new PartitionByTag(), 1)
-                .map(new MapFunction<Tuple2<Edge<Integer,NullValue>, Integer>, Edge<Integer,NullValue>>() {
-                    public Edge<Integer,NullValue> map(Tuple2<Edge<Integer,NullValue>, Integer> input) {
-                        return input.f0;
-                    }});
 
         //Print result in human-readable way --> e.g. (4,2,0) means: EdgeDepr(4,2) partitioned to machineId 0
         partitionedEdges.writeAsText(outputPathPartitions.replaceAll(":","_"));

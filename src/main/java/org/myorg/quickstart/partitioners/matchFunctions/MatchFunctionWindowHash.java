@@ -1,11 +1,6 @@
 package org.myorg.quickstart.partitioners.matchFunctions;
 
-import org.apache.flink.api.common.state.MapStateDescriptor;
-import org.apache.flink.api.common.state.ValueState;
-import org.apache.flink.api.common.state.ValueStateDescriptor;
-import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
-import org.apache.flink.api.common.typeinfo.TypeHint;
-import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.common.state.*;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.graph.Edge;
@@ -13,11 +8,8 @@ import org.apache.flink.streaming.api.functions.co.BaseBroadcastProcessFunction;
 import org.apache.flink.streaming.api.functions.co.KeyedBroadcastProcessFunction;
 import org.apache.flink.util.Collector;
 import org.myorg.quickstart.partitioners.GraphPartitionerImpl;
-import org.myorg.quickstart.partitioners.GraphPartitionerWinHash;
-import org.myorg.quickstart.utils.EdgeArrivalChecker;
-import org.myorg.quickstart.utils.ModelBuilderGellyLong;
-import org.myorg.quickstart.utils.ProcessStateLong;
-import org.myorg.quickstart.utils.TEMPGLOBALVARIABLES;
+import org.myorg.quickstart.partitioners.GraphPartitionerMultipleTemp;
+import org.myorg.quickstart.utils.*;
 
 import java.text.DecimalFormat;
 import java.util.*;
@@ -82,7 +74,8 @@ public class MatchFunctionWindowHash extends KeyedBroadcastProcessFunction<Integ
     private int stateDelay = 0;
     /** The state that is maintained by this process function */
     private ValueState<ProcessStateLong> state;
-   // private ListState<ProcessState> state1;
+
+    // private ListState<ProcessState> state1;
    //MapStateDescriptor<String, Tuple2<Long,Boolean>> updatedStateDescriptor = new MapStateDescriptor<>("keineAhnung", BasicTypeInfo.STRING_TYPE_INFO, ValueTypeInfo.BOOLEAN_VALUE_TYPE_INFO);
     private int nullCounter = 0;
 
@@ -140,6 +133,9 @@ public class MatchFunctionWindowHash extends KeyedBroadcastProcessFunction<Integ
         }
 
 
+        checkDifference(broadcastElement.f1, 0,ctx.currentWatermark(),ctx.currentProcessingTime(), numEdgesInBroadcast, broadcastElement.f0.toString());
+
+
         numEdgesInBroadcast *= 0.5;
         //edgesInBroadcast = numEdgesInBroadcast / 4;
 
@@ -161,27 +157,49 @@ public class MatchFunctionWindowHash extends KeyedBroadcastProcessFunction<Integ
         if (currentEdge.f2 == -7229148735837822083L)
             System.out.println(currentEdge + " has f2 value -7229148735837822083");
 
+
+/*
+        ##### NEUEN "State" wie waiting edges. deutlich schneller dann :)
+        if (in state)
+            assignEdges (edgeList)
+*/
+
+
         ProcessStateLong current = state.value();
             if (current == null) {
                 current = new ProcessStateLong();
-                ctx.output(GraphPartitionerImpl.outputTag,"new state created for edge " + currentEdge + " -- state key: " + current.key);
                 current.key = currentEdge.f2;
-                current.edgeList.add(currentEdge);
-                allStateList.add(current);
-                allStates.put(current,current.key);
-                stateCounter++;
-                //if (stateCounter % 1000 == 0)
-                    ctx.output(GraphPartitionerImpl.outputTag,stateCounter + " total states created");
-            } else {
-                if (!state.value().key.equals(currentEdge.f2)) {
-                    System.out.println("das ist ja dumm" + state.value().key + " -- " + state.value().edgeList.get(0) + " -- edge :" + currentEdge.f0 + "," + currentEdge.f1 + " .. " + currentEdge.f2);
 
-                    #### HIER MUSS MAN EINE LÖSUNG IMPLEMENTIEREN; DIE "PRO WINDOW" ARbEITET!!!
+                stateCounter++;
+                ctx.output(GraphPartitionerImpl.outputTag,"new state created for edge " + currentEdge + " -- state key: " + current.key);
+                //allStateList.add(current);
+                //allStates.put(current,current.key);
+            } else {
+
+                //System.out.println("state exists " + state.value().edgeList.get(0) + " -- this is current " + currentEdge);
+            }
+
+            // add edge to state list
+            current.edgeList.add(currentEdge);
+
+             // set the state's timestamp to the record's assigned event time timestamp
+             current.lastModified = ctx.currentProcessingTime();
+
+            // write the state back
+            state.update(current);
+
+            // schedule the next timer X milliseconds from the current event time
+            ctx.timerService().registerEventTimeTimer(current.lastModified + (stateDelay));
+
+/*        if (!state.value().key.equals(currentEdge.f2)) {
+                    System.out.println("das ist ja dumm" + state.value().key + " -- " + state.value().edgeList.get(0) + " -- edge :" + currentEdge.f0 + "," + currentEdge.f1 + " .. " + currentEdge.f2);
+                    //#### HIER MUSS MAN EINE LÖSUNG IMPLEMENTIEREN; DIE "PRO WINDOW" ARbEITET!!!
 
                 } else {
                     //System.out.println("adding edge " + currentEdge + " to state " + current.key + " with e.g. " + current.edgeList.get(0));
                     current.edgeList.add(currentEdge);
-                }
+                }*/
+
                 /*try {
                     ctx.output(GraphPartitionerImpl.outputTag,"state " + state.value().key + " exists, with " + state.value().edgeList.get(0) + " -- this is current edge " + currentEdge);
                     //ctx.output(GraphPartitionerImpl.outputTag,"state " + state.value().key + " exists, with " + state.value().key + " -- this is current edge " + currentEdge);
@@ -191,21 +209,14 @@ public class MatchFunctionWindowHash extends KeyedBroadcastProcessFunction<Integ
                     //System.out.println("all states: " + allStates);
                 }*/
 
-            }
-
             // update the state's count
             //current.edgeList.add(currentEdge);
-            ctx.output(GraphPartitionerImpl.outputTag,"State " + current.key + ", size " + current.edgeList.size() + ", with:" + current.edgeList);
+            //ctx.output(GraphPartitionerImpl.outputTag,"State " + current.key + ", size " + current.edgeList.size() + ", with:" + current.edgeList);
             //ctx.output(GraphPartitionerImpl.outputTag,current.key + " - " + current.key);
 
-            // set the state's timestamp to the record's assigned event time timestamp
-            current.lastModified = ctx.currentProcessingTime();
 
-            // write the state back
-            state.update(current);
 
-            // schedule the next timer X milliseconds from the current event time
-            ctx.timerService().registerEventTimeTimer(current.lastModified + (stateDelay));
+
 
         if(TEMPGLOBALVARIABLES.printTime) {
             if (counterEdgesInstance < 2) {
@@ -222,8 +233,6 @@ public class MatchFunctionWindowHash extends KeyedBroadcastProcessFunction<Integ
             }
         }
     }
-
-
 
     public void onTimer(long timestamp, OnTimerContext ctx, Collector<Tuple2<Edge<Integer, Long>,Integer>> out) throws Exception {
 
@@ -280,7 +289,7 @@ public class MatchFunctionWindowHash extends KeyedBroadcastProcessFunction<Integ
             int edgeListSizeBefore = edgeState.edgeList.size();
             edgeState.edgeList.removeAll(toBeRemovedState);
             if (edgeState.edgeList.size() == edgeListSizeBefore && edgeListSizeBefore > 0)
-                ctx.output(GraphPartitionerWinHash.outputTagError,"NO IMPACT!! edge List now as big as before: " + edgeState.edgeList.size() + " edges for key " + edgeState.key);
+                ctx.output(GraphPartitionerMultipleTemp.outputTagError,"NO IMPACT!! edge List now as big as before: " + edgeState.edgeList.size() + " edges for key " + edgeState.key);
 
 
             if (state.value().edgeList.size() == 0) {
@@ -290,9 +299,9 @@ public class MatchFunctionWindowHash extends KeyedBroadcastProcessFunction<Integ
 
 
             if(toBeAddedToWaitingEdges.size() > 0) {
-                ctx.output(GraphPartitionerWinHash.outputTagError,"This is the state now - " + modelBuilder.getHdrf().getCurrentState().getRecord_map());
-                ctx.output(GraphPartitionerWinHash.outputTagError,"Could not find - " + toBeAddedToWaitingEdges);
-                ctx.output(GraphPartitionerWinHash.outputTagError,"But could find - " + toBeRemovedState);
+                ctx.output(GraphPartitionerMultipleTemp.outputTagError,"This is the state now - " + modelBuilder.getHdrf().getCurrentState().getRecord_map());
+                ctx.output(GraphPartitionerMultipleTemp.outputTagError,"Could not find - " + toBeAddedToWaitingEdges);
+                ctx.output(GraphPartitionerMultipleTemp.outputTagError,"But could find - " + toBeRemovedState);
 
                 totalRepetitions++;
 
@@ -305,7 +314,7 @@ public class MatchFunctionWindowHash extends KeyedBroadcastProcessFunction<Integ
                 }
 
                 if (edgeState.repetition > 0 ) {
-                    ctx.output(GraphPartitionerWinHash.outputTagError, ctx.currentProcessingTime() + " $ to be repeated $ " + edgeState.key + " " + edgeState.repetition + " $ total: $ " + toBeAddedToWaitingEdges.size());
+                    ctx.output(GraphPartitionerMultipleTemp.outputTagError, ctx.currentProcessingTime() + " $ to be repeated $ " + edgeState.key + " " + edgeState.repetition + " $ total: $ " + toBeAddedToWaitingEdges.size());
                 }
                 if (edgeState.repetition > 50 ) {
                     throw new Exception("edgeState " + edgeState.key + " repeated > 50 times");

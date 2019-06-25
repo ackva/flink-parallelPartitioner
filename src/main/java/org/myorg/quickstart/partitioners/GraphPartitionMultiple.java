@@ -5,7 +5,6 @@ import org.apache.flink.api.java.typeutils.GenericTypeInfo;
 import org.apache.flink.api.java.typeutils.TupleTypeInfo;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.util.OutputTag;
-import org.myorg.quickstart.utils.TEMPGLOBALVARIABLES;
 
 import java.util.ArrayList;
 
