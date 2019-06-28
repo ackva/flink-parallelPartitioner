@@ -6,7 +6,7 @@ public class TEMPGLOBALVARIABLES {
     public static boolean printPhaseOne = false;
     public static boolean printPhaseTwo = false;
     public static boolean printTime = true;
-    public static int printModulo = 100_000;
+    public static int printModulo = 10_000_000;
 
 }
 

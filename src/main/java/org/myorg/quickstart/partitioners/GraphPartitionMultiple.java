@@ -39,23 +39,29 @@ public class GraphPartitionMultiple {
 
         parseParameters(args);
 
-        GraphPartitionerWinHash gpw = new GraphPartitionerWinHash(
-                printInfo,
-                inputPath,
-                algorithm,
-                keyParam,
-                k,
-                globalPhase,
-                graphName,
-                outputStatistics,
-                outputPath,
-                windowSizeInMs,
-                wait,
-                stateDelay,
-                testing
-        );
 
-        gpw.partitionGraph();
+        for (int i = 0; i < 2; i++) {
+            GraphPartitionerWinHash gpw = new GraphPartitionerWinHash(
+                    printInfo,
+                    inputPath,
+                    algorithm,
+                    keyParam,
+                    k,
+                    globalPhase,
+                    graphName,
+                    outputStatistics,
+                    outputPath,
+                    windowSizeInMs,
+                    wait,
+                    stateDelay,
+                    testing
+            );
+
+            gpw.partitionGraph();
+
+            Thread.sleep(1000);
+        }
+
     }
 
     private static void parseParameters(String[] args) throws Exception {

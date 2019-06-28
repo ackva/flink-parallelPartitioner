@@ -33,7 +33,7 @@ public class MatchFunctionWinHash extends KeyedBroadcastProcessFunction<Integer,
     private HashMap<Long,Integer> repeatMap = new HashMap<>();
     private HashMap<ProcessStateLong,Long> allStates = new HashMap<>();
     private List<ProcessStateLong> allStateList = new ArrayList<>();
-    List<Long> totalTimesStateStateCompletion = new ArrayList<>();
+
 
    /* MapStateDescriptor<Long, Boolean> stateDescriptor = new MapStateDescriptor<>
             ("TestBroadCastState", BasicTypeInfo.LONG_TYPE_INFO, TypeInformation.of(new TypeHint<Boolean>() {}));*/
@@ -47,7 +47,9 @@ public class MatchFunctionWinHash extends KeyedBroadcastProcessFunction<Integer,
     boolean lastcall;
     int edgeOutputCount;
     List<WinHashState> completeStateListFORDEBUG = new ArrayList<>();
+    List<WinHashState> notCompleteStateListFORDEBUG = new ArrayList<>();
     private int stateCounter;
+    private int uncompleteStateCounter;
     long broadcastWatermark = 1;
     private int totalEdgesBroadcasted = 0;
     int totalWaitingEdgesCalls;
@@ -84,6 +86,8 @@ public class MatchFunctionWinHash extends KeyedBroadcastProcessFunction<Integer,
     /** The state that is maintained by this process function */
     private ValueState<ProcessStateLong> state;
     private int parallelism;
+    List<Long> totalTimesStateStateCompletion = new ArrayList<>();
+
 
     // private ListState<ProcessState> state1;
    //MapStateDescriptor<String, Tuple2<Long,Boolean>> updatedStateDescriptor = new MapStateDescriptor<>("keineAhnung", BasicTypeInfo.STRING_TYPE_INFO, ValueTypeInfo.BOOLEAN_VALUE_TYPE_INFO);
@@ -113,8 +117,16 @@ public class MatchFunctionWinHash extends KeyedBroadcastProcessFunction<Integer,
     public void processBroadcastElement(Tuple2<HashMap<Integer, Integer>,Long> broadcastElement, Context ctx, Collector<Tuple2<Edge<Integer, NullValue>,Integer>> out) throws Exception {
 
         long hashValue = broadcastElement.f1;
+
         globalCounterForPrint++;
-        countBroadcastsOnWorker++;
+
+
+
+
+        /*if (TEMPGLOBALVARIABLES.printTime) {
+            if (globalCounterForPrint > 2_000)
+            ctx.output(GraphPartitionerImpl.outputTag,"broadcasts " + globalCounterForPrint);
+        }*/
 
         int edgeDegreeInBroadcast = 0;
 
@@ -148,9 +160,20 @@ public class MatchFunctionWinHash extends KeyedBroadcastProcessFunction<Integer,
         double edgesInBroadcast = (double) edgeDegreeInBroadcast / 2;
         //System.out.println(broadcastElement.f0 + " -- size " + " -- " + edgesInBroadcast);
 
-        updateState(broadcastElement.f1,(int) edgesInBroadcast);
+        updateState(hashValue,(int) edgesInBroadcast);
+
+        // debugging progress
+            //ctx.output(GraphPartitionerImpl.outputTag,checkProgressDEBUG());
 
         emitAllReadyEdges(out);
+
+/*        if (uncompleteStateCounter > 0 && collectedEdges > 345000) {
+            ctx.output(GraphPartitionerImpl.outputTag,"EDGE progress: " + checkUncompleteDEBUG());
+            String progress = checkTimer();
+            ctx.output(GraphPartitionerImpl.outputTag, progress); // " --- " + df.format(((double) totalEdgesBroadcasted/parallelism) / (double) counterEdgesInstance) + " diff broadcasted/processed");
+        }*/
+
+
 
         //ctx.output(GraphPartitionerImpl.outputTag,"BROAD > " + broadcastElement.f1 + " > " + edgesInBroadcast +  " > " + broadcastElement.f0);
         //checkDifference(broadcastElement.f1, 0,ctx.currentWatermark(),ctx.currentProcessingTime(), edgeDegreeInBroadcast, broadcastElement.f0.toString());
@@ -196,12 +219,26 @@ public class MatchFunctionWinHash extends KeyedBroadcastProcessFunction<Integer,
 
         updateState(currentEdge.f2,currentEdge);
 
+        // debugging progress
+        //ctx.output(GraphPartitionerImpl.outputTag,checkProgressDEBUG());
+
         emitAllReadyEdges(out);
+
+        if (counterEdgesInstance % 1_000_000 == 0)
+            ctx.output(GraphPartitionerImpl.outputTag, checkTimer());
+
+/*
+        if (uncompleteStateCounter > 0 && collectedEdges > 345000) {
+            ctx.output(GraphPartitionerImpl.outputTag,"EDGE progress: " + checkUncompleteDEBUG());
+            String progress = checkTimer();
+            ctx.output(GraphPartitionerImpl.outputTag, progress); // " --- " + df.format(((double) totalEdgesBroadcasted/parallelism) / (double) counterEdgesInstance) + " diff broadcasted/processed");
+        }*/
+
 
         if (TEMPGLOBALVARIABLES.printTime) {
             if (counterEdgesInstance < 2) {
                 ctx.output(GraphPartitionerImpl.outputTag, "new Job started");
-                ctx.output(GraphPartitionerImpl.outputTag, "REP > CurrentWatermark > ratioRepeats > totalNumRepetitions > keysInRepeatMap > keyDistributionRepeat");
+                //ctx.output(GraphPartitionerImpl.outputTag, "REP > CurrentWatermark > ratioRepeats > totalNumRepetitions > keysInRepeatMap > keyDistributionRepeat");
             }
             if (counterEdgesInstance % TEMPGLOBALVARIABLES.printModulo == 0) {
                 String progress = checkTimer();
@@ -243,7 +280,7 @@ public class MatchFunctionWinHash extends KeyedBroadcastProcessFunction<Integer,
                 out.collect(new Tuple2<>(new Edge<>(src,trg, NullValue.getInstance()),partitionId));
                 collectedEdges++;
                 edgesToBeRemoved.add(e);
-            }
+             }
             if (winState.getEdgeList().size() != edgesToBeRemoved.size()) {
                 System.out.println("not all edges removed (emitAllReadyEdges)");
             } else {
@@ -282,6 +319,7 @@ public class MatchFunctionWinHash extends KeyedBroadcastProcessFunction<Integer,
         if (windowStateMap.containsKey(hashvalue)) {
             winState = windowStateMap.get(hashvalue);
             boolean complete = winState.addBroadcast(size);
+            winState.setUpdated(true);
             //System.out.println(" new size for state " + winState.getKey() + " with size" + winState.getSize() + " having " + winState.getEdgeList().size() + " edges");
             if (complete) {
                 addStateToReadyList(winState);
@@ -289,9 +327,14 @@ public class MatchFunctionWinHash extends KeyedBroadcastProcessFunction<Integer,
         } else {
             winState = new WinHashState(hashvalue,size);
             windowStateMap.put(hashvalue,winState);
-            stateCounter++;
+            if (TEMPGLOBALVARIABLES.printTime) {
+                //notCompleteStateListFORDEBUG.add(winState);
+                //stateCounter++;
+            }
+
             //System.out.println(stateCounter + "# added state " + winState.getKey() + " in broadcast with size " + winState.getSize());
         }
+
     }
 
     private void updateState(long hashvalue, Edge edge) throws Exception {
@@ -301,13 +344,21 @@ public class MatchFunctionWinHash extends KeyedBroadcastProcessFunction<Integer,
             winState = windowStateMap.get(hashvalue);
             //System.out.println(" new edge " + edge.f0 + "," + edge.f1 + " for state " + winState.getKey() + " with size" + winState.getSize());
             boolean complete = winState.addEdge(edge);
+            winState.setUpdated(true);
             if (complete) {
                 addStateToReadyList(winState);
+            } else {
+
             }
         } else {
             winState = new WinHashState(hashvalue,edge);
             windowStateMap.put(hashvalue,winState);
-            stateCounter++;
+            if (TEMPGLOBALVARIABLES.printTime) {
+                notCompleteStateListFORDEBUG.add(winState);
+                stateCounter++;
+                uncompleteStateCounter++;
+            }
+
             //System.out.println(stateCounter + "# - adding state " + edge.f0 + "," + edge.f1 + " to state " + winState.getKey() + " with size" + winState.getSize());
         }
 
@@ -315,19 +366,89 @@ public class MatchFunctionWinHash extends KeyedBroadcastProcessFunction<Integer,
 
     public void addStateToReadyList(WinHashState winState) {
         completeCounter++;
+        uncompleteStateCounter--;
         completeStateList.add(winState);
 
-        // debug
-        completeStateListFORDEBUG.add(winState);
-        if (completeStateListFORDEBUG.size() % 50000 == 0) {
-            totalTimesStateStateCompletion.add(winState.getTotalTime());
-            System.out.println("Size of completed " + totalTimesStateStateCompletion.size());
+        // debugging
+        if (TEMPGLOBALVARIABLES.printTime) {
+            notCompleteStateListFORDEBUG.remove(winState);
+            completeStateListFORDEBUG.add(winState);
+        }
+
+    }
+
+
+    // debug
+    public String checkUncompleteDEBUG() {
+        String returnString = "NC total: " + uncompleteStateCounter;
+        int createdByEle = 0;
+        List<WinHashState> createdByEleList = new ArrayList<>();
+        int createdByBro = 0;
+        List<WinHashState> createdByBroList = new ArrayList<>();
+        double sumUpdateTime = 0.0;
+        double sumCompleteTime = 0.0;
+        double avgCompleteTime = 0.0;
+        double completeCounter = 0.0;
+        double updateCounter = 0.0;
+
+        for (WinHashState w : notCompleteStateListFORDEBUG) {
+            if (w.getCreatedBy().equals("ele") && !w.isAddedToWatchList()) {
+                createdByEle++;
+                createdByEleList.add(w);
+            } else {
+                System.out.println("whoops not created by Ele " + w.getKey() + "  " + w.getEdgeList());
+            }
+        }
+
+        returnString = returnString + ", by Ele : " + createdByEleList.size() + " ||| uncomplete (by ele) : ";
+
+        for (WinHashState w : createdByEleList) {
+            returnString = returnString + " (k=" + w.getKey() + " s=" +  w.getSize() +" t= " +  (System.currentTimeMillis() - w.getStarttime()) + " e= " + w.getEdgeList().get(0) + " listSize=" + w.getEdgeList().size() + ") ;;";
+        }
+
+
+        return returnString;
+    }
+
+    // debug
+    public String checkProgressDEBUG() {
+        String returnString = "";
+        double avgUpdateTime = 0.0;
+        double sumUpdateTime = 0.0;
+        double sumCompleteTime = 0.0;
+        double avgCompleteTime = 0.0;
+        double completeCounter = 0.0;
+        double updateCounter = 0.0;
+
+            for (WinHashState w : completeStateListFORDEBUG) {
+                returnString = returnString + "CO: " + w.getKey() + " " + w.getTotalTime() + " " + w.getSize() + " ;; ";
+                //totalTimesStateStateCompletion.add(w.getTotalTime());
+                sumCompleteTime += w.getTotalTime();
+                completeCounter++;
+            }
+        returnString = returnString + "AVG Complete Time = " + sumCompleteTime/completeCounter + " (complete: " + completeCounter + ") ;;";
+
+            for (WinHashState w : notCompleteStateListFORDEBUG) {
+                returnString = returnString + w.getKey() + " " + w.getTotalTime() + " " + w.getSize() + " ;; ";
+                //totalTimesStateStateCompletion.add(w.getUpdatetime());
+                sumUpdateTime += w.getUpdatetime();
+                updateCounter++;
+            }
+            returnString = returnString + "AVG UpdateTime = " + sumUpdateTime/updateCounter + " (incomplete: " + updateCounter + ") ;;";
+            /*System.out.println("Size of not-completed " + totalTimesStateStateCompletion.size());
             Percentile(totalTimesStateStateCompletion, 25);
             Percentile(totalTimesStateStateCompletion, 50);
             Percentile(totalTimesStateStateCompletion, 75);
-            Percentile(totalTimesStateStateCompletion, 100);
+            Percentile(totalTimesStateStateCompletion, 100);*/
+
+            return returnString;
         }
 
+
+    public static void Percentile(List<Long> latencies, double Percentile) {
+        Collections.sort(latencies);
+        System.out.print("p " + Percentile + ": " + (int)Math.ceil(((double)Percentile / (double)100) * (double)latencies.size()) + " ---- ");
+    }
 
 /*        if (completeCounter % 1 == 0) {
             //System.out.println("complete: " + completeCounter + " out of " + windowStateMap.size());
@@ -335,7 +456,7 @@ public class MatchFunctionWinHash extends KeyedBroadcastProcessFunction<Integer,
                 System.out.println("- " + w.getKey());
             }
         }*/
-    }
+
 
 
 
@@ -429,13 +550,6 @@ public class MatchFunctionWinHash extends KeyedBroadcastProcessFunction<Integer,
         return repeatDistribution;
     }
 
-
-    public static void Percentile(List<Long> latencies, double Percentile) {
-        Collections.sort(latencies);
-        System.out.print("p " + Percentile + ": " + (int)Math.ceil(((double)Percentile / (double)100) * (double)latencies.size()) + " ---- ");
-        System.out.println();
-
-    }
 
 }
 

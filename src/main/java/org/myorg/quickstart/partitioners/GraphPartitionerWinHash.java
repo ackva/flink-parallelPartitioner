@@ -202,7 +202,7 @@ public class GraphPartitionerWinHash {
         //DataStream<String> errorStream = phaseTwoStream.getSideOutput(outputTagError);
         //errorStream.print();
         sideOutputStream.print();
-        //sideOutputStream.writeAsText(loggingPath.replaceAll(":","_"));
+        sideOutputStream.writeAsText(loggingPath.replaceAll(":","_"));
 
         // Final Step -- Custom Partition, based on pre-calculated ID
         partitionedEdges = phaseTwoStream
@@ -214,6 +214,8 @@ public class GraphPartitionerWinHash {
 
         //Print result in human-readable way --> e.g. (4,2,0) means: EdgeDepr(4,2) partitioned to machineId 0
         partitionedEdges.writeAsText(outputPathPartitions.replaceAll(":","_"));
+        partitionedEdges.print();
+
 
         // ### Execute the job in Flink
         //System.out.println(env.getExecutionPlan());

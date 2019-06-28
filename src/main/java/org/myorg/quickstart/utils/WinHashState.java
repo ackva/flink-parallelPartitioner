@@ -15,9 +15,12 @@ public class WinHashState {
     private int size;
 
     // debugging attributes
+    private boolean addedToWatchList;
     private long starttime;
     private long updatetime;
     private long totalTime;
+    private boolean updated;
+    private String createdBy;
 
     private long watermark;
     private long diffWatermarkTime;
@@ -49,7 +52,9 @@ public class WinHashState {
         this.edgesInState.add(edge);
         this.size = -1;
         this.complete = false;
+        this.createdBy = "ele";
         this.starttime = System.currentTimeMillis();
+        this.updatetime = 0;
     }
 
     public WinHashState(long hashValue, int size) {
@@ -57,14 +62,23 @@ public class WinHashState {
         this.edgesInState = new ArrayList<>();
         this.size = size;
         this.complete = false;
+        this.createdBy = "bro";
         this.starttime = System.currentTimeMillis();
+        this.updatetime = 0;
     }
 
+    public boolean isAddedToWatchList() {
+        return addedToWatchList;
+    }
 
+    public void setAddedToWatchList(boolean addedToWatchList) {
+        this.addedToWatchList = addedToWatchList;
+    }
 
     public boolean addEdge(Edge edge) throws Exception {
         this.edgesInState.add(edge);
         this.updatetime = System.currentTimeMillis();
+        this.updated = true;
         if(checkComplete())
             return true;
         else
@@ -74,6 +88,7 @@ public class WinHashState {
     public boolean addBroadcast(int size) {
         this.size = size;
         this.updatetime = System.currentTimeMillis();
+        this.updated = true;
 
         if (checkComplete())
             return true;
@@ -122,6 +137,14 @@ public class WinHashState {
         return "Diff Watermark: " + diffWatermark + " || Diff Processing: " + diffProcessing;
     }
 
+    public void setUpdated(boolean updated) {
+        this.updated = updated;
+    }
+
+    public boolean isUpdated() {
+        return updated;
+    }
+
     public int getCounterEdgesBroadcast() {
         return counterEdgesBroadcast;
     }
@@ -129,6 +152,15 @@ public class WinHashState {
     public void clearEdgeList() {
         this.edgesInState.clear();
 
+    }
+
+    public long getUpdatetime() {
+        return updatetime;
+    }
+
+
+    public long getStarttime() {
+        return starttime;
     }
 
     public long getTotalTime() {
@@ -158,6 +190,10 @@ public class WinHashState {
 
     public Long getKey() {
         return this.key;
+    }
+
+    public String getCreatedBy() {
+        return createdBy;
     }
 
     public void printUpdateMessage() {
