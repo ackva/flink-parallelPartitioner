@@ -32,35 +32,89 @@ public class GraphPartitionMultiple {
     public static int k = 2; // parallelism - partitions
     public static double lambda = 1.0;
     public static boolean localRun = false;
-    public static int stateDelay = 0;
+    public static int sampleSize = 1_000_000;
 
 
     public static void main (String[] args) throws Exception {
 
+        System.out.println(" WORKING WITH TRIAL!!!! --- 2");
+
         parseParameters(args);
 
-
         for (int i = 0; i < 2; i++) {
-            GraphPartitionerWinHash gpw = new GraphPartitionerWinHash(
-                    printInfo,
-                    inputPath,
-                    algorithm,
-                    keyParam,
-                    k,
-                    globalPhase,
-                    graphName,
-                    outputStatistics,
-                    outputPath,
-                    windowSizeInMs,
-                    wait,
-                    stateDelay,
-                    testing
+            GraphPartitionerWinHash2 gpw = new GraphPartitionerWinHash2(
+                    printInfo,  inputPath, algorithm, keyParam, k, globalPhase, graphName, outputStatistics, outputPath, windowSizeInMs, wait, sampleSize, testing
             );
-
             gpw.partitionGraph();
-
             Thread.sleep(1000);
         }
+
+/*        int numOfRuns = 3;
+
+        for (int i = 0; i < numOfRuns; i++) {
+            GraphPartitionerWinHash2 gpw = new GraphPartitionerWinHash2(
+                    printInfo,  inputPath, algorithm, keyParam, 4, 4, graphName, outputStatistics, outputPath, windowSizeInMs, wait, stateDelay, testing
+            );
+            gpw.partitionGraph();
+            Thread.sleep(1000);
+        }
+
+        for (int i = 0; i < numOfRuns; i++) {
+            GraphPartitionerWinHash2 gpw = new GraphPartitionerWinHash2(
+                    printInfo,  inputPath, algorithm, keyParam, 4, 1, graphName, outputStatistics, outputPath, windowSizeInMs, wait, stateDelay, testing
+            );
+            gpw.partitionGraph();
+            Thread.sleep(1000);
+        }
+
+        for (int i = 0; i < numOfRuns; i++) {
+            GraphPartitionerWinHash2 gpw = new GraphPartitionerWinHash2(
+                    printInfo,  inputPath, algorithm, keyParam, 2, 2, graphName, outputStatistics, outputPath, windowSizeInMs, wait, stateDelay, testing
+            );
+            gpw.partitionGraph();
+            Thread.sleep(1000);
+        }
+
+        for (int i = 0; i < numOfRuns; i++) {
+            GraphPartitionerWinHash2 gpw = new GraphPartitionerWinHash2(
+                    printInfo,  inputPath, algorithm, keyParam, 2, 1, graphName, outputStatistics, outputPath, windowSizeInMs, wait, stateDelay, testing
+            );
+            gpw.partitionGraph();
+            Thread.sleep(1000);
+        }
+
+        for (int i = 0; i < numOfRuns; i++) {
+            GraphPartitionerWinHash2 gpw = new GraphPartitionerWinHash2(
+                    printInfo,  inputPath, algorithm, keyParam, 16, 1, graphName, outputStatistics, outputPath, windowSizeInMs, wait, stateDelay, testing
+            );
+            gpw.partitionGraph();
+            Thread.sleep(1000);
+        }
+
+        for (int i = 0; i < numOfRuns; i++) {
+            GraphPartitionerWinHash2 gpw = new GraphPartitionerWinHash2(
+                    printInfo,  inputPath, algorithm, keyParam, 16, 16, graphName, outputStatistics, outputPath, windowSizeInMs, wait, stateDelay, testing
+            );
+            gpw.partitionGraph();
+            Thread.sleep(1000);
+        }
+
+        for (int i = 0; i < numOfRuns; i++) {
+            GraphPartitionerWinHash2 gpw = new GraphPartitionerWinHash2(
+                    printInfo,  inputPath, algorithm, keyParam, 8, 8, graphName, outputStatistics, outputPath, windowSizeInMs, wait, stateDelay, testing
+            );
+            gpw.partitionGraph();
+            Thread.sleep(1000);
+        }
+
+        for (int i = 0; i < numOfRuns; i++) {
+            GraphPartitionerWinHash2 gpw = new GraphPartitionerWinHash2(
+                    printInfo,  inputPath, algorithm, keyParam, 8, 1, graphName, outputStatistics, outputPath, windowSizeInMs, wait, stateDelay, testing
+            );
+            gpw.partitionGraph();
+            Thread.sleep(1000);
+        }*/
+
 
     }
 
@@ -78,7 +132,7 @@ public class GraphPartitionMultiple {
             outputPath = args[8];
             windowSizeInMs = Long.parseLong(args[9]);
             wait = Long.parseLong(args[10]);
-            stateDelay = Integer.valueOf(args[11]);
+            sampleSize = Integer.valueOf(args[11]);
             testing = args[12];
         } else {
             System.out.println("Please provide parameters.");

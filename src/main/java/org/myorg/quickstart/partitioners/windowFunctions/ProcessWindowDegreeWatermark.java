@@ -28,10 +28,11 @@ public class ProcessWindowDegreeWatermark extends ProcessWindowFunction<Edge<Int
     // The process function keeps a hashmap that tracks the vertex degrees ** per Window AND key **
     public void process(Integer key, Context context, Iterable<Edge<Integer, Long>> edgeIterable, Collector<Tuple2<HashMap<Integer, Integer>,Long>> out) throws Exception {
 
+
         if (currentWatermark != context.currentWatermark()) {
             watermarks.add(context.currentWatermark());
             currentWatermark = context.currentWatermark();
-            //System.out.println("DEG _ new Watermark = " + currentWatermark + " old: " + watermarks);
+            System.out.println("DEG _ new Watermark = " + currentWatermark + " old: " + watermarks);
         }
 
         //System.out.println("new window (fake) " + context.currentProcessingTime() + " current watermark: " + context.currentWatermark());
@@ -52,7 +53,7 @@ public class ProcessWindowDegreeWatermark extends ProcessWindowFunction<Edge<Int
             int target = Integer.parseInt(e.f1.toString());
             long edgeHash = Long.parseLong(e.f2.toString());
             //System.out.println("DEGRE > " + context.currentWatermark() + " > " + source + "|" + target + "|" + edgeHash);
-            // Add source vertex with degree 1, if no map entry exists. Otherwise, increment by 1
+             // Add source vertex with degree 1, if no map entry exists. Otherwise, increment by 1
             //float newHash = (source * target) % nextPrime;
             //hashString = hashString + newHash + ", ";
             if (!vertexDegreeMap.containsKey(source))

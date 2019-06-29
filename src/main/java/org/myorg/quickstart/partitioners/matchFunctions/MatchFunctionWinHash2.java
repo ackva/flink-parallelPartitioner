@@ -1,18 +1,18 @@
 package org.myorg.quickstart.partitioners.matchFunctions;
 
+import org.apache.flink.api.common.state.ListState;
 import org.apache.flink.api.common.state.ValueState;
 import org.apache.flink.api.common.state.ValueStateDescriptor;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.graph.Edge;
+import org.apache.flink.streaming.api.TimerService;
 import org.apache.flink.streaming.api.functions.co.BaseBroadcastProcessFunction;
 import org.apache.flink.streaming.api.functions.co.KeyedBroadcastProcessFunction;
-import org.apache.flink.types.IntValue;
 import org.apache.flink.types.NullValue;
 import org.apache.flink.util.Collector;
 import org.myorg.quickstart.partitioners.GraphPartitionerImpl;
 import org.myorg.quickstart.utils.*;
-import scala.xml.Null;
 
 import java.text.DecimalFormat;
 import java.util.*;
@@ -26,18 +26,14 @@ import static java.lang.Math.toIntExact;
  *
  */
 
-public class MatchFunctionWinHash extends KeyedBroadcastProcessFunction<Integer, Edge<Integer, Long>, Tuple2<HashMap<Integer, Integer>,Long>, Tuple2<Edge<Integer, NullValue>,Integer>> {
+public class MatchFunctionWinHash2 extends KeyedBroadcastProcessFunction<Integer, Edge<Integer, Long>, Tuple2<HashMap<Integer, Integer>,Long>, Tuple2<Edge<Integer, NullValue>,Integer>> {
 
     long currentWatermarkBro = 1;
     long currentWatermarkEle = 1;
-    private HashMap<Long,Integer> repeatMap = new HashMap<>();
-    private HashMap<ProcessStateLong,Long> allStates = new HashMap<>();
-    private List<ProcessStateLong> allStateList = new ArrayList<>();
 
-    boolean lastcall;
-    int edgeOutputCount;
     List<WinHashState> completeStateListFORDEBUG = new ArrayList<>();
     List<WinHashState> notCompleteStateListFORDEBUG = new ArrayList<>();
+    List<ProcessStateWatermark> allStates = new ArrayList<>();
     private int stateCounter;
     private int uncompleteStateCounter;
     long broadcastWatermark = 1;
@@ -73,17 +69,17 @@ public class MatchFunctionWinHash extends KeyedBroadcastProcessFunction<Integer,
     private long startTime = System.currentTimeMillis();
     private int stateDelay = 0;
     /** The state that is maintained by this process function */
-    private ValueState<ProcessStateLong> state;
+    private ValueState<ProcessStateWatermark> state;
     private int parallelism;
     List<Long> totalTimesStateStateCompletion = new ArrayList<>();
 
 
-    // private ListState<ProcessState> state1;
+    private ListState<ProcessState> state1;
    //MapStateDescriptor<String, Tuple2<Long,Boolean>> updatedStateDescriptor = new MapStateDescriptor<>("keineAhnung", BasicTypeInfo.STRING_TYPE_INFO, ValueTypeInfo.BOOLEAN_VALUE_TYPE_INFO);
     private int nullCounter = 0;
 
 
-    public MatchFunctionWinHash(String algorithm, Integer k, double lambda) {
+    public MatchFunctionWinHash2(String algorithm, Integer k, double lambda) {
         this.algorithm = algorithm;
         this.stateDelay = stateDelay;
         this.parallelism = k;
@@ -94,32 +90,15 @@ public class MatchFunctionWinHash extends KeyedBroadcastProcessFunction<Integer,
             this.modelBuilder = new ModelBuilderGellyLong(algorithm, vertexDegreeMap, k);
     }
 
-    @Override
-    public void open(Configuration parameters) throws Exception {
-        state = getRuntimeContext().getState(new ValueStateDescriptor<>("myState", ProcessStateLong.class));
-        //System.out.println("state delay: " + stateDelay);
-    }
-
-
     // This function is called every time when a broadcast state is processed from the previous phase
     @Override
     public void processBroadcastElement(Tuple2<HashMap<Integer, Integer>,Long> broadcastElement, Context ctx, Collector<Tuple2<Edge<Integer, NullValue>,Integer>> out) throws Exception {
 
+        countBroadcastsOnWorker++;
+
         long hashValue = broadcastElement.f1;
 
-        globalCounterForPrint++;
-
-
-
-
-        /*if (TEMPGLOBALVARIABLES.printTime) {
-            if (globalCounterForPrint > 2_000)
-            ctx.output(GraphPartitionerImpl.outputTag,"broadcasts " + globalCounterForPrint);
-        }*/
-
         int edgeDegreeInBroadcast = 0;
-
-        //double edgesInBroadcast = 0;
 
         // ### Merge local model from Phase 1 with global model, here in Phase 2
         int degree;
@@ -147,57 +126,10 @@ public class MatchFunctionWinHash extends KeyedBroadcastProcessFunction<Integer,
         }
 
         double edgesInBroadcast = (double) edgeDegreeInBroadcast / 2;
-        //System.out.println(broadcastElement.f0 + " -- size " + " -- " + edgesInBroadcast);
 
         updateState(hashValue,(int) edgesInBroadcast);
 
-        // debugging progress
-            //ctx.output(GraphPartitionerImpl.outputTag,checkProgressDEBUG());
-
         emitAllReadyEdges(out);
-
-/*        if (uncompleteStateCounter > 0 && collectedEdges > 345000) {
-            ctx.output(GraphPartitionerImpl.outputTag,"EDGE progress: " + checkUncompleteDEBUG());
-            String progress = checkTimer();
-            ctx.output(GraphPartitionerImpl.outputTag, progress); // " --- " + df.format(((double) totalEdgesBroadcasted/parallelism) / (double) counterEdgesInstance) + " diff broadcasted/processed");
-        }*/
-
-
-
-        //ctx.output(GraphPartitionerImpl.outputTag,"BROAD > " + broadcastElement.f1 + " > " + edgesInBroadcast +  " > " + broadcastElement.f0);
-        //checkDifference(broadcastElement.f1, 0,ctx.currentWatermark(),ctx.currentProcessingTime(), edgeDegreeInBroadcast, broadcastElement.f0.toString());
-
-/*        long waitEdgesTime = 0;
-        if (waitingEdges.size() > 0) {
-            totalWaitingEdgesCalls++;
-            long startTime2 = System.nanoTime();
-            List<Edge<Integer, Long>> toBeRemoved = new ArrayList<>();
-            for (Edge<Integer, Long> e : waitingEdges) {
-                if (checkIfEarlyArrived(e)) {
-                    int partitionId = modelBuilder.choosePartition(e);
-                    out.collect(new Tuple2<>(e, partitionId));
-                    edgeOutputCount++;
-                    toBeRemoved.add(e);
-                } else {
-                    break;
-                }
-            }
-            double ratioRemainingInWaitingEdges = (waitingEdges.size() - toBeRemoved.size()) / waitingEdges.size();
-            //ctx.output(GraphPartitionerImpl.outputTag,(waitingEdges.size()-toBeRemoved.size()) + " remain from " + waitingEdges.size());
-            waitingEdges.removeAll(toBeRemoved);
-
-            if (TEMPGLOBALVARIABLES.printTime) {
-                //double ratioRemainingInWaitingEdges = (waitingEdges.size() - toBeRemoved.size()) / waitingEdges.size();
-                ratioRemainingInWaitingList.add(ratioRemainingInWaitingEdges);
-                if (ratioRemainingInWaitingEdges < 1 && ratioRemainingInWaitingEdges > 0)
-                    System.out.print(ratioRemainingInWaitingEdges * 100 + "%; ");
-
-                //ctx.output(GraphPartitionerImpl.outputTag, "REL > " + toBeRemoved.size() + " > " + globalCounterForPrint);
-                long endTime2 = System.nanoTime();
-                waitEdgesTime = endTime2 - startTime2;
-            }
-        }*/
-
 
     }
 
@@ -206,57 +138,42 @@ public class MatchFunctionWinHash extends KeyedBroadcastProcessFunction<Integer,
 
         counterEdgesInstance++;
 
-        updateState(currentEdge.f2,currentEdge);
+        ProcessStateWatermark current = state.value();
+        if (current == null) {
+            current = new ProcessStateWatermark();
+            allStates.add(current);
+            current.key = ctx.currentWatermark();
+            //System.out.println("new state: all states: " + allStates.size() + " - total edge counter " + counterEdgesInstance);
+        } else {
+            //System.out.println("state exists");
+        }
+        current.lastModified = ctx.currentWatermark();
+        state.update(current);
+        ctx.timerService().registerEventTimeTimer(current.lastModified + 10000);
 
-        // debugging progress
-        //ctx.output(GraphPartitionerImpl.outputTag,checkProgressDEBUG());
+        updateState(currentEdge.f2,currentEdge);
 
         emitAllReadyEdges(out);
 
-        /*if (counterEdgesInstance % 1_000_000 == 0)
-            ctx.output(GraphPartitionerImpl.outputTag, checkTimer());*/
-
-/*
-        if (uncompleteStateCounter > 0 && collectedEdges > 345000) {
-            ctx.output(GraphPartitionerImpl.outputTag,"EDGE progress: " + checkUncompleteDEBUG());
-            String progress = checkTimer();
-            ctx.output(GraphPartitionerImpl.outputTag, progress); // " --- " + df.format(((double) totalEdgesBroadcasted/parallelism) / (double) counterEdgesInstance) + " diff broadcasted/processed");
-        }*/
-
-
-        if (TEMPGLOBALVARIABLES.printTime) {
-            if (counterEdgesInstance < 2) {
-                ctx.output(GraphPartitionerImpl.outputTag, "new Job started");
-                //ctx.output(GraphPartitionerImpl.outputTag, "REP > CurrentWatermark > ratioRepeats > totalNumRepetitions > keysInRepeatMap > keyDistributionRepeat");
-            }
-            if (counterEdgesInstance % TEMPGLOBALVARIABLES.printModulo == 0) {
-                String progress = checkTimer();
-                ctx.output(GraphPartitionerImpl.outputTag, progress); // " --- " + df.format(((double) totalEdgesBroadcasted/parallelism) / (double) counterEdgesInstance) + " diff broadcasted/processed");
-            }
-            /*if (counterEdgesInstance % 670000 == 0) {
-                String toPrint = "";
-                Iterator it = windowStateMap.entrySet().iterator();
-                while (it.hasNext()) {
-                    Map.Entry<Integer, HashSet<Integer>> stateEntry = (Map.Entry)it.next();
-
-                    if(vertexPartition.keySet().contains(stateEntry.getKey())) {
-                        HashSet<Integer> partitionSet = vertexPartition.get(stateEntry.getKey());
-                        for(Integer i: stateEntry.getValue())
-                            partitionSet.add(i);
-                        vertexPartition.put(stateEntry.getKey(),partitionSet);
-                    } else {
-                        vertexPartition.put(stateEntry.getKey(),stateEntry.getValue());
-                    }
-                }
-                ctx.output(GraphPartitionerImpl.outputTag,
-
-
-                        String progress = checkTimer();
-                ctx.output(GraphPartitionerImpl.outputTag, progress); // " --- " + df.format(((double) totalEdgesBroadcasted/parallelism) / (double) counterEdgesInstance) + " diff broadcasted/processed");
-            }*/
-        }
 
     }
+
+    @Override
+    public void open(Configuration parameters) throws Exception {
+        state = getRuntimeContext().getState(new ValueStateDescriptor<>("myState", ProcessStateWatermark.class));
+
+
+    }
+
+    public void onTimer(long timestamp, OnTimerContext ctx, Collector<Tuple2<Edge<Integer, NullValue>, Integer>> out) throws Exception {
+
+        ProcessStateWatermark edgeState = state.value();
+        onTimerCount++;
+
+        emitAllReadyEdges(out);
+
+    }
+
 
     private void emitAllReadyEdges(Collector<Tuple2<Edge<Integer, NullValue>,Integer>> out) throws Exception {
         List<WinHashState> statesToBeRemoved = new ArrayList<>();
@@ -316,13 +233,7 @@ public class MatchFunctionWinHash extends KeyedBroadcastProcessFunction<Integer,
         } else {
             winState = new WinHashState(hashvalue,size);
             windowStateMap.put(hashvalue,winState);
-            if (TEMPGLOBALVARIABLES.printTime) {
-                //notCompleteStateListFORDEBUG.add(winState);
-                //stateCounter++;
-            }
-
-            //System.out.println(stateCounter + "# added state " + winState.getKey() + " in broadcast with size " + winState.getSize());
-        }
+      }
 
     }
 
@@ -358,54 +269,19 @@ public class MatchFunctionWinHash extends KeyedBroadcastProcessFunction<Integer,
         uncompleteStateCounter--;
         completeStateList.add(winState);
 
-        // debugging
+/*        // debugging
         if (TEMPGLOBALVARIABLES.printTime) {
             notCompleteStateListFORDEBUG.remove(winState);
             completeStateListFORDEBUG.add(winState);
-        }
+        }*/
 
-    }
-
-
-    // debug
-    public String checkUncompleteDEBUG() {
-        String returnString = "NC total: " + uncompleteStateCounter;
-        int createdByEle = 0;
-        List<WinHashState> createdByEleList = new ArrayList<>();
-        int createdByBro = 0;
-        List<WinHashState> createdByBroList = new ArrayList<>();
-        double sumUpdateTime = 0.0;
-        double sumCompleteTime = 0.0;
-        double avgCompleteTime = 0.0;
-        double completeCounter = 0.0;
-        double updateCounter = 0.0;
-
-        for (WinHashState w : notCompleteStateListFORDEBUG) {
-            if (w.getCreatedBy().equals("ele") && !w.isAddedToWatchList()) {
-                createdByEle++;
-                createdByEleList.add(w);
-            } else {
-                System.out.println("whoops not created by Ele " + w.getKey() + "  " + w.getEdgeList());
-            }
-        }
-
-        returnString = returnString + ", by Ele : " + createdByEleList.size() + " ||| uncomplete (by ele) : ";
-
-        for (WinHashState w : createdByEleList) {
-            returnString = returnString + " (k=" + w.getKey() + " s=" +  w.getSize() +" t= " +  (System.currentTimeMillis() - w.getStarttime()) + " e= " + w.getEdgeList().get(0) + " listSize=" + w.getEdgeList().size() + ") ;;";
-        }
-
-
-        return returnString;
     }
 
     // debug
     public String checkProgressDEBUG() {
         String returnString = "";
-        double avgUpdateTime = 0.0;
         double sumUpdateTime = 0.0;
         double sumCompleteTime = 0.0;
-        double avgCompleteTime = 0.0;
         double completeCounter = 0.0;
         double updateCounter = 0.0;
 
@@ -424,51 +300,14 @@ public class MatchFunctionWinHash extends KeyedBroadcastProcessFunction<Integer,
                 updateCounter++;
             }
             returnString = returnString + "AVG UpdateTime = " + sumUpdateTime/updateCounter + " (incomplete: " + updateCounter + ") ;;";
-            /*System.out.println("Size of not-completed " + totalTimesStateStateCompletion.size());
-            Percentile(totalTimesStateStateCompletion, 25);
-            Percentile(totalTimesStateStateCompletion, 50);
-            Percentile(totalTimesStateStateCompletion, 75);
-            Percentile(totalTimesStateStateCompletion, 100);*/
 
             return returnString;
         }
-
 
     public static void Percentile(List<Long> latencies, double Percentile) {
         Collections.sort(latencies);
         System.out.print("p " + Percentile + ": " + (int)Math.ceil(((double)Percentile / (double)100) * (double)latencies.size()) + " ---- ");
     }
-
-/*        if (completeCounter % 1 == 0) {
-            //System.out.println("complete: " + completeCounter + " out of " + windowStateMap.size());
-            for (WinHashState w : completeStateListFORDEBUG) {
-                System.out.println("- " + w.getKey());
-            }
-        }*/
-
-
-
-
-
-      /*  avgDiffWatermark = arrivedDiffWaterMark.get(hashvalue) / edgeCounter;
-        avgDiffWatermark = arrivedDiffProcessing.get(hashvalue) / edgeCounter;
-
-        arrivedDiffWaterMark.put(hashvalue,-1L);
-        arrivedDiffProcessing.put(hashvalue,-1L);*/
-
-
-/*        System.out.println("Arrived First: " + arrivedFirst.size() + " --> " + arrivedFirst);
-        System.out.println("Differences Watermarks : " + arrivedDiffWaterMark.size() + " --> " + arrivedDiffWaterMark);
-        System.out.println("Differences Processing : " + arrivedDiffProcessing.size() + " --> " + arrivedDiffProcessing);
-        System.out.println("Differences SystemTime : " + arrivedDiffProcessing.size() + " --> " + arrivedDiffSysTime);
-        System.out.println("Avg Diff Watermarks: " + avgDiffWatermark);
-        System.out.println("Avg Diff Processing: " + avgDiffProcessing);
-        System.out.println("Avg Diff SystemTime: " + avgDiffSysTime);*/
-
-
-
-
-
 
     private boolean checkIfEarlyArrived(Edge<Integer, Long> currentEdge) {
 
@@ -503,42 +342,6 @@ public class MatchFunctionWinHash extends KeyedBroadcastProcessFunction<Integer,
         long difference = timeNow - startTime;
         return "MAT > " + System.currentTimeMillis() + " > "  + collectedEdges + " > "  + difference/1000 + " > " + counterEdgesInstance;
     }
-
-    private Tuple2<Edge<Integer, Long>,Integer> emitEdge(Edge<Integer, Long> edge,int place, long currTime, BaseBroadcastProcessFunction.ReadOnlyContext ctx) throws Exception {
-        int partitionId = modelBuilder.choosePartition(edge);
-        collectedEdges++;
-        //if (collectedEdges % 100000 == 0)
-           // ctx.output(GraphPartitionerImpl.outputTag,ctx.broadcastWatermark() + "$ emitted$1$total$"+collectedEdges + "$" + edge + "$" + place + "$");
-        if (place != 1)
-            //ctx.output(GraphPartitionerImpl.outputTag,"WAITING__$1$total$"+collectedEdges + "$" + edge + "$" + place + "$$");
-        if (outputEdges.containsKey(edge.toString())) {
-            //ctx.output(GraphPartitionerImpl.outputTag,ctx.broadcastWatermark() + "$ " + edge + " -- " + duplicates.size() + " duplicate (delayed by) " + (outputEdges.get(edge.toString())-currTime));
-            duplicates.add(edge);
-
-            }
-        outputEdges.put(edge.toString(),currTime);
-        //System.out.println(collectedEdges);
-        return new Tuple2<>(edge, partitionId);
-    }
-
-
-    private HashMap getRepetitionDistribution(HashMap allRepeats) {
-        HashMap<Integer, Integer> repeatDistribution = new HashMap<>();
-        Iterator it = allRepeats.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry pair = (Map.Entry) it.next();
-            int value = Integer.parseInt(pair.getValue().toString());
-            if (repeatDistribution.containsKey(value)) {
-                int oldVal = repeatDistribution.get(value);
-                int newVal = oldVal + 1;
-                repeatDistribution.replace(value, oldVal, newVal);
-            } else {
-                repeatDistribution.put(value, 1);
-            }
-        }
-        return repeatDistribution;
-    }
-
 
 }
 

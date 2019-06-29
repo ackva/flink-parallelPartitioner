@@ -14,4 +14,5 @@ public class ProcessStateWatermark {
     public List<Edge<Integer, Long>> edgeList = new ArrayList<>();
     public long lastModified;
     public int repetition = 0;
+
 }

@@ -71,6 +71,9 @@ public class MatchFunctionWatermarkTrigger extends KeyedBroadcastProcessFunction
     private int countBroadcastsOnWorker = 0;
     //private List<Edge<Integer, Long>> waitingEdges;
 
+    long currentWatermark = 1;
+    List<Long> watermarks = new ArrayList<>();
+
     /** The state that is maintained by this process function */
 
 
@@ -89,6 +92,13 @@ public class MatchFunctionWatermarkTrigger extends KeyedBroadcastProcessFunction
 
         globalCounterForPrint++;
         countBroadcastsOnWorker++;
+
+        if (currentWatermark != ctx.currentWatermark()) {
+            watermarks.add(ctx.currentWatermark());
+            currentWatermark = ctx.currentWatermark();
+            System.out.println("BROAD _ new Watermark = " + currentWatermark + " old: " + watermarks);
+        }
+
 
         //System.out.println("BROAD > " + ctx.currentWatermark() + " > " + broadcastElement.f0 + "|" + broadcastElement.f1);
 
@@ -153,6 +163,7 @@ public class MatchFunctionWatermarkTrigger extends KeyedBroadcastProcessFunction
 
 
     }
+
 
     @Override
     public void processElement(Edge<Integer, Long> currentEdge, ReadOnlyContext ctx, Collector<Tuple2<Edge<Integer, Long>,Integer>> out) throws Exception {
@@ -278,7 +289,7 @@ public class MatchFunctionWatermarkTrigger extends KeyedBroadcastProcessFunction
         }
 
         if (state.value().repetition > 0 ) {
-            ctx.output(GraphPartitionerImpl.outputTag, edgeState.key + " state called (" + state.value().repetition + "x before) with " + state.value().edgeList.size() + " edges waiting - " + (ctx.currentWatermark() - state.value().lastModified) + " - readyWatermark: " + watermarkReady);
+            //ctx.output(GraphPartitionerImpl.outputTag, edgeState.key + " state called (" + state.value().repetition + "x before) with " + state.value().edgeList.size() + " edges waiting - " + (ctx.currentWatermark() - state.value().lastModified) + " - readyWatermark: " + watermarkReady);
             //ctx.output(GraphPartitionerImpl.outputTag,edgeState.key + " state edge list: " + edgeState.edgeList + "");
         }
 
@@ -329,7 +340,7 @@ public class MatchFunctionWatermarkTrigger extends KeyedBroadcastProcessFunction
             int edgeListSizeBefore = edgeState.edgeList.size();
             edgeState.edgeList.removeAll(toBeRemovedState);
             if (edgeState.edgeList.size() == edgeListSizeBefore && edgeListSizeBefore > 0)
-                ctx.output(GraphPartitionerImpl.outputTag,"NO IMPACT!! edge List now as big as before: " + edgeState.edgeList.size() + " edges for key " + edgeState.key);
+                //ctx.output(GraphPartitionerImpl.outputTag,"NO IMPACT!! edge List now as big as before: " + edgeState.edgeList.size() + " edges for key " + edgeState.key);
 
 
             if (state.value().edgeList.size() == 0) {

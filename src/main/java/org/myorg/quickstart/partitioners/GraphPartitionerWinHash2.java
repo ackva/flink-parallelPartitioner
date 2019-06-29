@@ -25,14 +25,12 @@ import org.apache.flink.util.OutputTag;
 import org.myorg.quickstart.applications.SimpleEdgeStream;
 import org.myorg.quickstart.jobstatistics.LoadBalanceCalculator;
 import org.myorg.quickstart.jobstatistics.VertexCut;
+import org.myorg.quickstart.partitioners.matchFunctions.MatchFunctionReservoirSampling;
 import org.myorg.quickstart.partitioners.matchFunctions.MatchFunctionWinHash;
-import org.myorg.quickstart.partitioners.matchFunctions.MatchFunctionWindowHash;
+import org.myorg.quickstart.partitioners.matchFunctions.MatchFunctionWinHash2;
 import org.myorg.quickstart.partitioners.windowFunctions.ProcessWindowDegreeHashed;
 import org.myorg.quickstart.partitioners.windowFunctions.ProcessWindowGellyHashValue;
-import org.myorg.quickstart.utils.CustomKeySelector6;
-import org.myorg.quickstart.utils.HashPartitioner;
 import org.myorg.quickstart.utils.TEMPGLOBALVARIABLES;
-import scala.xml.Null;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -74,7 +72,7 @@ import java.util.concurrent.TimeUnit;
  *   1 C:\flinkJobs\input\streamInput199.txt dbh 100 2 2 streamInput
  *
  */
-public class GraphPartitionerWinHash {
+public class GraphPartitionerWinHash2 {
 
     public static final OutputTag<String> outputTag = new OutputTag<String>("side-output"){};
     public static final OutputTag<String> outputTagError = new OutputTag<String>("side-error"){};
@@ -100,9 +98,9 @@ public class GraphPartitionerWinHash {
     public static int k = 2; // parallelism - partitions
     public static double lambda = 1.0;
     public static boolean localRun = false;
-    public static int stateDelay = 0;
+    public static int sampleSize = 0;
 
-    GraphPartitionerWinHash(
+    GraphPartitionerWinHash2(
             String printInfo, String inputPath, String algorithm, int keyParam, int k, int globalPhase, String graphName, String outputStatistics,
             String outputPath, long windowSizeInMs, long wait, int stateDelay, String testing) throws Exception {
         this.printInfo = printInfo;
@@ -116,12 +114,13 @@ public class GraphPartitionerWinHash {
         this.keyParam = keyParam;
         this.k = k;
         this.globalPhase = globalPhase;
+        System.out.println("Global phase value = " + globalPhase);
         this.graphName = graphName;
         this.outputStatistics = outputStatistics;
         this.outputPath = outputPath;
         this.windowSizeInMs = windowSizeInMs;
         this.wait = wait;
-        this.stateDelay = stateDelay;
+        this.sampleSize = stateDelay;
         this.testing = testing;
         if (testing.equals("localTest")) {
             localRun = true;
@@ -140,7 +139,7 @@ public class GraphPartitionerWinHash {
         loggingPath = outputPath + "/logs_" + folderName;
 
         ProcessWindowGellyHashValue firstPhaseProcessor = new ProcessWindowGellyHashValue();
-        MatchFunctionWinHash matchFunction = new MatchFunctionWinHash(algorithm, k, lambda);
+        MatchFunctionReservoirSampling matchFunction = new MatchFunctionReservoirSampling(algorithm, k, lambda, sampleSize);
         MapStateDescriptor<String, Tuple2<Integer, ArrayList<Integer>>> rulesStateDescriptor = new MapStateDescriptor<>("RulesBroadcastState", BasicTypeInfo.STRING_TYPE_INFO,tupleTypeInfo);
 
         //System.out.println(new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()) + " timestamp for whatever you want");
@@ -284,7 +283,7 @@ public class GraphPartitionerWinHash {
             outputPath = args[8];
             windowSizeInMs = Long.parseLong(args[9]);
             wait = Long.parseLong(args[10]);
-            stateDelay = Integer.valueOf(args[11]);
+            sampleSize = Integer.valueOf(args[11]);
             testing = args[12];
             if (testing.equals("localTest")) {
                 localRun = true;

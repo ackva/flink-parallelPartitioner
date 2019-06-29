@@ -7,17 +7,18 @@ import java.util.TreeSet;
 /**
  * Created by zainababbas on 05/02/2017.
  */
-public class StoredObject implements Serializable {
+public class StoredObjectFixedSize implements Serializable {
 
     private TreeSet<Byte> partitions;
     private int degree;
+    private boolean highDegree;
 
-    public StoredObject() {
+    public StoredObjectFixedSize() {
         partitions = new TreeSet<Byte>();
         degree = 0;
     }
 
-    public StoredObject(int degree) {
+    public StoredObjectFixedSize(int degree) {
         partitions = new TreeSet<Byte>();
         this.degree = degree;
     }
@@ -48,18 +49,30 @@ public class StoredObject implements Serializable {
     }
 
     public int getDegree() {
-        return degree;
+        return this.degree;
     }
 
     public synchronized void setDegree(int degree) {
         this.degree = degree;
     }
 
+    public boolean isHighDegree() {
+        return highDegree;
+    }
+
+    public synchronized void checkHighDegree(long avgDegree) {
+        if (this.degree > avgDegree) {
+            this.highDegree = true;
+        } else {
+            this.highDegree = false;
+        }
+    }
+
     public void incrementDegree() {
         this.degree++;
     }
 
-    public static TreeSet<Byte> intersection(StoredObject x, StoredObject y){
+    public static TreeSet<Byte> intersection(StoredObjectFixedSize x, StoredObjectFixedSize y){
         TreeSet<Byte> result = (TreeSet<Byte>) x.partitions.clone();
         result.retainAll(y.partitions);
         return result;
