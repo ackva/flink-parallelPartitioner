@@ -41,18 +41,63 @@ public class GraphPartitionMultiple {
 
         parseParameters(args);
 
-        for (int i = 0; i < 2; i++) {
-            GraphPartitionerWinHash2 gpw = new GraphPartitionerWinHash2(
+
+        GraphPartitionerWinHash gpw = new GraphPartitionerWinHash(
+                printInfo,  inputPath, algorithm, keyParam, k, globalPhase, graphName+"WinHash", outputStatistics, outputPath, windowSizeInMs, wait, (int) sampleSize, testing
+        );
+        gpw.partitionGraph();
+        Thread.sleep(1000);
+        System.out.println(" ############ ");
+
+
+
+
+
+   /*     GraphPartitionerReservoirSampling gpw = new GraphPartitionerReservoirSampling(
+                        printInfo,  inputPath, algorithm, keyParam, k, globalPhase, graphName+"_resSampling_noHigh", outputStatistics, outputPath, windowSizeInMs, wait, (int) sampleSize, testing
+                );
+                gpw.partitionGraph();
+                Thread.sleep(1000);
+                System.out.println(" ############ ");
+*/
+
+
+        /*for (int j = 0; j < 10; j++) {
+            double sampleSizeRun = (double) sampleSize * ((10.0 - j)/10.0);
+            System.out.println("s: " + (int) sampleSizeRun);
+            for (int i = 0; i < 2; i++) {
+                System.out.println("Run: " + i);
+                GraphPartitionerReservoirSampling gpw = new GraphPartitionerReservoirSampling(
+                        printInfo,  inputPath, algorithm, keyParam, k, globalPhase, graphName+"_resSampling_noHigh", outputStatistics, outputPath, windowSizeInMs, wait, (int) sampleSizeRun, testing
+                );
+                gpw.partitionGraph();
+                Thread.sleep(1000);
+                System.out.println(" ############ ");
+
+            }
+        }*/
+
+
+/*        System.out.println(" ############ ");
+        System.out.println("Regular - without sampling");
+        for (int i = 0; i < 3; i++) {
+            GraphPartitionerWinHash gpw = new GraphPartitionerWinHash(
                     printInfo,  inputPath, algorithm, keyParam, k, globalPhase, graphName, outputStatistics, outputPath, windowSizeInMs, wait, sampleSize, testing
             );
             gpw.partitionGraph();
             Thread.sleep(1000);
-        }
+        }*/
+
+
+        System.out.println(" ############ ");
+
+
+
 
 /*        int numOfRuns = 3;
 
         for (int i = 0; i < numOfRuns; i++) {
-            GraphPartitionerWinHash2 gpw = new GraphPartitionerWinHash2(
+            GraphPartitionerReservoirSampling gpw = new GraphPartitionerReservoirSampling(
                     printInfo,  inputPath, algorithm, keyParam, 4, 4, graphName, outputStatistics, outputPath, windowSizeInMs, wait, stateDelay, testing
             );
             gpw.partitionGraph();
@@ -60,7 +105,7 @@ public class GraphPartitionMultiple {
         }
 
         for (int i = 0; i < numOfRuns; i++) {
-            GraphPartitionerWinHash2 gpw = new GraphPartitionerWinHash2(
+            GraphPartitionerReservoirSampling gpw = new GraphPartitionerReservoirSampling(
                     printInfo,  inputPath, algorithm, keyParam, 4, 1, graphName, outputStatistics, outputPath, windowSizeInMs, wait, stateDelay, testing
             );
             gpw.partitionGraph();
@@ -68,7 +113,7 @@ public class GraphPartitionMultiple {
         }
 
         for (int i = 0; i < numOfRuns; i++) {
-            GraphPartitionerWinHash2 gpw = new GraphPartitionerWinHash2(
+            GraphPartitionerReservoirSampling gpw = new GraphPartitionerReservoirSampling(
                     printInfo,  inputPath, algorithm, keyParam, 2, 2, graphName, outputStatistics, outputPath, windowSizeInMs, wait, stateDelay, testing
             );
             gpw.partitionGraph();
@@ -76,7 +121,7 @@ public class GraphPartitionMultiple {
         }
 
         for (int i = 0; i < numOfRuns; i++) {
-            GraphPartitionerWinHash2 gpw = new GraphPartitionerWinHash2(
+            GraphPartitionerReservoirSampling gpw = new GraphPartitionerReservoirSampling(
                     printInfo,  inputPath, algorithm, keyParam, 2, 1, graphName, outputStatistics, outputPath, windowSizeInMs, wait, stateDelay, testing
             );
             gpw.partitionGraph();
@@ -84,7 +129,7 @@ public class GraphPartitionMultiple {
         }
 
         for (int i = 0; i < numOfRuns; i++) {
-            GraphPartitionerWinHash2 gpw = new GraphPartitionerWinHash2(
+            GraphPartitionerReservoirSampling gpw = new GraphPartitionerReservoirSampling(
                     printInfo,  inputPath, algorithm, keyParam, 16, 1, graphName, outputStatistics, outputPath, windowSizeInMs, wait, stateDelay, testing
             );
             gpw.partitionGraph();
@@ -92,7 +137,7 @@ public class GraphPartitionMultiple {
         }
 
         for (int i = 0; i < numOfRuns; i++) {
-            GraphPartitionerWinHash2 gpw = new GraphPartitionerWinHash2(
+            GraphPartitionerReservoirSampling gpw = new GraphPartitionerReservoirSampling(
                     printInfo,  inputPath, algorithm, keyParam, 16, 16, graphName, outputStatistics, outputPath, windowSizeInMs, wait, stateDelay, testing
             );
             gpw.partitionGraph();
@@ -100,7 +145,7 @@ public class GraphPartitionMultiple {
         }
 
         for (int i = 0; i < numOfRuns; i++) {
-            GraphPartitionerWinHash2 gpw = new GraphPartitionerWinHash2(
+            GraphPartitionerReservoirSampling gpw = new GraphPartitionerReservoirSampling(
                     printInfo,  inputPath, algorithm, keyParam, 8, 8, graphName, outputStatistics, outputPath, windowSizeInMs, wait, stateDelay, testing
             );
             gpw.partitionGraph();
@@ -108,7 +153,7 @@ public class GraphPartitionMultiple {
         }
 
         for (int i = 0; i < numOfRuns; i++) {
-            GraphPartitionerWinHash2 gpw = new GraphPartitionerWinHash2(
+            GraphPartitionerReservoirSampling gpw = new GraphPartitionerReservoirSampling(
                     printInfo,  inputPath, algorithm, keyParam, 8, 1, graphName, outputStatistics, outputPath, windowSizeInMs, wait, stateDelay, testing
             );
             gpw.partitionGraph();

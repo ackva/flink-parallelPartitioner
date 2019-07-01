@@ -72,7 +72,7 @@ import java.util.concurrent.TimeUnit;
  *   1 C:\flinkJobs\input\streamInput199.txt dbh 100 2 2 streamInput
  *
  */
-public class GraphPartitionerWinHash2 {
+public class GraphPartitionerReservoirSampling {
 
     public static final OutputTag<String> outputTag = new OutputTag<String>("side-output"){};
     public static final OutputTag<String> outputTagError = new OutputTag<String>("side-error"){};
@@ -100,9 +100,9 @@ public class GraphPartitionerWinHash2 {
     public static boolean localRun = false;
     public static int sampleSize = 0;
 
-    GraphPartitionerWinHash2(
+    GraphPartitionerReservoirSampling(
             String printInfo, String inputPath, String algorithm, int keyParam, int k, int globalPhase, String graphName, String outputStatistics,
-            String outputPath, long windowSizeInMs, long wait, int stateDelay, String testing) throws Exception {
+            String outputPath, long windowSizeInMs, long wait, int sampleSize, String testing) throws Exception {
         this.printInfo = printInfo;
         if (printInfo.equals("0")) {
             System.out.println("Debugging mode - more output can be found at logs_job_xyz: " + TEMPGLOBALVARIABLES.printTime);
@@ -120,7 +120,7 @@ public class GraphPartitionerWinHash2 {
         this.outputPath = outputPath;
         this.windowSizeInMs = windowSizeInMs;
         this.wait = wait;
-        this.sampleSize = stateDelay;
+        this.sampleSize = sampleSize;
         this.testing = testing;
         if (testing.equals("localTest")) {
             localRun = true;
@@ -224,7 +224,7 @@ public class GraphPartitionerWinHash2 {
         //System.out.println("The job took " + result.getNetRuntime(TimeUnit.NANOSECONDS) + " nanoseconds to execute"+"\n");
 
         // Gather statistics for the job
-        String statistics = timestamp + "," + graphName + "," + algorithm + "," + k + "," + keyParam + ","
+        String statistics = timestamp + "," + graphName + "," + algorithm + "," + k + "," + sampleSize + ","
                 + result.getNetRuntime((TimeUnit.SECONDS)) + "," + globalPhase + "," + inputPath + "," + windowSizeInMs + "," + wait + "," + folderName;
 
         if (localRun) {

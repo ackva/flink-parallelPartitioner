@@ -7,6 +7,8 @@ import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static java.lang.Math.toIntExact;
+
 /**
  * Created by zainababbas on 06/02/2017.
  */
@@ -81,6 +83,8 @@ public class StoredStateFixedSize implements Serializable{
             return false;
         }
         else {
+            //System.out.println("record " + x + " exists -- " + record_map.get(x));
+            //System.out.println("record degree -- " + record_map.get(x).getDegree());
             return true;
         }
     }
@@ -108,12 +112,25 @@ public class StoredStateFixedSize implements Serializable{
         return (totalDegreeCount/vertexCounter);
     }
 
+
+    private double totalInsertTimeBefore = 0.0;
+    private double avgInsertTimeBefore = 0.0;
+    private double avgInsertTimeAfter = 0.0;
+    private double totalInsertTimeAfter = 0.0;
+    private double vertexCountAfterFull = 0.0;
+
     public synchronized StoredObjectFixedSize addRecordWithReservoirSampling(Long x, int degree) throws Exception {
 
         totalDegreeCount += degree;
         vertexCounter++;
 
-        System.out.println(record_map.size()  + " out of " + sampleSize);
+        /*if (vertexCounter % 10000 == 0)
+            System.out.println(record_map.size()  + " out of " + sampleSize);*/
+
+
+
+
+
         if (record_map.size() < sampleSize) {
             if (!record_map.containsKey(x)){
                 record_map.put(x, new StoredObjectFixedSize(degree));
@@ -121,23 +138,39 @@ public class StoredStateFixedSize implements Serializable{
                 throw new Exception("Entry already exists in state");
             }
         } else {
+            //System.out.println(record_map.size()  + " out of " + sampleSize);
             double probabilityToReplace = (double) sampleSize / (double) vertexCounter;
             if (flipCoin(probabilityToReplace)) {
                 Random rand = new Random();
+
+                long now = System.nanoTime();
                 Object[] keys = record_map.keySet().toArray();
                 Object toBeReplaced = keys[rand.nextInt(keys.length)];
-                System.out.println("here i am " + record_map.get(toBeReplaced).isHighDegree());
-                if (record_map.get(toBeReplaced).isHighDegree()) {
+                // System.out.println("here i am " + record_map.get(toBeReplaced).isHighDegree());
 
-                    probabilityToReplace = 1/((double)record_map.get(toBeReplaced).getDegree()/(double)vertexCounter);
-                    System.out.println("high degree replace: " + probabilityToReplace);
-                    if (flipCoin(probabilityToReplace)) {
+                if (getRecord_map().size() > (sampleSize - 30000) && getRecord_map().size() < (sampleSize)) {
+                    totalInsertTimeBefore += System.nanoTime() - now;
+                    avgInsertTimeBefore = totalInsertTimeBefore / (double) vertexCounter;
+                    if (vertexCounter % 100 == 0)
+                        System.out.println("checking size before full table took  avg " + avgInsertTimeBefore/1000000 + " ms. counter " + vertexCounter);
+                } else if (getRecord_map().size() == (sampleSize)) {
+                    vertexCountAfterFull++;
+                    totalInsertTimeAfter = totalInsertTimeAfter + (System.nanoTime() - now);
+                    avgInsertTimeAfter = totalInsertTimeAfter / (double) vertexCountAfterFull;
+                    if (vertexCountAfterFull % 1000 == 0)
+                        System.out.println("checking size after full table took   " + (double) avgInsertTimeAfter/1000000 + " ms. counter " + vertexCountAfterFull);
+                }
+                                 //if (record_map.get(toBeReplaced).isHighDegree()) {
+
+                //    probabilityToReplace = 1/((double)record_map.get(toBeReplaced).getDegree()/(double)vertexCounter);
+                //    System.out.println("high degree replace: " + probabilityToReplace);
+                //    if (flipCoin(probabilityToReplace)) {
                         record_map.remove(toBeReplaced);
                         record_map.put(x, new StoredObjectFixedSize(degree));
-                        System.out.println("high degree done: " + probabilityToReplace);
+                        //System.out.println("replacement done: " + probabilityToReplace);
                     }
-                }
-            }
+                //}
+            //}
 
         }
 

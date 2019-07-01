@@ -39,6 +39,13 @@ public class HdrfFixedSize<T> implements Partitioner {
 
     public int selectPartition(Edge edge) {
 
+       /* if (this.getCurrentState().getRecord_map().size() >= 250000) {
+            System.out.println("inside choose partition");
+        }*/
+
+        boolean madeup1 = false;
+        boolean madeup2 = false;
+
         long source = Long.parseLong(edge.f0.toString());
         long target = Long.parseLong(edge.f1.toString());
 
@@ -49,19 +56,25 @@ public class HdrfFixedSize<T> implements Partitioner {
         StoredObjectFixedSize first_vertex;
         StoredObjectFixedSize second_vertex;
 
+        //System.out.println(edge + " ##### ");
+        //System.out.println("state now: " + currentState.printState());
+
+
         if (currentState.checkIfRecordExits(source)) {
             first_vertex = currentState.getRecord(source);
         } else {
             first_vertex = new StoredObjectFixedSize();
             first_vertex.setDegree(1);
-            System.out.println("1 doesn't exist");
+            //System.out.println(source + " - source doesn't exist");
+            madeup1 = true;
         }
         if (currentState.checkIfRecordExits(target)) {
-            second_vertex = currentState.getRecord(source);
+            second_vertex = currentState.getRecord(target);
         } else {
             second_vertex = new StoredObjectFixedSize();
             second_vertex.setDegree(1);
-            System.out.println("2 doesn't exist");
+            //System.out.println(target + " - target doesn't exist");
+            madeup2 = true;
 
         }
 
@@ -73,8 +86,18 @@ public class HdrfFixedSize<T> implements Partitioner {
 
         for (int m = 0; m < k; m++) {
 
-            int degree_u = first_vertex.getDegree() + 1;
-            int degree_v = second_vertex.getDegree() + 1;
+            int degree_u;
+            int degree_v;
+            if (!madeup1)
+                degree_u = first_vertex.getDegree() + 1;
+            else
+                degree_u = 1;
+            if (!madeup2) {
+                degree_v = second_vertex.getDegree() + 1;
+                //System.out.println("target not made up " + target + " degree" + degree_v);
+            } else
+                degree_v = 1;
+            //int degree_v = second_vertex.getDegree() + 1;
             int SUM = degree_u + degree_v;
             double fu = 0;
             double fv = 0;

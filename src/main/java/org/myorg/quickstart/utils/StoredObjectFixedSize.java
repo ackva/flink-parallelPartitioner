@@ -15,7 +15,7 @@ public class StoredObjectFixedSize implements Serializable {
 
     public StoredObjectFixedSize() {
         partitions = new TreeSet<Byte>();
-        degree = 0;
+        this.degree = 0;
     }
 
     public StoredObjectFixedSize(int degree) {

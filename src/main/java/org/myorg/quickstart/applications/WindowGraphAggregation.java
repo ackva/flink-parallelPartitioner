@@ -1,5 +1,7 @@
+/*
 package org.myorg.quickstart.applications;
 
+*/
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -16,7 +18,8 @@ package org.myorg.quickstart.applications;
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
+ *//*
+
 
 import org.apache.flink.api.common.functions.FoldFunction;
 import org.apache.flink.api.common.functions.MapFunction;
@@ -30,6 +33,7 @@ import org.apache.flink.api.java.typeutils.TupleTypeInfo;
 import org.apache.flink.api.java.typeutils.TypeExtractor;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.graph.Edge;
+import org.apache.flink.graph.streaming.summaries.DisjointSet;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.windowing.time.Time;
 
@@ -37,6 +41,7 @@ import java.io.Serializable;
 import java.util.concurrent.TimeUnit;
 
 
+*/
 /**
  * WIP Graph Aggregation on Parallel Time Window
  *
@@ -44,7 +49,8 @@ import java.util.concurrent.TimeUnit;
  * @param <EV> the edges stream's value type
  * @param <S> the output type of the partial aggregation
  * @param <T> the output type of the result
- */
+ *//*
+
 public class WindowGraphAggregation<K, EV, S extends Serializable, T> extends GraphAggregation<K, EV, S, T> {
 
     private static final long serialVersionUID = 1L;
@@ -56,7 +62,7 @@ public class WindowGraphAggregation<K, EV, S extends Serializable, T> extends Gr
         this.timeMillis = timeMillis;
     }
 
-    public WindowGraphAggregation(EdgesFold<K, EV, S> updateFun, ReduceFunction<S> combineFun, S initialVal, long timeMillis, boolean transientState) {
+    public WindowGraphAggregation(SteamingConnectedComponents.ConnectedComponents.UpdateCC updateFun, ReduceFunction<DisjointSet<K>> combineFun, DisjointSet<K> initialVal, long timeMillis, boolean transientState) {
         this(updateFun, combineFun, null, initialVal, timeMillis, transientState);
     }
 
@@ -121,4 +127,4 @@ public class WindowGraphAggregation<K, EV, S extends Serializable, T> extends Gr
         }
 
     }
-}
+}*/

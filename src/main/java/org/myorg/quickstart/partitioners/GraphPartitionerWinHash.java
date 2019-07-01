@@ -26,6 +26,7 @@ import org.myorg.quickstart.applications.SimpleEdgeStream;
 import org.myorg.quickstart.jobstatistics.LoadBalanceCalculator;
 import org.myorg.quickstart.jobstatistics.VertexCut;
 import org.myorg.quickstart.partitioners.matchFunctions.MatchFunctionWinHash;
+import org.myorg.quickstart.partitioners.matchFunctions.MatchFunctionWinHash2;
 import org.myorg.quickstart.partitioners.matchFunctions.MatchFunctionWindowHash;
 import org.myorg.quickstart.partitioners.windowFunctions.ProcessWindowDegreeHashed;
 import org.myorg.quickstart.partitioners.windowFunctions.ProcessWindowGellyHashValue;
@@ -140,7 +141,7 @@ public class GraphPartitionerWinHash {
         loggingPath = outputPath + "/logs_" + folderName;
 
         ProcessWindowGellyHashValue firstPhaseProcessor = new ProcessWindowGellyHashValue();
-        MatchFunctionWinHash matchFunction = new MatchFunctionWinHash(algorithm, k, lambda);
+        MatchFunctionWinHash2 matchFunction = new MatchFunctionWinHash2(algorithm, k, lambda);
         MapStateDescriptor<String, Tuple2<Integer, ArrayList<Integer>>> rulesStateDescriptor = new MapStateDescriptor<>("RulesBroadcastState", BasicTypeInfo.STRING_TYPE_INFO,tupleTypeInfo);
 
         //System.out.println(new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()) + " timestamp for whatever you want");

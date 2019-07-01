@@ -165,14 +165,14 @@ public class MatchFunctionWinHash2 extends KeyedBroadcastProcessFunction<Integer
 
     }
 
-    public void onTimer(long timestamp, OnTimerContext ctx, Collector<Tuple2<Edge<Integer, NullValue>, Integer>> out) throws Exception {
+/*    public void onTimer(long timestamp, OnTimerContext ctx, Collector<Tuple2<Edge<Integer, NullValue>, Integer>> out) throws Exception {
 
         ProcessStateWatermark edgeState = state.value();
         onTimerCount++;
 
         emitAllReadyEdges(out);
 
-    }
+    }*/
 
 
     private void emitAllReadyEdges(Collector<Tuple2<Edge<Integer, NullValue>,Integer>> out) throws Exception {
@@ -254,9 +254,9 @@ public class MatchFunctionWinHash2 extends KeyedBroadcastProcessFunction<Integer
             winState = new WinHashState(hashvalue,edge);
             windowStateMap.put(hashvalue,winState);
             if (TEMPGLOBALVARIABLES.printTime) {
-                notCompleteStateListFORDEBUG.add(winState);
+                //notCompleteStateListFORDEBUG.add(winState);
                 stateCounter++;
-                uncompleteStateCounter++;
+                //uncompleteStateCounter++;
             }
 
             //System.out.println(stateCounter + "# - adding state " + edge.f0 + "," + edge.f1 + " to state " + winState.getKey() + " with size" + winState.getSize());
