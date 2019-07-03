@@ -2,50 +2,73 @@ package org.myorg.quickstart.partitioners.matchFunctions;
 
 import org.apache.flink.api.common.state.ListState;
 import org.apache.flink.api.common.state.ValueState;
+import org.apache.flink.api.common.state.ValueStateDescriptor;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.graph.Edge;
 import org.apache.flink.streaming.api.functions.co.KeyedBroadcastProcessFunction;
 import org.apache.flink.types.NullValue;
 import org.apache.flink.util.Collector;
-import org.myorg.quickstart.partitioners.GraphPartitionerImpl;
 import org.myorg.quickstart.utils.*;
 
+import java.text.DecimalFormat;
 import java.util.*;
 
 import static java.lang.Math.toIntExact;
 
 /**
  *
- * This match function uses the Reservoir-Sampling approach.
+ * This match function uses the "on Timer" approach. When processElement() is called, it sets an event to a later watermark and processes the edge(s) later.
+ * This shall help to reduce the overall "waiting" time with unnecessary loop iterations.
  *
  */
 
-public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunction<Integer, Edge<Integer, Long>, Tuple2<HashMap<Integer, Integer>,Long>, Tuple2<Edge<Integer, NullValue>,Integer>> {
+public class MatchFunctionWatery extends KeyedBroadcastProcessFunction<Integer, Edge<Integer, Long>, Tuple2<HashMap<Integer, Integer>,Long>, Tuple2<Edge<Integer, NullValue>,Integer>> {
 
-    private int vertexArrivalAfterTableFull = 0;
-    private double avgStateCompletionTime = 0.0;
-    private double totalCompletionTime = 0.0;
-    private double totalInsertTimeBefore = 0.0;
-    private double avgInsertTimeBefore = 0.0;
-    private double avgInsertTimeAfter = 0.0;
-    private double totalInsertTimeAfter = 0.0;
+    long currentWatermarkBro = 1;
+    long currentWatermarkEle = 1;
 
+    List<WinHashState> completeStateListFORDEBUG = new ArrayList<>();
+    List<WinHashState> notCompleteStateListFORDEBUG = new ArrayList<>();
+    List<ProcessStateWatermark> allStates = new ArrayList<>();
+    private int stateCounter;
+    private int uncompleteStateCounter;
+    long broadcastWatermark = 1;
+    private int totalEdgesBroadcasted = 0;
+    int totalWaitingEdgesCalls;
+    List<Double> ratioRemainingInWaitingList = new ArrayList<>();
+    List<Long> watermarksBro = new ArrayList<>();
+    List<Long> watermarksEle = new ArrayList<>();
+    private HashMap<Long,List<Edge>> watermarkState = new HashMap<>();
+    private HashMap<Long,Boolean> watermarkReady = new HashMap<>();
+    private int totalRepetitions = 0;
     private int collectedEdges = 0;
+    private int stillNotInside = 0;
+    private HashMap<String,Long> outputEdges = new HashMap<>();
+    private List<Edge> duplicates = new ArrayList<>();
+    private DecimalFormat df = new DecimalFormat("#.###");
+    private int onTimerCount = 0;
+    private int addedInState = 0;
+    private int addedDirectly = 0;
+    private long savedWatermark = 0;
+    private int countBroadcastsOnWorker = 0;
     private int counterEdgesInstance = 0;
+    int avgWaitingEdges = 0;
+    int totalEdgesInWait = 0;
+    long totalTimeBroadcast = 0;
+    long totalTimeWaitingEdges = 0;
+    long broadcastResetCounter = 1;
+    private long globalCounterForPrint = 0;
     private String algorithm;
     private HashMap<Integer, Integer> vertexDegreeMap = new HashMap<>();
-    private ModelBuilderFixedSize modelBuilder;
+    private ModelBuilderGellyLong modelBuilder;
     private List<Edge<Integer, Long>> waitingEdges;
     private long startTime = System.currentTimeMillis();
+    private int stateDelay = 0;
+    /** The state that is maintained by this process function */
     private ValueState<ProcessStateWatermark> state;
     private int parallelism;
-    private int countBroadcastsOnWorker;
     List<Long> totalTimesStateStateCompletion = new ArrayList<>();
-    private int notCompleteStatesFORDEBUG = 0;
-    private int completeStatesFORDEBUG = 0;
-    List<WinHashState> notCompleteStateListFORDEBUG = new ArrayList<>();
-    List<WinHashState> completeStateListFORDEBUG = new ArrayList<>();
-    private int sampleSize;
 
 
     private ListState<ProcessState> state1;
@@ -53,15 +76,15 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
     private int nullCounter = 0;
 
 
-    public MatchFunctionReservoirSampling(String algorithm, Integer k, double lambda, int sampleSize) {
+    public MatchFunctionWatery(String algorithm, Integer k, double lambda) {
         this.algorithm = algorithm;
+        this.stateDelay = stateDelay;
         this.parallelism = k;
         this.waitingEdges = new ArrayList<>();
         if (algorithm.equals("hdrf"))
-            this.modelBuilder = new ModelBuilderFixedSize(algorithm, vertexDegreeMap, k, lambda, sampleSize);
+            this.modelBuilder = new ModelBuilderGellyLong(algorithm, vertexDegreeMap, k, lambda);
         if (algorithm.equals("dbh"))
-            this.modelBuilder = new ModelBuilderFixedSize(algorithm, vertexDegreeMap, k, sampleSize);
-        this.sampleSize = sampleSize;
+            this.modelBuilder = new ModelBuilderGellyLong(algorithm, vertexDegreeMap, k);
     }
 
     // This function is called every time when a broadcast state is processed from the previous phase
@@ -70,65 +93,33 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
 
         countBroadcastsOnWorker++;
 
-       /* if (modelBuilder.getHdrf().getCurrentState().getRecord_map().size() > 249999) {
-            System.out.println(collectedEdges + " collected -- broadcast - complete state count:" +  completeStatesFORDEBUG + " -- not complete state count: " + notCompleteStatesFORDEBUG);
-        }*/
-
         long hashValue = broadcastElement.f1;
 
         int edgeDegreeInBroadcast = 0;
 
         // ### Merge local model from Phase 1 with global model, here in Phase 2
         int degree;
-
-        for (Map.Entry<Integer, Integer> integerIntegerEntry : broadcastElement.f0.entrySet()) {
-            Map.Entry<Integer, Integer> stateEntry = (Map.Entry) integerIntegerEntry;
-            long vertex = stateEntry.getKey();
-            if (this.algorithm.equals("hdrf")) {
-                //System.out.println("vertex " + vertex + " in map? " + modelBuilder.getHdrf().getCurrentState().getRecord_map());
-                //System.out.println("Trying replace - sample is filled - probability to stay: " + probabilityToReplace + " to be replaced flip coin: " + flipCoin + " new field: " + x + " with degree (passed: ");
-                /*if (modelBuilder.getHdrf().getCurrentState().getRecord_map().size() > 249999) {
-                    int highdegreecounter = 0;
-                    for (Map.Entry<Long,StoredObjectFixedSize> entry: modelBuilder.getHdrf().getCurrentState().getRecord_map().entrySet()) {
-                        if (entry.getValue().isHighDegree())
-                            highdegreecounter++;
+        Iterator it = broadcastElement.f0.entrySet().iterator();
+        while (it.hasNext()) {
+                Map.Entry<Integer, Integer> stateEntry = (Map.Entry)it.next();
+                long vertex = stateEntry.getKey();
+                if (this.algorithm.equals("hdrf")) {
+                    if (modelBuilder.getHdrf().getCurrentState().checkIfRecordExits(vertex)) {
+                        degree = toIntExact(stateEntry.getValue()) + modelBuilder.getHdrf().getCurrentState().getRecord(vertex).getDegree();
+                        modelBuilder.getHdrf().getCurrentState().getRecord(vertex).setDegree(degree);
+                    } else {
+                        modelBuilder.getHdrf().getCurrentState().addRecordWithDegree(vertex, toIntExact(stateEntry.getValue()));
                     }
-                    //System.out.println("high degree count: " + highdegreecounter);
-                }*/
-                if (modelBuilder.getHdrf().getCurrentState().checkIfRecordExits(vertex)) {
-                    //StoredStateFixedSize model = modelBuilder.getHdrf().getCurrentState();
-                    //StoredObjectFixedSize record = modelBuilder.getHdrf().getCurrentState().getRecord(vertex);
-                    degree = toIntExact(stateEntry.getValue()) + modelBuilder.getHdrf().getCurrentState().getRecord(vertex).getDegree();
-                    modelBuilder.getHdrf().getCurrentState().getRecord(vertex).setDegree(degree);
-                    modelBuilder.getHdrf().getCurrentState().increaseTotalDegree(degree);
-                    //System.out.println("AVG degree -- " + modelBuilder.getHdrf().getCurrentState().getAverageDegree());
-                    modelBuilder.getHdrf().getCurrentState().getRecord(vertex).checkHighDegree(modelBuilder.getHdrf().getCurrentState().getAverageDegree());
-                } else {
-                    long now = System.nanoTime();
-                    modelBuilder.getHdrf().getCurrentState().addRecordWithReservoirSampling(vertex, toIntExact(stateEntry.getValue()));
-           /*         if (modelBuilder.getHdrf().getCurrentState().getRecord_map().size() > (sampleSize - 500000) && modelBuilder.getHdrf().getCurrentState().getRecord_map().size() < (sampleSize)) {
-                        totalInsertTimeBefore += System.nanoTime() - now;
-                        avgInsertTimeBefore = totalInsertTimeBefore / (double) countBroadcastsOnWorker;
-                        if (countBroadcastsOnWorker % 2 == 0)
-                        System.out.println("adding with reservor sampling before full table took  avg " + avgInsertTimeBefore/1000000 + " ms. counter " + countBroadcastsOnWorker + " --- emitted edges: " + collectedEdges);
-                    } else if (modelBuilder.getHdrf().getCurrentState().getRecord_map().size() == (sampleSize)) {
-                        vertexArrivalAfterTableFull++;
-                        totalInsertTimeAfter += System.nanoTime() - now;
-                        avgInsertTimeAfter = totalInsertTimeAfter / (double) vertexArrivalAfterTableFull;
-                        if (countBroadcastsOnWorker % 2 == 0)
-                        System.out.println("adding with reservor sampling after full table took  avg " + avgInsertTimeAfter/1000000 + " ms. counter " + countBroadcastsOnWorker + " --- emitted edges: " + collectedEdges);;
-                    }*/
                 }
-            }
-            if (this.algorithm.equals("dbh")) {
-                if (modelBuilder.getDbh().getCurrentState().checkIfRecordExits(vertex)) {
-                    degree = toIntExact(stateEntry.getValue()) + modelBuilder.getDbh().getCurrentState().getRecord(vertex).getDegree();
-                    modelBuilder.getDbh().getCurrentState().getRecord(vertex).setDegree(degree);
-                } else {
-                    modelBuilder.getDbh().getCurrentState().addRecordWithDegree(vertex, toIntExact(stateEntry.getValue()));
+                if (this.algorithm.equals("dbh")) {
+                    if (modelBuilder.getDbh().getCurrentState().checkIfRecordExits(vertex)) {
+                        degree = toIntExact(stateEntry.getValue()) + modelBuilder.getDbh().getCurrentState().getRecord(vertex).getDegree();
+                        modelBuilder.getDbh().getCurrentState().getRecord(vertex).setDegree(degree);
+                    } else {
+                        modelBuilder.getDbh().getCurrentState().addRecordWithDegree(vertex, toIntExact(stateEntry.getValue()));
+                    }
                 }
-            }
-            edgeDegreeInBroadcast += stateEntry.getValue();
+                edgeDegreeInBroadcast += stateEntry.getValue();
         }
 
         double edgesInBroadcast = (double) edgeDegreeInBroadcast / 2;
@@ -144,22 +135,63 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
 
         counterEdgesInstance++;
 
-       /* if (modelBuilder.getHdrf().getCurrentState().getRecord_map().size() > 249999) {
-            System.out.println(collectedEdges + " collected -- element - complete state count:" +  completeStatesFORDEBUG + " -- not complete state count: " + notCompleteStatesFORDEBUG);
-        }*/
+        ProcessStateWatermark current = state.value();
+        if (current == null) {
+            current = new ProcessStateWatermark();
+            allStates.add(current);
+            current.key = ctx.currentWatermark();
+            //System.out.println("new state: all states: " + allStates.size() + " - total edge counter " + counterEdgesInstance);
+        } else {
+            //System.out.println("state exists");
+        }
+        current.lastModified = ctx.currentWatermark();
+        state.update(current);
+        ctx.timerService().registerEventTimeTimer(current.lastModified + 10000);
 
         updateState(currentEdge.f2,currentEdge);
 
         emitAllReadyEdges(out);
 
-        if (counterEdgesInstance > 0 && counterEdgesInstance % 100_000 == 0)
-            ctx.output(GraphPartitionerImpl.outputTag,checkTimer() );
+
+    }
+
+    @Override
+    public void open(Configuration parameters) throws Exception {
+        state = getRuntimeContext().getState(new ValueStateDescriptor<>("myState", ProcessStateWatermark.class));
+
+
+    }
+
+    public void onTimer(long timestamp, OnTimerContext ctx, Collector<Tuple2<Edge<Integer, NullValue>, Integer>> out) throws Exception {
+
+        if (ctx.currentWatermark() > state.value().key) {
+
+
+        }
+
+        ProcessStateWatermark current = state.value();
+        if (current == null) {
+            current = new ProcessStateWatermark();
+            allStates.add(current);
+            current.key = ctx.currentWatermark();
+            //System.out.println("new state: all states: " + allStates.size() + " - total edge counter " + counterEdgesInstance);
+        } else {
+            //System.out.println("state exists");
+        }
+        current.lastModified = ctx.currentWatermark();
+        state.update(current);
+        ctx.timerService().registerEventTimeTimer(current.lastModified + 10000);
+
+
+        ProcessStateWatermark edgeState = state.value();
+        onTimerCount++;
+
+        emitAllReadyEdges(out);
 
     }
 
 
     private void emitAllReadyEdges(Collector<Tuple2<Edge<Integer, NullValue>,Integer>> out) throws Exception {
-
         List<WinHashState> statesToBeRemoved = new ArrayList<>();
         for (WinHashState winState : completeStateList) {
             List<Edge> edgesToBeRemoved = new ArrayList<>();
@@ -181,16 +213,25 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
         }
         completeStateList.removeAll(statesToBeRemoved);
 
-       /* if (modelBuilder.getHdrf().getCurrentState().getRecord_map().size() > 24995) {
-            System.out.println("edges collected: " + collectedEdges + " -- " + System.currentTimeMillis());
-        }*/
-
     }
+
+
+
+/*    private void checkWatermark(long watermark) {
+        if (broadcastWatermark != watermark) {
+            watermarksBro.add(watermark);
+            broadcastWatermark = watermark;
+            //System.out.println("DEG _ new Watermark = " + broadcastWatermark + " old: " + watermarks);
+        }
+        if (watermark == Long.MAX_VALUE) {
+            System.out.println("Watermarks: " + watermarksBro.size() + " -- " + watermarksBro);
+        }
+    }*/
 
     private HashMap<Long, WinHashState> windowStateMap = new HashMap<>();
     private HashSet<WinHashState> completeStateList = new HashSet<>();
 
-    private int completeStateCounter = 0;
+    private int completeCounter = 0;
 
     //private HashMap<Long, Integer> arrivedElemDiffSysTime = new HashMap<>();
 
@@ -208,9 +249,9 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
         } else {
             winState = new WinHashState(hashvalue,size);
             windowStateMap.put(hashvalue,winState);
-            //notCompleteStatesFORDEBUG++;
-
-        }
+            stateCounter++;
+            System.out.println("# of states: " + stateCounter);
+      }
 
     }
 
@@ -230,39 +271,21 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
         } else {
             winState = new WinHashState(hashvalue,edge);
             windowStateMap.put(hashvalue,winState);
-            notCompleteStatesFORDEBUG++;
+            if (TEMPGLOBALVARIABLES.printTime) {
+                //notCompleteStateListFORDEBUG.add(winState);
+                stateCounter++;
+                //uncompleteStateCounter++;
+            }
 
-
-            //System.out.println("adding state " + edge.f0 + "," + edge.f1 + " to state " + winState.getKey() + " with size" + winState.getSize());
+            //System.out.println(stateCounter + "# - adding state " + edge.f0 + "," + edge.f1 + " to state " + winState.getKey() + " with size" + winState.getSize());
         }
 
     }
 
-    private double avgTotalTimeAfterSample = 0.0;
-    private double totalTimeAfterSameple = 0.0;
-    private double completeStateAfterSample = 0.0;
-
     public void addStateToReadyList(WinHashState winState) {
-        completeStateCounter++;
+        completeCounter++;
+        uncompleteStateCounter--;
         completeStateList.add(winState);
-        //totalCompletionTime = totalCompletionTime + winState.getTotalTime();
-        //System.out.println(totalCompletionTime + " total time " + completeStateCounter);
-
-        // turn on for debugging
-        /*avgStateCompletionTime = totalCompletionTime/completeStateCounter;// (avgStateCompletionTime * (collectedEdges - 1) + winState.getTotalTime())/collectedEdges;
-        if (collectedEdges % 20000 == 0)
-         System.out.println("AVG state completion time" + avgStateCompletionTime);
-        if (modelBuilder.getHdrf().getCurrentState().getRecord_map().size() > 249999) {
-            System.out.println("AVG state completion time > 2500000" + avgStateCompletionTime);
-            completeStateAfterSample++;
-            totalTimeAfterSameple = totalTimeAfterSameple + winState.getTotalTime();
-            avgTotalTimeAfterSample = totalTimeAfterSameple/completeStateAfterSample;
-            System.out.println("new AVG state completion time " + avgStateCompletionTime);
-        }*/
-/*        completeStatesFORDEBUG++;
-        notCompleteStatesFORDEBUG--;*/
-
-
 
 /*        // debugging
         if (TEMPGLOBALVARIABLES.printTime) {
@@ -284,7 +307,7 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
                 returnString = returnString + "CO: " + w.getKey() + " " + w.getTotalTime() + " " + w.getSize() + " ;; ";
                 //totalTimesStateStateCompletion.add(w.getTotalTime());
                 sumCompleteTime += w.getTotalTime();
-                //completeCounter++;
+                completeCounter++;
             }
         returnString = returnString + "AVG Complete Time = " + sumCompleteTime/completeCounter + " (complete: " + completeCounter + ") ;;";
 
@@ -298,8 +321,6 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
 
             return returnString;
         }
-
-        /*
 
     public static void Percentile(List<Long> latencies, double Percentile) {
         Collections.sort(latencies);
@@ -332,12 +353,12 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
             return false;
         }
 
-    }*/
+    }
 
     public String checkTimer() {
         long timeNow = System.currentTimeMillis();
         long difference = timeNow - startTime;
-        return "MAT;" + difference/1000  + ";" + counterEdgesInstance + ";"  + collectedEdges + ";" + System.currentTimeMillis();
+        return "MAT > " + System.currentTimeMillis() + " > "  + collectedEdges + " > "  + difference/1000 + " > " + counterEdgesInstance;
     }
 
 }

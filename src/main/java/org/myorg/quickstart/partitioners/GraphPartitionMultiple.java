@@ -42,27 +42,108 @@ public class GraphPartitionMultiple {
         parseParameters(args);
 
 
+
+/*
         GraphPartitionerWinHash gpw = new GraphPartitionerWinHash(
                 printInfo,  inputPath, algorithm, keyParam, k, globalPhase, graphName+"WinHash", outputStatistics, outputPath, windowSizeInMs, wait, (int) sampleSize, testing
         );
         gpw.partitionGraph();
         Thread.sleep(1000);
         System.out.println(" ############ ");
+*/
 
+/*
+        System.out.println(" ############ SAMPLE SIZE BIG ENOUGH");
 
-
-
-
-   /*     GraphPartitionerReservoirSampling gpw = new GraphPartitionerReservoirSampling(
-                        printInfo,  inputPath, algorithm, keyParam, k, globalPhase, graphName+"_resSampling_noHigh", outputStatistics, outputPath, windowSizeInMs, wait, (int) sampleSize, testing
-                );
-                gpw.partitionGraph();
-                Thread.sleep(1000);
-                System.out.println(" ############ ");
+        GraphPartitionerReservoirSampling gpw = new GraphPartitionerReservoirSampling(
+                printInfo, inputPath, algorithm, keyParam, k, globalPhase, graphName + "_resSampling_noHigh", outputStatistics, outputPath, windowSizeInMs, wait, (int) 5000000, testing
+        );
+        gpw.partitionGraph();
+        Thread.sleep(1000);
+        System.out.println(" ############ ");
 */
 
 
-        /*for (int j = 0; j < 10; j++) {
+
+        System.out.println(" ############ SAMPLE SIZE 100");
+
+        GraphPartitionerReservoirSampling gpw0 = new GraphPartitionerReservoirSampling(
+                printInfo, inputPath, algorithm, keyParam, k, globalPhase, graphName + "_resSampling_noHigh", outputStatistics, outputPath, windowSizeInMs, wait, (int) 100, testing
+        );
+        gpw0.partitionGraph();
+        Thread.sleep(1000);
+        System.out.println(" ############ ");
+
+
+
+
+/*
+        System.out.println(" ############ SAMPLE SIZE 100");
+
+        GraphPartitionerReservoirSampling gpw1 = new GraphPartitionerReservoirSampling(
+                printInfo, inputPath, algorithm, keyParam, k, globalPhase, graphName + "_resSampling_noHigh", outputStatistics, outputPath, windowSizeInMs, wait, (int) 100, testing
+        );
+        gpw1.partitionGraph();
+        Thread.sleep(1000);
+        System.out.println(" ############ ");
+
+        System.out.println(" ############ SAMPLE SIZE 200");
+
+        GraphPartitionerReservoirSampling gpw2 = new GraphPartitionerReservoirSampling(
+                printInfo, inputPath, algorithm, keyParam, k, globalPhase, graphName + "_resSampling_noHigh", outputStatistics, outputPath, windowSizeInMs, wait, (int) 200, testing
+        );
+        gpw2.partitionGraph();
+        Thread.sleep(1000);
+        System.out.println(" ############ ");
+
+        System.out.println(" ############ SAMPLE SIZE 500");
+
+        GraphPartitionerReservoirSampling gpw3 = new GraphPartitionerReservoirSampling(
+                printInfo, inputPath, algorithm, keyParam, k, globalPhase, graphName + "_resSampling_noHigh", outputStatistics, outputPath, windowSizeInMs, wait, (int) 500, testing
+        );
+        gpw3.partitionGraph();
+        Thread.sleep(1000);
+        System.out.println(" ############ ");
+
+        System.out.println(" ############ SAMPLE SIZE 1000");
+
+        GraphPartitionerReservoirSampling gpw4 = new GraphPartitionerReservoirSampling(
+                printInfo, inputPath, algorithm, keyParam, k, globalPhase, graphName + "_resSampling_noHigh", outputStatistics, outputPath, windowSizeInMs, wait, (int) 1000, testing
+        );
+        gpw4.partitionGraph();
+        Thread.sleep(1000);
+        System.out.println(" ############ ");
+
+        System.out.println(" ############ SAMPLE SIZE 5000");
+
+        GraphPartitionerReservoirSampling gpw5 = new GraphPartitionerReservoirSampling(
+                printInfo, inputPath, algorithm, keyParam, k, globalPhase, graphName + "_resSampling_noHigh", outputStatistics, outputPath, windowSizeInMs, wait, (int) 5000, testing
+        );
+        gpw5.partitionGraph();
+        Thread.sleep(1000);
+        System.out.println(" ############ ");
+*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*        for (int j = 0; j < 15; j++) {
+            //double sampleSizeRun = (double) sampleSize * ((10.0 - j)/10.0);
             double sampleSizeRun = (double) sampleSize * ((10.0 - j)/10.0);
             System.out.println("s: " + (int) sampleSizeRun);
             for (int i = 0; i < 2; i++) {

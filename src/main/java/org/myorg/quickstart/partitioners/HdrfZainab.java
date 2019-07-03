@@ -14,9 +14,11 @@ import org.myorg.quickstart.utils.StoredObject;
 import org.myorg.quickstart.utils.StoredState;
 import org.myorg.quickstart.utils.TEMPGLOBALVARIABLES;
 
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by zainababbas on 05/02/2017.
@@ -40,14 +42,14 @@ public class HdrfZainab {
 
         JobExecutionResult result = env.execute("My Flink Job");
 
-/*        try {
-            FileWriter fw = new FileWriter(log, true); //the true will append the new data
+        try {
+            FileWriter fw = new FileWriter(log,true); //the true will append the new data
             fw.write("The job took " + result.getNetRuntime(TimeUnit.SECONDS) + " seconds to execute"+"\n");//appends the string to the file
             fw.write("The job took " + result.getNetRuntime(TimeUnit.NANOSECONDS) + " nanoseconds to execute"+"\n");
             fw.close();
         } catch (IOException ioe) {
             System.err.println("IOException: " + ioe.getMessage());
-        }*/
+        }
 
         System.out.println("abc");
     }

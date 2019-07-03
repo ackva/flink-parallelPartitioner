@@ -62,7 +62,7 @@ public class WindowGraphAggregation<K, EV, S extends Serializable, T> extends Gr
         this.timeMillis = timeMillis;
     }
 
-    public WindowGraphAggregation(SteamingConnectedComponents.ConnectedComponents.UpdateCC updateFun, ReduceFunction<DisjointSet<K>> combineFun, DisjointSet<K> initialVal, long timeMillis, boolean transientState) {
+    public WindowGraphAggregation(StreamingConnectedComponents.ConnectedComponents.UpdateCC updateFun, ReduceFunction<DisjointSet<K>> combineFun, DisjointSet<K> initialVal, long timeMillis, boolean transientState) {
         this(updateFun, combineFun, null, initialVal, timeMillis, transientState);
     }
 

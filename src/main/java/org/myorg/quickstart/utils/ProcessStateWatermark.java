@@ -10,7 +10,7 @@ import java.util.List;
  */
 public class ProcessStateWatermark {
 
-    public Long key;
+    public long key;
     public List<Edge<Integer, Long>> edgeList = new ArrayList<>();
     public long lastModified;
     public int repetition = 0;

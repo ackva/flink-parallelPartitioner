@@ -23,6 +23,7 @@ import java.util.HashSet;
 import java.util.Map.Entry;
 
 import org.apache.flink.api.common.ProgramDescription;
+import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.RichFlatMapFunction;
@@ -58,7 +59,7 @@ public class IterativeConnectedComponents implements ProgramDescription {
                 iteration.keyBy(0).flatMap(new AssignComponents()));
 
         // Emit the results
-        //result.print();
+        result.print();
 
         env.execute("Streaming Connected Components");
     }
@@ -198,6 +199,12 @@ public class IterativeConnectedComponents implements ProgramDescription {
 
         if (fileOutput) {
             return env.readTextFile(edgeInputPath)
+                    .filter(new FilterFunction<String>() {
+                        @Override
+                        public boolean filter(String value) throws Exception {
+                            return !value.contains("%");
+                        }
+                    })
                     .map(new MapFunction<String, Tuple2<Long, Long>>() {
                         @Override
                         public Tuple2<Long, Long> map(String s) {
@@ -220,6 +227,8 @@ public class IterativeConnectedComponents implements ProgramDescription {
                     }
                 });
     }
+
+
 
     @Override
     public String getDescription() {

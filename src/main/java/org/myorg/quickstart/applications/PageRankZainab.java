@@ -104,7 +104,7 @@ public class PageRankZainab {
         System.out.println("Execution Time: " + resultLog.getNetRuntime(TimeUnit.MILLISECONDS));
         //} else {
         //System.out.println("Printing result to stdout. Use --output to specify output path.");
-        //result.print();
+        result.print();
         //
 
 

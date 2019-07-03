@@ -200,7 +200,7 @@ public class GraphPartitionerReservoirSampling {
         DataStream<String> sideOutputStream = phaseTwoStream.getSideOutput(outputTag);
         //DataStream<String> errorStream = phaseTwoStream.getSideOutput(outputTagError);
         //errorStream.print();
-        sideOutputStream.print();
+        //sideOutputStream.print();
         sideOutputStream.writeAsText(loggingPath.replaceAll(":","_"));
 
         // Final Step -- Custom Partition, based on pre-calculated ID
@@ -215,6 +215,15 @@ public class GraphPartitionerReservoirSampling {
         partitionedEdges.writeAsText(outputPathPartitions.replaceAll(":","_"));
         //partitionedEdges.print();
 
+
+        DataStream<String> loggingStream = sideOutputStream.map(new MapFunction<String, String>() {
+            @Override
+            public String map(String value) throws Exception {
+                //String[] line = value.split(";");
+                return "logging_" + value;
+            }
+        }).setParallelism(1);
+        loggingStream.print();
 
         // ### Execute the job in Flink
         //System.out.println(env.getExecutionPlan());

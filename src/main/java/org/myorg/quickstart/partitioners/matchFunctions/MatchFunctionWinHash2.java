@@ -30,6 +30,7 @@ public class MatchFunctionWinHash2 extends KeyedBroadcastProcessFunction<Integer
 
     long currentWatermarkBro = 1;
     long currentWatermarkEle = 1;
+    long lastCheck;
 
     List<WinHashState> completeStateListFORDEBUG = new ArrayList<>();
     List<WinHashState> notCompleteStateListFORDEBUG = new ArrayList<>();
@@ -156,6 +157,15 @@ public class MatchFunctionWinHash2 extends KeyedBroadcastProcessFunction<Integer
         emitAllReadyEdges(out);
 
 
+/*        if (ctx.currentWatermark() > lastCheck) {
+            System.out.println("new check" + ctx.currentWatermark());
+            lastCheck = ctx.currentWatermark();
+
+        }*/
+
+
+
+
     }
 
     @Override
@@ -194,6 +204,7 @@ public class MatchFunctionWinHash2 extends KeyedBroadcastProcessFunction<Integer
             }
             statesToBeRemoved.add(winState);
             windowStateMap.remove(winState);
+
         }
         completeStateList.removeAll(statesToBeRemoved);
 
@@ -233,6 +244,8 @@ public class MatchFunctionWinHash2 extends KeyedBroadcastProcessFunction<Integer
         } else {
             winState = new WinHashState(hashvalue,size);
             windowStateMap.put(hashvalue,winState);
+            //stateCounter++;
+            //System.out.println("# of states: " + stateCounter + "# of broadcasts: " + countBroadcastsOnWorker + "# of edges: " + counterEdgesInstance);
       }
 
     }

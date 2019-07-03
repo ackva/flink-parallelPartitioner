@@ -1,34 +1,29 @@
 package org.myorg.quickstart.applications;
 
-        import org.apache.flink.api.common.JobExecutionResult;
-        import org.apache.flink.api.common.functions.*;
-        import org.apache.flink.api.java.tuple.Tuple2;
-        import org.apache.flink.graph.Edge;
-        import org.apache.flink.graph.streaming.EdgesFold;
-        import org.apache.flink.graph.streaming.GraphStream;
-        import org.apache.flink.graph.streaming.SimpleEdgeStream;
-        //import org.apache.flink.graph.streaming.WindowGraphAggregation;
-        import org.apache.flink.streaming.api.windowing.time.Time;
-        import org.myorg.quickstart.utils.WindowGraphAggregation;
-        import org.apache.flink.graph.streaming.library.ConnectedComponents;
-        import org.apache.flink.graph.streaming.summaries.DisjointSet;
-        import org.apache.flink.streaming.api.datastream.DataStream;
-        import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-        import org.apache.flink.types.NullValue;
-        import org.apache.flink.util.Collector;
-        import org.myorg.quickstart.utils.*;
+import org.apache.flink.api.common.JobExecutionResult;
+import org.apache.flink.api.common.functions.*;
+import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.graph.Edge;
+import org.apache.flink.graph.streaming.EdgesFold;
+import org.apache.flink.graph.streaming.summaries.Candidates;
+import org.myorg.quickstart.utils.*;
+import org.apache.flink.graph.streaming.summaries.DisjointSet;
+import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.types.NullValue;
+import org.apache.flink.util.Collector;
 
-        import java.io.*;
-        import java.util.Collections;
-        import java.util.LinkedList;
-        import java.util.Random;
-        import java.util.concurrent.TimeUnit;
+import java.io.*;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 
 /**
  * Created by zainababbas on 07/02/2017.
  */
-public class SteamingConnectedComponents {
+public class StreamingBipartitenessCheck {
 
     public static void main(String[] args) throws Exception {
 
@@ -36,37 +31,32 @@ public class SteamingConnectedComponents {
             return;
         }
 
+
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setParallelism(1);
-
 
         DataStream<Edge<Long, NullValue>> edges = getGraphStream(env);
         env.setParallelism(k);
 
-        //DataStream<Edge<Long, NullValue>> partitionesedges = edges.partitionCustom(new DbhPartitioner<>(new CustomKeySelector<>(0),k), new CustomKeySelector<>(0));
-        //partitionesedges.addSink(new DumSink2());
-        GraphStream<Long, NullValue, NullValue> graph = new SimpleEdgeStream<>(edges.partitionCustom(new DbhPartitioner<>(new CustomKeySelector(0),k), new CustomKeySelector<>(0)),env);
+        DataStream<Edge<Long, NullValue>> partitionesedges  = edges.partitionCustom(new HDRF<>(new CustomKeySelector(0),k,1), new CustomKeySelector<>(0));
 
-        //JobExecutionResult result = env.execute("My Flink Job");
+        //partitionesedges.addSink(new DumSink2());
+        //JobExecutionResult result = env.execute("My Flink Job1");
 		//System.out.println("job 1 execution time"+result.getNetRuntime(TimeUnit.MILLISECONDS));
-		//GraphStream<Long, NullValue, NullValue> graph = new SimpleEdgeStream<>(partitionesedges,env);
-		DataStream<DisjointSet<Long>> cc = graph.aggregate(new ConnectedComponents<Long, NullValue>(5000));
-		cc.addSink(new DumSink3());
-		// flatten the elements of the disjoint set and print
-		// in windows of printWindowTime
-		/*cc.flatMap(new FlattenSet()).keyBy(0)
-				.timeWindow(Time.of(5000, TimeUnit.MILLISECONDS))
-				.fold(new Tuple2<Long, Long>(0l, 0l), new IdentityFold());
-		cc.print();*/
-        JobExecutionResult result1 = env.execute("My Flink Job");
-        System.out.println("job 1 execution time"+result1.getNetRuntime(TimeUnit.MILLISECONDS));
+		GraphStream<Long, NullValue, NullValue> graph = new SimpleEdgeStream<>(partitionesedges,env);
+		double starttime= System.currentTimeMillis();
+		DataStream<Candidates> bipartition = graph.aggregate
+														   (new BipartitenessCheck<Long, NullValue>((long) 5000));
+		bipartition.addSink(new DumSink1());		//	edges.partitionCustom(new DbhPartitioner<>(new CustomKeySelector(0),k), new CustomKeySelector<>(0)).writeAsCsv(outputPath, FileSystem.WriteMode.OVERWRITE).setParallelism(k);
+		JobExecutionResult result1 = env.execute("My Flink Job1");
+		//System.out.println("job 1 execution time"+result1.getNetRuntime(TimeUnit.MILLISECONDS));*/
 
         try {
             FileWriter fw = new FileWriter(log, true); //the true will append the new data
-            //	fw.write("The job took " + result.getNetRuntime(TimeUnit.SECONDS) + " seconds to execute" + "\n");//appends the string to the file
-            //	fw.write("The job took " + result.getNetRuntime(TimeUnit.NANOSECONDS) + " nanoseconds to execute" + "\n");
-            fw.write("The job 1 took " + result1.getNetRuntime(TimeUnit.SECONDS) + " seconds to execute" + "\n");//appends the string to the file
-            fw.write("The job 1 took " + result1.getNetRuntime(TimeUnit.NANOSECONDS) + " nanoseconds to execute" + "\n");
+            //fw.write("The job took " + result.getNetRuntime(TimeUnit.SECONDS) + " seconds to execute" + "\n");//appends the string to the file
+            //fw.write("The job took " + result.getNetRuntime(TimeUnit.NANOSECONDS) + " nanoseconds to execute" + "\n");
+            //fw.write("The job1 took " + result.getNetRuntime(TimeUnit.SECONDS) + " seconds to execute" + "\n");//appends the string to the file
+            //fw.write("The job1 took " + result.getNetRuntime(TimeUnit.NANOSECONDS) + " nanoseconds to execute" + "\n");
             fw.close();
         } catch (IOException ioe) {
             System.err.println("IOException: " + ioe.getMessage());
@@ -136,7 +126,7 @@ public class SteamingConnectedComponents {
             this.currentState = new StoredState(k);
             this.lamda = lamda;
             this.k=k;
-
+            System.out.println("createdsfsfsfsdf");
 
         }
 
@@ -154,8 +144,8 @@ public class SteamingConnectedComponents {
 
             int machine_id = -1;
 
-            StoredObject first_vertex = currentState.getRecord(source);
-            StoredObject second_vertex = currentState.getRecord(target);
+            StoredObject first_vertex = currentState.getRecordOld(source);
+            StoredObject second_vertex = currentState.getRecordOld(target);
 
             int min_load = currentState.getMinLoad();
             int max_load = currentState.getMaxLoad();
@@ -399,8 +389,8 @@ public class SteamingConnectedComponents {
 
             int machine_id = -1;
 
-            StoredObject first_vertex = currentState.getRecordOld(source);
-            StoredObject second_vertex = currentState.getRecordOld(target);
+            StoredObject first_vertex = currentState.getRecord(source);
+            StoredObject second_vertex = currentState.getRecord(target);
 
 
             int shard_u = Math.abs((int) ( (int) source*seed*shrink) % k);
@@ -599,16 +589,10 @@ public class SteamingConnectedComponents {
     public static  DataStream<Edge<Long, NullValue>> getGraphStream(StreamExecutionEnvironment env) throws IOException {
 
         return env.readTextFile(InputPath)
-                .filter(new FilterFunction<String>() {
-                    @Override
-                    public boolean filter(String value) throws Exception {
-                        return !value.contains("%");
-                    }
-                })
                 .map(new MapFunction<String, Edge<Long, NullValue>>() {
                     @Override
                     public Edge<Long, NullValue> map(String s) throws Exception {
-                        String[] fields = s.replaceAll(","," ").split(" ");
+                        String[] fields = s.split("\\ ");
                         long src = Long.parseLong(fields[0]);
                         long trg = Long.parseLong(fields[1]);
                         return new Edge<>(src, trg, NullValue.getInstance());
@@ -616,6 +600,7 @@ public class SteamingConnectedComponents {
                 });
 
     }
+/*
 
     private static class ConnectedComponentss<K extends Serializable, EV> extends WindowGraphAggregation<K, EV, DisjointSet<K>, DisjointSet<K>> implements Serializable {
 
@@ -675,5 +660,6 @@ public class SteamingConnectedComponents {
             }
         }
     }
+*/
 
 }

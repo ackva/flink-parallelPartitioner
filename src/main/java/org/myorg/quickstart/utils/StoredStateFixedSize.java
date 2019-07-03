@@ -21,6 +21,8 @@ public class StoredStateFixedSize implements Serializable{
     private int vertexCounter;
     private long totalDegreeCount;
     private HashSet<Long> highDegreeVerices = new HashSet<>();
+    private List<Long> verticesInStateList = new ArrayList<>();
+    private long lastCheck = 0L;
 
     int MAX_LOAD;
 
@@ -124,50 +126,72 @@ public class StoredStateFixedSize implements Serializable{
         totalDegreeCount += degree;
         vertexCounter++;
 
-        /*if (vertexCounter % 10000 == 0)
-            System.out.println(record_map.size()  + " out of " + sampleSize);*/
 
-
-
+        if (record_map.size() > sampleSize) {
+            System.out.println(record_map.size() + " out of  ---- AAAAAALAAAAARM " + sampleSize);
+        }
 
 
         if (record_map.size() < sampleSize) {
             if (!record_map.containsKey(x)){
                 record_map.put(x, new StoredObjectFixedSize(degree));
+                verticesInStateList.add(x);
             } else {
                 throw new Exception("Entry already exists in state");
             }
+
+            // DEBUG
+            if (vertexCounter % 300_000 == 0) {
+                totalInsertTimeBefore = System.nanoTime() - lastCheck;
+                lastCheck = System.nanoTime();
+                System.out.println(totalInsertTimeBefore / 1000000 + " ms to add 300,000 vertices BEFORE" + vertexCounter);
+            }
+            // END DEGBUG
+
         } else {
             //System.out.println(record_map.size()  + " out of " + sampleSize);
             double probabilityToReplace = (double) sampleSize / (double) vertexCounter;
             if (flipCoin(probabilityToReplace)) {
                 Random rand = new Random();
-
                 long now = System.nanoTime();
-                Object[] keys = record_map.keySet().toArray();
-                Object toBeReplaced = keys[rand.nextInt(keys.length)];
-                // System.out.println("here i am " + record_map.get(toBeReplaced).isHighDegree());
+                Object toBeReplaced = verticesInStateList.get(rand.nextInt(verticesInStateList.size()));
 
-                if (getRecord_map().size() > (sampleSize - 30000) && getRecord_map().size() < (sampleSize)) {
+                // DEBUG
+                if (vertexCounter % 1000 == 0) {
+                    totalInsertTimeBefore = System.nanoTime() - lastCheck;
+                    lastCheck = System.nanoTime();
+                    System.out.println(totalInsertTimeBefore / 1000000 + " ms to add 1000 vertices AFTER" + vertexCounter);
+                }
+                // END DEGBUG
+
+/*                if (getRecord_map().size() > (sampleSize - 30000) && getRecord_map().size() < sampleSize) {
                     totalInsertTimeBefore += System.nanoTime() - now;
                     avgInsertTimeBefore = totalInsertTimeBefore / (double) vertexCounter;
-                    if (vertexCounter % 100 == 0)
+                    if (vertexCounter % 10 == 0)
                         System.out.println("checking size before full table took  avg " + avgInsertTimeBefore/1000000 + " ms. counter " + vertexCounter);
                 } else if (getRecord_map().size() == (sampleSize)) {
                     vertexCountAfterFull++;
                     totalInsertTimeAfter = totalInsertTimeAfter + (System.nanoTime() - now);
                     avgInsertTimeAfter = totalInsertTimeAfter / (double) vertexCountAfterFull;
-                    if (vertexCountAfterFull % 1000 == 0)
+                    if (vertexCountAfterFull % 10 == 0)
                         System.out.println("checking size after full table took   " + (double) avgInsertTimeAfter/1000000 + " ms. counter " + vertexCountAfterFull);
-                }
+                }*/
                                  //if (record_map.get(toBeReplaced).isHighDegree()) {
 
-                //    probabilityToReplace = 1/((double)record_map.get(toBeReplaced).getDegree()/(double)vertexCounter);
-                //    System.out.println("high degree replace: " + probabilityToReplace);
-                //    if (flipCoin(probabilityToReplace)) {
+                if (TEMPGLOBALVARIABLES.keepHighDegree) {
+                    probabilityToReplace = 1/((double)record_map.get(toBeReplaced).getDegree()/(double)vertexCounter);
+                    if (probabilityToReplace < 1)
+                        System.out.println("high degree replace: " + probabilityToReplace);
+                    if (flipCoin(probabilityToReplace)) {
                         record_map.remove(toBeReplaced);
+                        verticesInStateList.remove(toBeReplaced);
                         record_map.put(x, new StoredObjectFixedSize(degree));
-                        //System.out.println("replacement done: " + probabilityToReplace);
+                        verticesInStateList.add(x);
+                    }
+                    //System.out.println("replacement done: " + probabilityToReplace);
+                }
+
+
                     }
                 //}
             //}
