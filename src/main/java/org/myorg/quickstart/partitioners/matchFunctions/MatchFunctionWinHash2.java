@@ -74,7 +74,6 @@ public class MatchFunctionWinHash2 extends KeyedBroadcastProcessFunction<Integer
     private int parallelism;
     List<Long> totalTimesStateStateCompletion = new ArrayList<>();
 
-
     private ListState<ProcessState> state1;
    //MapStateDescriptor<String, Tuple2<Long,Boolean>> updatedStateDescriptor = new MapStateDescriptor<>("keineAhnung", BasicTypeInfo.STRING_TYPE_INFO, ValueTypeInfo.BOOLEAN_VALUE_TYPE_INFO);
     private int nullCounter = 0;
