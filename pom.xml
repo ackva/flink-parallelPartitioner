@@ -17,7 +17,7 @@ specific language governing permissions and limitations
 under the License.
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>org.myorg.quickstart</groupId>
@@ -60,14 +60,82 @@ under the License.
 			<version>${flink.version}</version>
 			<scope>compile</scope>
 		</dependency>
-<!--
+
 		<dependency>
 			<groupId>org.apache.flink</groupId>
-			<artifactId>flink-streaming-java_${scala.binary.version}</artifactId>
-			<version>${flink.version}</version>
-			<scope>compile</scope>
+			<artifactId>flink-streaming-java_2.11</artifactId>
+			<version>1.7.1</version>
+			<scope>provided</scope>
 		</dependency>
+
+		<!-- https://mvnrepository.com/artifact/org.apache.flink/flink-hadoop-compatibility -->
+		<dependency>
+			<groupId>org.apache.flink</groupId>
+			<artifactId>flink-hadoop-compatibility_2.12</artifactId>
+			<version>1.7.1</version>
+			<scope>test</scope>
+		</dependency>
+
+<!--		<dependency>
+			<groupId>org.apache.flink</groupId>
+			<artifactId>flink-streaming-scala_2.11</artifactId>
+			<version>1.7.1</version>
+		</dependency>-->
+
+<!--		<dependency>
+			<groupId>org.apache.flink</groupId>
+			<artifactId>flink-gelly_2.11</artifactId>
+			<version>${flink.version}</version>
+		</dependency>-->
+
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-log4j12</artifactId>
+			<version>1.7.7</version>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>log4j</groupId>
+			<artifactId>log4j</artifactId>
+			<version>1.2.17</version>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.flink</groupId>
+			<artifactId>flink-shaded-yarn-tests</artifactId>
+			<version>1.7-SNAPSHOT</version>
+		</dependency>
+
+		<!--		<dependency>
+                    <groupId>org.apache.flink</groupId>
+                    <artifactId>flink-streaming-java_2.10</artifactId>
+                    <version>1.2.0</version>
+                </dependency>-->
+
+<!--
+		<version>${flink.version}</version>
+		<scope>compile</scope>
+	</dependency>
+	&lt;!&ndash;
 -->
+
+
+<!--            <dependency>
+                <groupId>org.apache.flink</groupId>
+                <artifactId>flink-streaming-java_2.10</artifactId>
+                <type>test-jar</type>
+                <version>1.2.0</version>
+                <scope>test</scope>
+            </dependency>-->
+
+            <!--
+                    <dependency>
+                        <groupId>org.apache.flink</groupId>
+                        <artifactId>flink-streaming-java_${scala.binary.version}</artifactId>
+                        <version>${flink.version}</version>
+                        <scope>compile</scope>
+                    </dependency>
+            -->
 
 
 		<!-- https://mvnrepository.com/artifact/org.apache.flink/flink-gelly -->
@@ -92,26 +160,15 @@ under the License.
 		<!-- Add logging framework, to produce console output when running in the IDE. -->
 		<!-- These dependencies are excluded from the application JAR by default. -->
 
-<!--		COMMENTED BY ME (NEXT 3) ++++++++++ -->
-	<dependency>
-		<groupId>org.slf4j</groupId>
-		<artifactId>slf4j-log4j12</artifactId>
-		<version>1.7.7</version>
-		<scope>runtime</scope>
-	</dependency>
-	<dependency>
-		<groupId>log4j</groupId>
-		<artifactId>log4j</artifactId>
-		<version>1.2.17</version>
-		<scope>runtime</scope>
-	</dependency>
-<!--
-	<dependency>
-	  <groupId>org.apache.commons</groupId>
-	  <artifactId>commons-lang3</artifactId>
-	  <version>3.1</version>
-	</dependency>
--->
+		<!--		COMMENTED BY ME (NEXT 3) ++++++++++ -->
+
+		<!--
+            <dependency>
+              <groupId>org.apache.commons</groupId>
+              <artifactId>commons-lang3</artifactId>
+              <version>3.1</version>
+            </dependency>
+        -->
 
 	</dependencies>
 

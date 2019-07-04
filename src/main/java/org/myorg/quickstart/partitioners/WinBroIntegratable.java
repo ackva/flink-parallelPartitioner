@@ -30,7 +30,6 @@ import org.myorg.quickstart.partitioners.windowFunctions.ProcessWindowGellyHashV
 import org.myorg.quickstart.utils.CustomKeySelector6;
 import org.myorg.quickstart.utils.HashPartitioner;
 import org.myorg.quickstart.utils.TEMPGLOBALVARIABLES;
-import scala.xml.Null;
 
 import java.io.File;
 import java.io.FileWriter;

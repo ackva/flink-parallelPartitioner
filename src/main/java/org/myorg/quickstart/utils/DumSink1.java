@@ -1,6 +1,6 @@
 package org.myorg.quickstart.utils;
 
-import org.apache.flink.graph.streaming.summaries.Candidates;
+
 import org.apache.flink.streaming.api.functions.sink.SinkFunction;
 
 /**

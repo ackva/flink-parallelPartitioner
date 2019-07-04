@@ -5,9 +5,6 @@ import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.types.NullValue;
 import org.apache.flink.util.Collector;
-import org.apache.hadoop.yarn.state.Graph;
-import org.myorg.quickstart.deprecated.EdgeEventDepr;
-import scala.xml.Null;
 
 import java.util.ArrayList;
 import java.util.HashMap;

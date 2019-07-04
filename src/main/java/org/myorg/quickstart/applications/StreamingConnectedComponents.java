@@ -4,14 +4,17 @@ package org.myorg.quickstart.applications;
         import org.apache.flink.api.common.functions.*;
         import org.apache.flink.api.java.tuple.Tuple2;
         import org.apache.flink.graph.Edge;
-        import org.apache.flink.graph.streaming.EdgesFold;
+/*        import org.apache.flink.graph.streaming.EdgesFold;
         import org.apache.flink.graph.streaming.GraphStream;
         import org.apache.flink.graph.streaming.SimpleEdgeStream;
         //import org.apache.flink.graph.streaming.WindowGraphAggregation;
         import org.apache.flink.streaming.api.windowing.time.Time;
         import org.myorg.quickstart.utils.WindowGraphAggregation;
-        import org.apache.flink.graph.streaming.library.ConnectedComponents;
-        import org.apache.flink.graph.streaming.summaries.DisjointSet;
+
+        import org.apache.flink.graph.streaming.summaries.DisjointSet;*/
+
+       // import org.apache.flink.graph.streaming.library.ConnectedComponents;
+        //import org.apache.flink.graph.library.ConnectedComponents;
         import org.apache.flink.streaming.api.datastream.DataStream;
         import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
         import org.apache.flink.types.NullValue;

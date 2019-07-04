@@ -25,17 +25,20 @@ import org.apache.flink.api.common.functions.FoldFunction;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.graph.Edge;
-import org.apache.flink.graph.streaming.GraphStream;
+/*import org.apache.flink.graph.streaming.GraphStream;
 import org.apache.flink.graph.streaming.SimpleEdgeStream;
 //import org.apache.flink.graph.streaming.WindowGraphAggregation;
 import org.apache.flink.graph.streaming.library.ConnectedComponents;
 import org.apache.flink.graph.streaming.summaries.DisjointSet;
+import org.apache.flink.streaming.api.datastream.DataStream;*/
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.AscendingTimestampExtractor;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.types.NullValue;
 import org.apache.flink.util.Collector;
+import org.myorg.quickstart.utils.ConnectedComponents;
+import org.myorg.quickstart.utils.DisjointSet;
 
 import java.util.concurrent.TimeUnit;
 
@@ -44,7 +47,7 @@ import java.util.concurrent.TimeUnit;
  * Vertices that belong to the same component have the same component ID.
  * This algorithm computes _weakly_ connected components, i.e. edge direction is ignored.
  * <p>
- * This is a single-pass implementation, which uses a {@link WindowGraphAggregation} to periodically merge
+ * This is a single-pass implementation, which uses a {@link //WindowGraphAggregation} to periodically merge
  * the partitioned state. For an iterative implementation, see {@link //IterativeConnectedComponents}.
  */
 public class ConnectedComponentsExample implements ProgramDescription {

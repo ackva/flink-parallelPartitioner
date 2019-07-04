@@ -160,7 +160,7 @@ public class StoredStateFixedSize implements Serializable{
                 if (vertexCounter % 1000 == 0) {
                     totalInsertTimeBefore = System.nanoTime() - lastCheck;
                     lastCheck = System.nanoTime();
-                    System.out.println(totalInsertTimeBefore / 1000000 + " ms to add 1000 vertices AFTER" + vertexCounter);
+                    //System.out.println(totalInsertTimeBefore / 1000000 + " ms to add 1000 vertices AFTER" + vertexCounter);
                 }
                 // END DEGBUG
 
@@ -179,10 +179,11 @@ public class StoredStateFixedSize implements Serializable{
                                  //if (record_map.get(toBeReplaced).isHighDegree()) {
 
                 if (TEMPGLOBALVARIABLES.keepHighDegree) {
-                    probabilityToReplace = 1/((double)record_map.get(toBeReplaced).getDegree()/(double)vertexCounter);
-                    if (probabilityToReplace < 1)
-                        System.out.println("high degree replace: " + probabilityToReplace);
+                    probabilityToReplace = 1.0 - (double)record_map.get(toBeReplaced).getDegree()/(double)(vertexCounter-1);
+                    if (probabilityToReplace < 0.95)
+                        //System.out.println("probabiltity/centraility replaced " + probabilityToReplace);
                     if (flipCoin(probabilityToReplace)) {
+                        //System.out.println("probabiltity/centraility replaced " + probabilityToReplace);
                         record_map.remove(toBeReplaced);
                         verticesInStateList.remove(toBeReplaced);
                         record_map.put(x, new StoredObjectFixedSize(degree));
@@ -212,6 +213,17 @@ public class StoredStateFixedSize implements Serializable{
 
     public int getNumVertices(){
         return record_map.size();
+    }
+
+    public HashMap<Long,Integer> getDegrees() {
+
+        HashMap<Long, Integer> degreeMap = new HashMap<>();
+
+        for (Long o : this.getRecord_map().keySet()) {
+            degreeMap.put(o,this.getRecord_map().get(o).getDegree());
+        }
+
+        return degreeMap;
     }
 
 

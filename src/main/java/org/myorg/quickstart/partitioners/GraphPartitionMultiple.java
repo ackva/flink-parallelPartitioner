@@ -64,15 +64,34 @@ public class GraphPartitionMultiple {
 */
 
 
-
-        System.out.println(" ############ SAMPLE SIZE 100");
+        System.out.println(" ############ SAMPLE SIZE " + sampleSize);
 
         GraphPartitionerReservoirSampling gpw0 = new GraphPartitionerReservoirSampling(
-                printInfo, inputPath, algorithm, keyParam, k, globalPhase, graphName + "_resSampling_noHigh", outputStatistics, outputPath, windowSizeInMs, wait, (int) 100, testing
+                printInfo, inputPath, algorithm, keyParam, k, globalPhase, graphName + "_resSampling_noHigh", outputStatistics, outputPath, windowSizeInMs, wait, sampleSize, testing
         );
         gpw0.partitionGraph();
         Thread.sleep(1000);
         System.out.println(" ############ ");
+
+
+
+/*        for (int j = 1600; j > 0; j--) {
+            //double sampleSizeRun = (double) sampleSize * ((10.0 - j)/10.0);
+            int sampleSizeRun = j;
+            j -= 99;
+            System.out.println("s: " + (int) sampleSizeRun);
+            for (int i = 0; i < 2; i++) {
+                System.out.println("Run: " + i);
+                GraphPartitionerReservoirSampling gpw = new GraphPartitionerReservoirSampling(
+                        printInfo,  inputPath, algorithm, keyParam, k, globalPhase, graphName+"_resSampling_noHigh", outputStatistics, outputPath, windowSizeInMs, wait, sampleSizeRun, testing
+                );
+                gpw.partitionGraph();
+                Thread.sleep(1000);
+                System.out.println(" ############ ");
+
+            }
+        }*/
+
 
 
 

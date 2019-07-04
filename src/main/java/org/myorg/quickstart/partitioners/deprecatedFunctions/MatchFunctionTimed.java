@@ -9,7 +9,7 @@ import org.apache.flink.streaming.api.functions.co.BaseBroadcastProcessFunction;
 import org.apache.flink.streaming.api.functions.co.KeyedBroadcastProcessFunction;
 import org.apache.flink.types.NullValue;
 import org.apache.flink.util.Collector;
-import org.apache.hadoop.util.hash.Hash;
+//import org.apache.hadoop.util.hash.Hash;
 import org.myorg.quickstart.partitioners.GraphPartitionerImpl;
 import org.myorg.quickstart.utils.ModelBuilderGelly;
 import org.myorg.quickstart.utils.ProcessState;

@@ -12,7 +12,6 @@ import org.apache.flink.types.NullValue;
 import org.apache.flink.util.Collector;
 import org.myorg.quickstart.partitioners.GraphPartitionerImpl;
 import org.myorg.quickstart.utils.*;
-import scala.xml.Null;
 
 import java.text.DecimalFormat;
 import java.util.*;

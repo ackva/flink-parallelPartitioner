@@ -19,9 +19,10 @@
 package org.myorg.quickstart.applications;
 
 import org.apache.flink.api.common.functions.ReduceFunction;
-import org.apache.flink.graph.streaming.summaries.Candidates;
-import org.apache.flink.graph.streaming.util.SignedVertex;
+
 import org.apache.flink.types.NullValue;
+import org.myorg.quickstart.utils.Candidates;
+import org.myorg.quickstart.utils.SignedVertex;
 import org.myorg.quickstart.utils.SummaryBulkAggregation;
 import org.myorg.quickstart.utils.WindowGraphAggregation;
 

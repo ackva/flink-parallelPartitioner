@@ -1,4 +1,4 @@
-package org.myorg.quickstart.applications;
+package org.myorg.quickstart.utils;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -32,6 +32,7 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.IterativeStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.util.Collector;
+import org.myorg.quickstart.applications.ConnectedComponentsExample;
 
 /**
  * The Connected Components algorithm assigns a component ID to each vertex in the graph.

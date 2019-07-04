@@ -152,7 +152,7 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
 
         emitAllReadyEdges(out);
 
-        if (counterEdgesInstance > 0 && counterEdgesInstance % 100_000 == 0)
+        if (counterEdgesInstance > 0 && counterEdgesInstance % 5_000_000 == 0)
             ctx.output(GraphPartitionerImpl.outputTag,checkTimer() );
 
     }
@@ -180,6 +180,12 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
             windowStateMap.remove(winState);
         }
         completeStateList.removeAll(statesToBeRemoved);
+
+        /*if (collectedEdges % 100 == 0 && collectedEdges > 0) {
+            System.out.println(modelBuilder.getHdrf().getCurrentState().getRecord_map().size() + " entries in State Map");
+            System.out.println("State Map: " + modelBuilder.getHdrf().getCurrentState().printState());
+            //System.out.println("Degree Map: " + modelBuilder.getHdrf().getCurrentState().getDegrees());
+        }*/
 
        /* if (modelBuilder.getHdrf().getCurrentState().getRecord_map().size() > 24995) {
             System.out.println("edges collected: " + collectedEdges + " -- " + System.currentTimeMillis());
