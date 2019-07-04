@@ -53,7 +53,7 @@ public class StreamingConnectedComponents {
         //JobExecutionResult result = env.execute("My Flink Job");
 		//System.out.println("job 1 execution time"+result.getNetRuntime(TimeUnit.MILLISECONDS));
 		//GraphStream<Long, NullValue, NullValue> graph = new SimpleEdgeStream<>(partitionesedges,env);
-		DataStream<DisjointSet<Long>> cc = graph.aggregate(new ConnectedComponents<Long, NullValue>(5000));
+		DataStream<DisjointSet<Long>> cc = graph.aggregate(new ConnectedComponents<Long, NullValue>(5000, outputPath+"count"));
 		cc.addSink(new DumSink3());
 		// flatten the elements of the disjoint set and print
 		// in windows of printWindowTime

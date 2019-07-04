@@ -62,7 +62,7 @@ public class ConnectedComponentsExample implements ProgramDescription {
 
         GraphStream<Long, NullValue, NullValue> edges = getGraphStream(env);
 
-        DataStream<DisjointSet<Long>> cc = edges.aggregate(new ConnectedComponents<Long, NullValue>(mergeWindowTime));
+        DataStream<DisjointSet<Long>> cc = edges.aggregate(new ConnectedComponents<Long, NullValue>(mergeWindowTime, "checkClass_ConnectedCompoentsExample"));
 
         // flatten the elements of the disjoint set and print
         // in windows of printWindowTime

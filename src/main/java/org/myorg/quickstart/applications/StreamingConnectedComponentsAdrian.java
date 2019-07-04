@@ -68,14 +68,14 @@ public class StreamingConnectedComponentsAdrian {
 
         //GraphStream<Long, NullValue, NullValue> graph1 = new SimpleEdgeStream<Long, NullValue>(edgeStream);
 
-        DataStream<DisjointSet<Integer>> cc1 = graph2.aggregate(new ConnectedComponents<Integer, NullValue>(5000));
+        DataStream<DisjointSet<Integer>> cc1 = graph2.aggregate(new ConnectedComponents<Integer, NullValue>(5000, outputPath));
         cc1.addSink(new DumSink4());
         // flatten the elements of the disjoint set and print
         // in windows of printWindowTime
         cc1.flatMap(new FlattenSet()).keyBy(0)
                 .timeWindow(Time.of(1, TimeUnit.MILLISECONDS))
                 .fold(new Tuple2<Integer, Integer>(1,1), new IdentityFold());
-        cc1.print();
+        //cc1.print();
 
         //DataStream<DisjointSet<Long>> cc = graph.aggregate(new ConnectedComponents<Long, NullValue>(5000));
 

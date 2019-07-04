@@ -44,6 +44,7 @@ import java.io.Serializable;
  */
 public class ConnectedComponents<K extends Serializable, EV> extends WindowGraphAggregation<K, EV, DisjointSet<K>, DisjointSet<K>> implements Serializable {
 	private static int mycount = 0;
+	private String path = "";
 	/**
 	 * Creates a ConnectedComponents object using WindowGraphAggregation class.
 	 * To find number of Connected Components the ConnectedComponents object is passed as an argument
@@ -53,8 +54,9 @@ public class ConnectedComponents<K extends Serializable, EV> extends WindowGraph
 	 *
 	 * @param mergeWindowTime Window time in millisec for the merger.
 	 */
-	public ConnectedComponents(long mergeWindowTime) {
+	public ConnectedComponents(long mergeWindowTime, String path) {
 		super(new UpdateCC(), new CombineCC(), new DisjointSet<K>(), mergeWindowTime, false);
+		this.path = path;
 	}
 
 	/**
@@ -123,10 +125,11 @@ public class ConnectedComponents<K extends Serializable, EV> extends WindowGraph
 		public DisjointSet<K> reduce(DisjointSet<K> s1, DisjointSet<K> s2) throws Exception {
 			int count1 = s1.getMatches().size();
 			int count2 = s2.getMatches().size();
-		//	File file = new File("/Users/zainababbas/partitioning/gelly-streaming/count");
+			//	File file = new File("/Users/zainababbas/partitioning/gelly-streaming/count");
 
 			// if file doesnt exists, then create it
-			File file = new File("/Users/zainababbas/partitioning/gelly-streaming/count");
+			//System.out.println(path);
+			/*File file = new File("C:/Users/zainababbas/partitioning/gelly-streaming/count");
 
 			// if file doesnt exists, then create it
 			if (!file.exists()) {
@@ -137,14 +140,14 @@ public class ConnectedComponents<K extends Serializable, EV> extends WindowGraph
 			BufferedWriter bw = new BufferedWriter(fw);
 
 
-				bw.write("count");
-				bw.write("\n");
+			bw.write("count");
+			bw.write("\n");
 
-			bw.close();
+			bw.close();*/
 			mycount++;
 
 
-			System.out.println(mycount+"mycount");
+			//System.out.println(mycount+"mycount");
 			if (count1 <= count2) {
 				s2.merge(s1);
 				return s2;

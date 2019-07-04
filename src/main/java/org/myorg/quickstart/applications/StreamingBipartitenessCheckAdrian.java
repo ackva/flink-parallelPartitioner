@@ -57,7 +57,7 @@ public class StreamingBipartitenessCheckAdrian {
 		double starttime= System.currentTimeMillis();
 		DataStream<Candidates> bipartition = graph.aggregate(new BipartitenessCheck<>((long) 5000));
 		//bipartition.addSink(new DumSink1());		//	edges.partitionCustom(new DbhPartitioner<>(new CustomKeySelector(0),k), new CustomKeySelector<>(0)).writeAsCsv(outputPath, FileSystem.WriteMode.OVERWRITE).setParallelism(k);
-		bipartition.print();		//	edges.partitionCustom(new DbhPartitioner<>(new CustomKeySelector(0),k), new CustomKeySelector<>(0)).writeAsCsv(outputPath, FileSystem.WriteMode.OVERWRITE).setParallelism(k);
+		//bipartition.print();		//	edges.partitionCustom(new DbhPartitioner<>(new CustomKeySelector(0),k), new CustomKeySelector<>(0)).writeAsCsv(outputPath, FileSystem.WriteMode.OVERWRITE).setParallelism(k);
 		JobExecutionResult result1 = env.execute("My Flink Job1");
 		//System.out.println("job 1 execution time"+result1.getNetRuntime(TimeUnit.MILLISECONDS));
 
