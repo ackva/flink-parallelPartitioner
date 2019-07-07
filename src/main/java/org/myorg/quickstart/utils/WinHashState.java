@@ -21,6 +21,8 @@ public class WinHashState {
     private long totalTime;
     private boolean updated;
     private String createdBy;
+    private long createWatermark;
+    private long completeWatermark;
 
     private long watermark;
     private long diffWatermarkTime;
@@ -35,17 +37,54 @@ public class WinHashState {
     private long lastArrivalElementWatermark;
     private long lastArrivalElementProcessing;
     private int firstArrivedIn;
+
+    public void setCompleteWatermark(long completeWatermark) {
+        this.completeWatermark = completeWatermark;
+    }
+
+
+
     private int counterEdgesBroadcast;
     private int counterEdgesElements;
     private long firstWatermarkBroadcast;
     private long firstWatermarkElements;
     private long timestampWatermark;
+
+    public long getCreateWatermark() {
+        return this.createWatermark;
+    }
+
     private long timestampProcessTime;
     private List <Integer> callHistory;
     private int numberOfWatermarks;
     private boolean broadcastArrived;
     private String createdWithElement;
 
+    public WinHashState(long hashValue, Edge edge, long watermark) {
+        this.key = hashValue;
+        this.edgesInState = new ArrayList<>();
+        this.edgesInState.add(edge);
+        this.size = -1;
+        this.complete = false;
+        this.createdBy = "ele";
+        this.starttime = System.currentTimeMillis();
+        this.updatetime = 0;
+        this.createWatermark = watermark;
+
+    }
+
+    public WinHashState(long hashValue, int size, long watermark) {
+        this.key = hashValue;
+        this.edgesInState = new ArrayList<>();
+        this.size = size;
+        this.complete = false;
+        this.createdBy = "bro";
+        this.starttime = System.currentTimeMillis();
+        this.updatetime = 0;
+        this.createWatermark = watermark;
+    }
+
+    // for older versions without watermark
     public WinHashState(long hashValue, Edge edge) {
         this.key = hashValue;
         this.edgesInState = new ArrayList<>();
@@ -55,8 +94,10 @@ public class WinHashState {
         this.createdBy = "ele";
         this.starttime = System.currentTimeMillis();
         this.updatetime = 0;
+
     }
 
+    // for older versions without watermark
     public WinHashState(long hashValue, int size) {
         this.key = hashValue;
         this.edgesInState = new ArrayList<>();

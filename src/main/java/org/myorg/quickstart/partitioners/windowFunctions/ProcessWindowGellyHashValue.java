@@ -18,21 +18,10 @@ public class ProcessWindowGellyHashValue extends ProcessWindowFunction<Edge<Inte
     private int edgeCounter = 0;
     long currentWatermark = 1;
     List<Long> watermarks = new ArrayList<>();
+    int emittedEdges;
 
     public void process(Integer key, Context context, Iterable<Edge<Integer, Long>> edgeIterable, Collector<Edge<Integer, Long>> out) throws Exception {
 
-        if (context.currentWatermark() == Long.MAX_VALUE)
-        //    System.out.println("found last item " + context.currentWatermark());
-
-/*        if (currentWatermark != context.currentWatermark()) {
-            watermarks.add(context.currentWatermark());
-            currentWatermark = context.currentWatermark();
-            System.out.println(" ELE _ new Watermark = " + currentWatermark + " old: " + watermarks);
-
-        }*/
-
-        // Temporary variables
-       // String printString = " - ";
         windowCounter++;
 
         //System.out.println("new window (" + windowCounter + ") " + context.currentProcessingTime() + " current watermark: " + context.currentWatermark());
@@ -43,32 +32,34 @@ public class ProcessWindowGellyHashValue extends ProcessWindowFunction<Edge<Inte
         List<Edge<Integer, Long>> edgesInWindow = storeElementsOfWindow(edgeIterable);
         //printWindowElements(edgesInWindow);
         long windowHashValue = 0;
-        for(Edge<Integer, Long> e: edgesInWindow) {
+        for (Edge<Integer, Long> e: edgesInWindow) {
             long edgeHash = Long.parseLong(e.f2.toString());
             windowHashValue = windowHashValue + edgeHash * nextPrime;
         }
 
+        edgeCounter = edgeCounter + edgesInWindow.size();
+
 
         //System.out.println("ELE: window hash value = " + windowHashValue + " with edges: " + edgesInWindow.size() + " " + edgesInWindow);
 
 
         for(Edge<Integer, Long> e: edgesInWindow) {
-            long edgeHash = Long.parseLong(e.f2.toString());
-            //System.out.println(context.currentWatermark() + ": " + e);
             out.collect(new Edge<>(e.f0,e.f1,windowHashValue));
-            //System.out.println("FORWA > " + context.currentWatermark() + " > " + e.f0 + "|" + e.f1 + "|" + windowHashValue);
-            //printString = printString + e.f0 + " " + e.f0 + ", ";
+            emittedEdges++;
         }
+
+        if (emittedEdges < edgeCounter)
+            System.out.println("ALARM!!! NOT ALL EDGES EMITTED");
 
         //System.out.println("ELE: window hash value = " + windowHashValue + " with edges: " + edgesInWindow.size() + " " + edgesInWindow);
 
-        if (TEMPGLOBALVARIABLES.printPhaseOne) {
+/*        if (TEMPGLOBALVARIABLES.printPhaseOne) {
             edgeCounter = edgeCounter + edgesInWindow.size();
             avgEdgesPerWindow =  edgeCounter / windowCounter;
             if (windowCounter % 100000 == 0) {
                 System.out.println("P1 - edges: window # " + windowCounter + " . nr of elements: " + edgesInWindow.size() +" avg = " + avgEdgesPerWindow);
             }
-        }
+        }*/
 
 /*        if (TEMPGLOBALVARIABLES.printTime && (windowCounter %500) == 0) {
             //ctx.output(GraphPartitionerImpl.outputTag, "REL > " + toBeRemoved.size() + " > " + globalCounterForPrint);
@@ -77,7 +68,7 @@ public class ProcessWindowGellyHashValue extends ProcessWindowFunction<Edge<Inte
 
     }
 
-    public String printWindowElements(List<Edge<Integer, Long>> edgeList) {
+/*    public String printWindowElements(List<Edge<Integer, Long>> edgeList) {
 
         // Create human-readable String with current window
         String printString = "";
@@ -88,6 +79,7 @@ public class ProcessWindowGellyHashValue extends ProcessWindowFunction<Edge<Inte
         return printString;
 
     }
+    */
 
     public List<Edge<Integer, Long>> storeElementsOfWindow(Iterable<Edge<Integer, Long>> edgeIterable) {
 

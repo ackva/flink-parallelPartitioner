@@ -17,13 +17,13 @@ public class ModelBuilderFixedSize implements Serializable {
     private CustomKeySelector keySelector;
     private int numOfPartitions;
 
-    public ModelBuilderFixedSize(String algorithm, HashMap <Integer, Integer> vertexDegreeMap, Integer k, double lambda, int sampleSize) {
+    public ModelBuilderFixedSize(String algorithm, int k, double lambda, int sampleSize) {
         this.vertexDegreeMap = vertexDegreeMap;
 
         switch (algorithm) {
             case "hdrf":
                 this.algorithm = "hdrf";
-                HdrfFixedSize hdrf = new HdrfFixedSize(this.keySelector, k,lambda,sampleSize);
+                HdrfFixedSize hdrf = new HdrfFixedSize(this.keySelector, k, lambda, sampleSize);
                 this.hdrf = hdrf;
                 this.numOfPartitions = k;
                 break;
@@ -33,7 +33,7 @@ public class ModelBuilderFixedSize implements Serializable {
         }
     }
 
-    public ModelBuilderFixedSize(String algorithm, HashMap <Integer, Integer> vertexDegreeMap, Integer k, int sampleSize) {
+    public ModelBuilderFixedSize(String algorithm, Integer k, int sampleSize) {
         this.vertexDegreeMap = vertexDegreeMap;
         this.algorithm = "dbh";
         this.keySelector = new CustomKeySelector(0);

@@ -1,8 +1,8 @@
 package org.myorg.quickstart.partitioners.matchFunctions;
 
-import org.apache.flink.api.common.state.ListState;
 import org.apache.flink.api.common.state.ValueState;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.graph.Edge;
 import org.apache.flink.streaming.api.functions.co.KeyedBroadcastProcessFunction;
 import org.apache.flink.types.NullValue;
@@ -33,11 +33,11 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
     private int collectedEdges = 0;
     private int counterEdgesInstance = 0;
     private String algorithm;
-    private HashMap<Integer, Integer> vertexDegreeMap = new HashMap<>();
     private ModelBuilderFixedSize modelBuilder;
     private List<Edge<Integer, Long>> waitingEdges;
     private long startTime = System.currentTimeMillis();
-    private ValueState<ProcessStateWatermark> state;
+    private ValueState<ProcessState2> state;
+    List<Long> stateList = new ArrayList<>();
     private int parallelism;
     private int countBroadcastsOnWorker;
     List<Long> totalTimesStateStateCompletion = new ArrayList<>();
@@ -46,27 +46,39 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
     List<WinHashState> notCompleteStateListFORDEBUG = new ArrayList<>();
     List<WinHashState> completeStateListFORDEBUG = new ArrayList<>();
     private int sampleSize;
+    private int stateCounter;
+    private int stateExistsCounter;
+    private long highestWatermark;
+    private boolean timerIsSet;
+    private boolean timerEmitCall;
+    private int onTimerCount;
 
-
-    private ListState<ProcessState> state1;
+    //private ListState<Long> state;
    //MapStateDescriptor<String, Tuple2<Long,Boolean>> updatedStateDescriptor = new MapStateDescriptor<>("keineAhnung", BasicTypeInfo.STRING_TYPE_INFO, ValueTypeInfo.BOOLEAN_VALUE_TYPE_INFO);
     private int nullCounter = 0;
 
 
     public MatchFunctionReservoirSampling(String algorithm, Integer k, double lambda, int sampleSize) {
+        //HashMap<Integer, Integer> vertexDegreeMap = new HashMap<>();
         this.algorithm = algorithm;
         this.parallelism = k;
         this.waitingEdges = new ArrayList<>();
         if (algorithm.equals("hdrf"))
-            this.modelBuilder = new ModelBuilderFixedSize(algorithm, vertexDegreeMap, k, lambda, sampleSize);
+            this.modelBuilder = new ModelBuilderFixedSize(algorithm, k, lambda, sampleSize);
         if (algorithm.equals("dbh"))
-            this.modelBuilder = new ModelBuilderFixedSize(algorithm, vertexDegreeMap, k, sampleSize);
+            this.modelBuilder = new ModelBuilderFixedSize(algorithm, k, sampleSize);
         this.sampleSize = sampleSize;
     }
 
     // This function is called every time when a broadcast state is processed from the previous phase
     @Override
     public void processBroadcastElement(Tuple2<HashMap<Integer, Integer>,Long> broadcastElement, Context ctx, Collector<Tuple2<Edge<Integer, NullValue>,Integer>> out) throws Exception {
+
+        if (timerEmitCall) {
+            ctx.output(GraphPartitionerImpl.outputTag,"ProcessElement called after lastTimer");
+        }
+
+        //  ProcessState2 valState = checkValueState(ctx.currentWatermark());
 
         //ctx.output(GraphPartitionerImpl.outputTag,"BROAD: " + ctx.currentWatermark() + " - " + broadcastElement);
 
@@ -135,16 +147,85 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
 
         double edgesInBroadcast = (double) edgeDegreeInBroadcast / 2;
 
-        updateState(hashValue,(int) edgesInBroadcast);
+        updateState(hashValue,(int) edgesInBroadcast, ctx.currentWatermark());
 
         emitAllReadyEdges(out);
 
+        if (modelBuilder.getHdrf().getCurrentState().getRecord_map().size() == sampleSize) {
+            if (ctx.currentWatermark() - highestWatermark > 30000) {
+                cleanState(ctx.currentWatermark());
+                highestWatermark = ctx.currentWatermark();
+            }
+
+        }
+
+
+
     }
 
+    private void cleanState(long watermark) {
+        int uselessBroadcastCounter = 0;
+        List<WinHashState> statesToBeRemoved = new ArrayList<>();
+
+        for (WinHashState w : windowStateMap.values()) {
+            if (w.getCreatedBy().equals("bro") && !w.isComplete() && !w.isUpdated() && (watermark - w.getCreateWatermark()) > 20000) {
+                //System.out.println((watermark - w.getCreateWatermark()) + " diff for state " + w.getKey() + " created by " + w.getCreatedBy());
+                uselessBroadcastCounter++;
+                statesToBeRemoved.add(w);
+            }
+        }
+        System.out.println("Useless broadcasts: " + uselessBroadcastCounter);
+
+        for (WinHashState winState : statesToBeRemoved) {
+            windowStateMap.remove(winState.getKey());
+        }
+
+
+    }
+
+    /* private ProcessState2 checkValueState(long watermark) throws IOException {
+
+         ProcessState2 current = state.value();
+         if (current == null) {
+             current = new ProcessState2();
+             current.key = watermark;
+             stateCounter++;
+             stateList.add(watermark);
+         } else {
+             stateExistsCounter++;
+             System.out.println(stateExistsCounter + "/" + stateCounter + ": calls");
+         }
+         state.update(current);
+         //System.out.println("State overview after update (" + stateExists + "): " + state.value().key + " -- " + state.value().lastModified + " -- " + state.value().repetition + " -- " + state.value().edgeList + " -- ");
+
+         return current;
+         // schedule the next timer X milliseconds from the current event time
+
+     }
+ */
     @Override
     public void processElement(Edge<Integer, Long> currentEdge, ReadOnlyContext ctx, Collector<Tuple2<Edge<Integer, NullValue>,Integer>> out) throws Exception {
 
+        if (timerEmitCall) {
+            ctx.output(GraphPartitionerImpl.outputTag,"ProcessElement called after lastTimer");
+        }
+
+        if (!timerIsSet) {
+            this.timerIsSet = true;
+            //long newTime = watermark+60000;
+            //System.out.println(newTime + " ---- new time: " + (watermark+60000));
+            //ctx.timerService().registerEventTimeTimer(newTime);
+            //ctx.timerService().registerEventTimeTimer(3703500800000L);
+            ctx.timerService().registerEventTimeTimer(3703500800000L);
+            System.out.println("#### timer set");
+        }
        // ctx.output(GraphPartitionerImpl.outputTag,"ELEM: " + ctx.currentWatermark() + " - " + currentEdge);
+        //ProcessState2 valState = checkValueState(ctx.currentWatermark());
+        //long newTime = ctx.currentWatermark()+60000;
+        //System.out.println(newTime + " ---- new time: " + ctx.currentWatermark()+60000);
+
+        //ctx.timerService().registerEventTimeTimer((ctx.currentWatermark() + 60000));
+        ctx.timerService().registerEventTimeTimer(3703500800000L);
 
 
         counterEdgesInstance++;
@@ -153,7 +234,7 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
             System.out.println(collectedEdges + " collected -- element - complete state count:" +  completeStatesFORDEBUG + " -- not complete state count: " + notCompleteStatesFORDEBUG);
         }*/
 
-        updateState(currentEdge.f2,currentEdge);
+        updateState(currentEdge.f2,currentEdge, ctx.currentWatermark());
 
         emitAllReadyEdges(out);
 
@@ -170,9 +251,8 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
             List<Edge> edgesToBeRemoved = new ArrayList<>();
             for (Edge e : winState.getEdgeList()) {
                 int partitionId = modelBuilder.choosePartition(e);
-                int src = Integer.parseInt(e.f0.toString());
-                int trg = Integer.parseInt(e.f1.toString());
-                out.collect(new Tuple2<>(new Edge<>(src,trg, NullValue.getInstance()),partitionId));
+                e.setValue(NullValue.getInstance());
+                out.collect(new Tuple2<>(e,partitionId));
                 collectedEdges++;
                 edgesToBeRemoved.add(e);
              }
@@ -186,8 +266,8 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
         }
         completeStateList.removeAll(statesToBeRemoved);
 
-        if (collectedEdges % 10000 == 0 && collectedEdges > 0)
-            System.out.println(checkProgressDEBUG());
+       /* if (collectedEdges % 100000 == 0 && collectedEdges > 0)
+            System.out.println(checkProgressDEBUG());*/
 
 
         /*if (collectedEdges % 100 == 0 && collectedEdges > 0) {
@@ -210,7 +290,7 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
     //private HashMap<Long, Integer> arrivedElemDiffSysTime = new HashMap<>();
 
 
-    private void updateState(long hashvalue, int size) throws Exception {
+    private void updateState(long hashvalue, int size, long watermark) throws Exception {
         WinHashState winState;
         if (windowStateMap.containsKey(hashvalue)) {
             winState = windowStateMap.get(hashvalue);
@@ -218,17 +298,18 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
             winState.setUpdated(true);
             //System.out.println(" new size for state " + winState.getKey() + " with size" + winState.getSize() + " having " + winState.getEdgeList().size() + " edges");
             if (complete) {
+                winState.setCompleteWatermark(watermark);
                 addStateToReadyList(winState);
             }
         } else {
-            winState = new WinHashState(hashvalue,size);
+            winState = new WinHashState(hashvalue,size, watermark);
             windowStateMap.put(hashvalue,winState);
             notCompleteStateListFORDEBUG.add(winState);
         }
 
     }
 
-    private void updateState(long hashvalue, Edge edge) throws Exception {
+    private void updateState(long hashvalue, Edge edge, long watermark) throws Exception {
 
         WinHashState winState;
         if (windowStateMap.containsKey(hashvalue)) {
@@ -237,12 +318,13 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
             boolean complete = winState.addEdge(edge);
             winState.setUpdated(true);
             if (complete) {
+                winState.setCompleteWatermark(watermark);
                 addStateToReadyList(winState);
             } else {
                 notCompleteStateListFORDEBUG.add(winState);
             }
         } else {
-            winState = new WinHashState(hashvalue,edge);
+            winState = new WinHashState(hashvalue,edge,watermark);
             windowStateMap.put(hashvalue,winState);
             notCompleteStatesFORDEBUG++;
 
@@ -296,6 +378,7 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
         double completeCounter = 0.0;
         double updateCounter = 0.0;
         double neverUpdatedCounter = 0.0;
+        double edgesWaitingForBroad = 0.0;
 
 
         for (WinHashState w : completeStateListFORDEBUG) {
@@ -307,6 +390,7 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
         System.out.println(completeStateListFORDEBUG.size() + " completed states");
         returnString = returnString + "AVG Complete Time = " + sumCompleteTime/completeCounter + " (complete: " + completeCounter + ") ;;";
 
+        String waiting = "";
             for (WinHashState w : notCompleteStateListFORDEBUG) {
                 //returnString = returnString + w.getKey() + " " + w.isUpdated() + " " + w.getUpdatetime() + " " + w.getSize() + " ;; ";
                 //totalTimesStateStateCompletion.add(w.getUpdatetime());
@@ -317,11 +401,46 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
                     updateCounter++;
                 }
 
+                if (w.getSize() == -1) {
+                    edgesWaitingForBroad++;
+                    waiting = waiting + " [ " + w.getKey() + w.getStarttime() + w.getEdgeList() + " ] ;; ";
+                }
+
             }
-            returnString = returnString + "AVG UpdateTime = " + sumUpdateTime/updateCounter + " (updated: " + updateCounter + ") never updated:" + neverUpdatedCounter + " ;;";
+            returnString = returnString + "AVG UpdateTime = " + sumUpdateTime/updateCounter + " (updated: " + updateCounter + ") never updated:" + neverUpdatedCounter + " edgeCounter " + counterEdgesInstance + " size(-1) = "  + edgesWaitingForBroad + " .. waiting: " + waiting;
+
 
             return returnString;
         }
+
+    public void onTimer(long timestamp, OnTimerContext ctx, Collector<Tuple2<Edge<Integer, NullValue>, Integer>> out) throws Exception {
+
+        long watermark = ctx.currentWatermark();
+        onTimerCount++;
+        //System.out.println("### Timer called " + watermark + " ||  edges collected now: " + collectedEdges);
+
+        //if (watermark > highestWatermark && watermark < 3803500800000L) {
+        /*if (!timerIsSet) {
+            this.timerIsSet = true;
+            long newTime = watermark+60000;
+            System.out.println(newTime + " ---- new time: " + (watermark+60000));
+            //ctx.timerService().registerEventTimeTimer(newTime);
+            ctx.timerService().registerEventTimeTimer(3703500800000L);
+            System.out.println("#### highest WM setnew highest + set new timer in onTimer");
+            highestWatermark = ctx.currentWatermark();
+        }*/
+        if (watermark > 3803500800000L) {
+            //System.out.println("#### cleanup now! edges collected now: " + collectedEdges);
+            if (!timerEmitCall) {
+                ctx.output(GraphPartitionerImpl.outputTag,"emitting edges in timer " + collectedEdges);
+                emitAllReadyEdges(out);
+                ctx.output(GraphPartitionerImpl.outputTag,checkProgressDEBUG());
+                timerEmitCall = true;
+            }
+
+        }
+
+    }
 
         /*
 
