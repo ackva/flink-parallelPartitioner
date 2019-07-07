@@ -46,8 +46,8 @@ public class HdrfFixedSize<T> implements Partitioner {
         boolean madeup1 = false;
         boolean madeup2 = false;
 
-        long source = Long.parseLong(edge.f0.toString());
-        long target = Long.parseLong(edge.f1.toString());
+        int source = Integer.parseInt(edge.f0.toString());
+        int target = Integer.parseInt(edge.f1.toString());
 
         int machine_id = -1;
 

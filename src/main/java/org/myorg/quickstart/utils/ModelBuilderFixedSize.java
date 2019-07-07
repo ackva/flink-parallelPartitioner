@@ -1,6 +1,7 @@
 package org.myorg.quickstart.utils;
 
 import org.apache.flink.graph.Edge;
+import org.myorg.quickstart.DbhParallel.DbhFixedSize;
 
 import java.io.Serializable;
 import java.util.HashMap;
@@ -11,7 +12,7 @@ public class ModelBuilderFixedSize implements Serializable {
     private HashMap <Integer, Integer> vertexDegreeMap;
     private String algorithm;
     private HdrfFixedSize hdrf;
-    private Dbh dbh;
+    private DbhFixedSize dbh;
     private HashPartitioner hashPartitioner;
     private CustomKeySelector keySelector;
     private int numOfPartitions;
@@ -26,13 +27,6 @@ public class ModelBuilderFixedSize implements Serializable {
                 this.hdrf = hdrf;
                 this.numOfPartitions = k;
                 break;
-            // Hash is not used here. It's in the main function of this program
-            /*
-                case "hash":
-                this.algorithm = "hash";
-                this.keySelector = new CustomKeySelector(0);
-                this.hashPartitioner = new HashPartitioner(this.keySelector,k);
-                break;*/
             default:
                 this.algorithm = "random";
                 break;
@@ -43,7 +37,7 @@ public class ModelBuilderFixedSize implements Serializable {
         this.vertexDegreeMap = vertexDegreeMap;
         this.algorithm = "dbh";
         this.keySelector = new CustomKeySelector(0);
-        Dbh dbh = new Dbh(this.keySelector, k);
+        DbhFixedSize dbh = new DbhFixedSize(this.keySelector, k, sampleSize);
         this.dbh = dbh;
     }
 
@@ -51,7 +45,7 @@ public class ModelBuilderFixedSize implements Serializable {
         return hdrf;
     }
 
-    public Dbh getDbh() {
+    public DbhFixedSize getDbh() {
         return dbh;
     }
 
@@ -75,26 +69,9 @@ public class ModelBuilderFixedSize implements Serializable {
             partitionId = rand.nextInt(4);
         }
 
-        updateLocalModel(edge, partitionId);
-
         if (partitionId < 0 ) throw new Exception("Something went wrong with the partitioning algorithm");
 
         return partitionId;
     }
 
-    public void updateLocalModel(Edge<Integer, Long> e, Integer partitionId) {
-        Integer[] vertices = new Integer[2];
-        vertices[0] = e.f0;
-        vertices[1] = e.f1;
-
-/*        // Loop over both vertices and see which one has the higher degree (if equal, the left vertex "wins").
-        for (int i = 0; i < 2; i++) {
-            HashSet<Integer> currentPartitions = new HashSet();
-            if (vertexDegreeMap.containsKey(vertices[i]))
-                currentPartitions = vertexDegreeMap.get(vertices[i]);
-            currentPartitions.add(partitionId);
-            vertexDegreeMap.put(vertices[i],currentPartitions);
-        }*/
-
-    }
 }

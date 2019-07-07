@@ -65,14 +65,14 @@ under the License.
 			<groupId>org.apache.flink</groupId>
 			<artifactId>flink-streaming-java_2.11</artifactId>
 			<version>1.7.1</version>
-			<scope>provided</scope>
+			<scope>compile</scope>
 		</dependency>
 
 		<dependency>
 			<groupId>org.apache.flink</groupId>
 			<artifactId>flink-hadoop-compatibility_2.12</artifactId>
 			<version>1.7.1</version>
-			<scope>test</scope>
+			<scope>compile</scope>
 		</dependency>
 
 		<dependency>
@@ -112,6 +112,19 @@ under the License.
 			<groupId>org.apache.flink</groupId>
 			<artifactId>flink-connector-kafka-0.11_2.11</artifactId>
 			<version>${flink.version}</version>
+			<scope>compile</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.flink</groupId>
+			<artifactId>flink-connector-kafka-0.8_2.11</artifactId>
+			<version>${flink.version}</version>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.flink</groupId>
+			<artifactId>flink-connector-kafka</artifactId>
+			<version>0.9-SNAPSHOT</version>
 		</dependency>
 
 
@@ -219,6 +232,25 @@ under the License.
 					</configuration>
 				</plugin>
 
+					<!-- any other plugins -->
+					<plugin>
+						<artifactId>maven-assembly-plugin</artifactId>
+						<executions>
+							<execution>
+								<phase>package</phase>
+								<goals>
+									<goal>single</goal>
+								</goals>
+							</execution>
+						</executions>
+						<configuration>
+							<descriptorRefs>
+								<descriptorRef>jar-with-dependencies</descriptorRef>
+							</descriptorRefs>
+						</configuration>
+					</plugin>
+
+
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-dependency-plugin</artifactId>
@@ -236,7 +268,7 @@ under the License.
 									<!-- For Flink connector classes -->
 									<artifactItem>
 										<groupId>org.apache.flink</groupId>
-										<artifactId>flink-connector-kafka_2.12</artifactId>
+										<artifactId>flink-connector-kafka-0.11_2.11</artifactId>
 										<version>1.7.1</version>
 										<type>jar</type>
 										<overWrite>false</overWrite>
@@ -246,8 +278,8 @@ under the License.
 									<!-- For Kafka API classes -->
 									<artifactItem>
 										<groupId>org.apache.kafka</groupId>
-										<artifactId>kafka_2.12</artifactId>
-										<version>2.12</version>
+										<artifactId>kafka_2.11</artifactId>
+										<version>2.11</version>
 										<type>jar</type>
 										<overWrite>false</overWrite>
 										<outputDirectory>${project.build.directory}/classes</outputDirectory>

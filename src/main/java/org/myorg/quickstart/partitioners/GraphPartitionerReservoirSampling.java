@@ -100,7 +100,7 @@ public class GraphPartitionerReservoirSampling {
     public static boolean localRun = false;
     public static int sampleSize = 0;
 
-    GraphPartitionerReservoirSampling(
+    public GraphPartitionerReservoirSampling(
             String printInfo, String inputPath, String algorithm, int keyParam, int k, int globalPhase, String graphName, String outputStatistics,
             String outputPath, long windowSizeInMs, long wait, int sampleSize, String testing) throws Exception {
         this.printInfo = printInfo;

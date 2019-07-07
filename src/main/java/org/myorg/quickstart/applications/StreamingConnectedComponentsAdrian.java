@@ -79,7 +79,8 @@ public class StreamingConnectedComponentsAdrian {
             cc.addSink(new DumSink3());
 
         } else {
-
+            // Zainab's single partitioner HDRF
+            env.setParallelism(1);
             DataStream<Edge<Long, NullValue>> edgeStreamHdrfZainab;
             DataStream<Edge<Long, NullValue>> edges = getGraphStream(env);
             edgeStreamHdrfZainab = edges.partitionCustom(new HDRF<>(new CustomKeySelector(0),k,1), new CustomKeySelector<>(0));

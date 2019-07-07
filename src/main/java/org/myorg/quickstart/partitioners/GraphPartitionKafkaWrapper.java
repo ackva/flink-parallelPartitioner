@@ -33,6 +33,7 @@ public class GraphPartitionKafkaWrapper {
     public static double lambda = 1.0;
     public static boolean localRun = false;
     public static int sampleSize = 1_000_000;
+    public static String topic = "test";
 
 
     public static void main (String[] args) throws Exception {
@@ -45,7 +46,7 @@ public class GraphPartitionKafkaWrapper {
         System.out.println(" ############ KAFKA READER " + sampleSize);
 
         GraphPartitionerKafkaReservoir gpw0 = new GraphPartitionerKafkaReservoir(
-                printInfo, inputPath, algorithm, keyParam, k, globalPhase, graphName + "_kafka", outputStatistics, outputPath, windowSizeInMs, wait, sampleSize, testing
+                printInfo, inputPath, algorithm, keyParam, k, globalPhase, graphName + "_kafka", outputStatistics, outputPath, windowSizeInMs, wait, sampleSize, testing, topic
         );
         gpw0.partitionGraph();
         Thread.sleep(1000);
@@ -69,6 +70,7 @@ public class GraphPartitionKafkaWrapper {
             wait = Long.parseLong(args[10]);
             sampleSize = Integer.valueOf(args[11]);
             testing = args[12];
+            topic = args[13];
         } else {
             System.out.println("Please provide parameters.");
             System.out.println(" --> Usage: PhasePartitioner <TODO>");

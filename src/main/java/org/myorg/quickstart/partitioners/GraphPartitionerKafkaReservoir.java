@@ -21,7 +21,8 @@ import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.windowing.time.Time;
-import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
+//import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
+import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer011;
 import org.apache.flink.types.NullValue;
 import org.apache.flink.util.Collector;
 import org.apache.flink.util.MathUtils;
@@ -99,10 +100,11 @@ public class GraphPartitionerKafkaReservoir {
     public static double lambda = 1.0;
     public static boolean localRun = false;
     public static int sampleSize = 0;
+    private static String topic = "test";
 
     GraphPartitionerKafkaReservoir(
             String printInfo, String inputPath, String algorithm, int keyParam, int k, int globalPhase, String graphName, String outputStatistics,
-            String outputPath, long windowSizeInMs, long wait, int sampleSize, String testing) throws Exception {
+            String outputPath, long windowSizeInMs, long wait, int sampleSize, String testing, String topic) throws Exception {
         this.printInfo = printInfo;
         if (printInfo.equals("0")) {
             System.out.println("Debugging mode - more output can be found at logs_job_xyz: " + TEMPGLOBALVARIABLES.printTime);
@@ -121,12 +123,15 @@ public class GraphPartitionerKafkaReservoir {
         this.windowSizeInMs = windowSizeInMs;
         this.wait = wait;
         this.sampleSize = sampleSize;
+        this.topic  = topic;
         this.testing = testing;
+
         if (testing.equals("localTest")) {
             localRun = true;
         }
         if (testing.equals("cluster") && TEMPGLOBALVARIABLES.printModulo < 1000000)
             throw new Exception("PRINT MODULO is " + TEMPGLOBALVARIABLES.printModulo + " . Change it please to avoid excessive logging");
+
     }
 
 
@@ -149,7 +154,7 @@ public class GraphPartitionerKafkaReservoir {
         Properties properties = new Properties();
         properties.setProperty("bootstrap.servers", "localhost:9092");
 
-        FlinkKafkaConsumer<String> myConsumer = new FlinkKafkaConsumer<>("test", new SimpleStringSchema(), properties);
+        FlinkKafkaConsumer011<String> myConsumer = new FlinkKafkaConsumer011<>(topic, new SimpleStringSchema(), properties);
         //myConsumer.setStartFromEarliest();
 
         // Get input from Kafka (must be up with topic "graphRead1")

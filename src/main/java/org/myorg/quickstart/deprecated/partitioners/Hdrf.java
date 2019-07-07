@@ -7,8 +7,8 @@ import org.apache.flink.api.common.functions.Partitioner;
 import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.graph.EdgeDepr;
 import org.apache.flink.graph.streaming.partitioner.edgepartitioners.keyselector.CustomKeySelector;
-import org.apache.flink.graph.streaming.partitioner.object.StoredObject;
-import org.apache.flink.graph.streaming.partitioner.object.StoredState;
+import org.apache.flink.graph.streaming.partitioner.object.StoredObjectDbh;
+import org.apache.flink.graph.streaming.partitioner.object.StoredStateDbh;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.types.NullValue;
@@ -97,12 +97,12 @@ public class Hdrf {
         CustomKeySelector keySelector;
         private int epsilon = 1;
         private double lamda;
-        private StoredState currentState;
+        private StoredStateDbh currentState;
         private int k = 0;
 
         public HDRF(CustomKeySelector keySelector, int k ,double lamda) {
             this.keySelector = keySelector;
-            this.currentState = new StoredState(k);
+            this.currentState = new StoredStateDbh(k);
             this.lamda = lamda;
             this.k=k;
 
@@ -123,8 +123,8 @@ public class Hdrf {
 
             int machine_id = -1;
 
-            StoredObject first_vertex = currentState.getRecord(source);
-            StoredObject second_vertex = currentState.getRecord(target);
+            StoredObjectDbh first_vertex = currentState.getRecord(source);
+            StoredObjectDbh second_vertex = currentState.getRecord(target);
 
             int min_load = currentState.getMinLoad();
             int max_load = currentState.getMaxLoad();
@@ -186,8 +186,8 @@ public class Hdrf {
             machine_id = candidates.get(choice);
 
 
-            if (currentState.getClass() == StoredState.class) {
-                StoredState cord_state = (StoredState) currentState;
+            if (currentState.getClass() == StoredStateDbh.class) {
+                StoredStateDbh cord_state = (StoredStateDbh) currentState;
                 //NEW UPDATE RECORDS RULE TO UPFDATE THE SIZE OF THE PARTITIONS EXPRESSED AS THE NUMBER OF VERTICES THEY CONTAINS
                 if (!first_vertex.hasReplicaInPartition(machine_id)) {
                     first_vertex.addPartition(machine_id);

@@ -2,6 +2,7 @@ package org.myorg.quickstart.utils;
 
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.graph.Edge;
+import scala.Int;
 
 import java.io.Serializable;
 import java.util.*;
@@ -14,21 +15,21 @@ import static java.lang.Math.toIntExact;
  */
 public class StoredStateFixedSize implements Serializable{
 
-    private HashMap<Long,StoredObjectFixedSize> record_map;
+    private HashMap<Integer,StoredObjectFixedSize> record_map;
     private int sampleSize;
     private AtomicInteger[] machines_load_edges;
     private AtomicInteger[] machines_load_vertices;
     private int vertexCounter;
     private long totalDegreeCount;
-    private HashSet<Long> highDegreeVerices = new HashSet<>();
-    private List<Long> verticesInStateList = new ArrayList<>();
+    private HashSet<Integer> highDegreeVerices = new HashSet<>();
+    private List<Integer> verticesInStateList = new ArrayList<>();
     private long lastCheck = 0L;
 
     int MAX_LOAD;
 
     public StoredStateFixedSize(int k, int sampleSize) {
 
-        record_map = new HashMap<Long,StoredObjectFixedSize>();
+        record_map = new HashMap<Integer,StoredObjectFixedSize>();
         this.sampleSize = sampleSize;
         this.vertexCounter = 0;
         this.totalDegreeCount = 0;
@@ -63,24 +64,24 @@ public class StoredStateFixedSize implements Serializable{
         return result;
     }
 
-    public HashMap<Long, StoredObjectFixedSize> getRecord_map() {
+    public HashMap<Integer, StoredObjectFixedSize> getRecord_map() {
         return record_map;
     }
 
     // TODO: this is a change, compared to Zainab's version!! She adds the object if not existing
-    public StoredObjectFixedSize getRecord(Long x){
+    public StoredObjectFixedSize getRecord(int x){
         return record_map.get(x);
     }
 
     // TODO: this is a change, compared to Zainab's version!! She adds the object if not existing
-    public StoredObjectFixedSize getRecordOld(Long x){
+    public StoredObjectFixedSize getRecordOld(Integer x){
         if (!record_map.containsKey(x)){
             record_map.put(x, new StoredObjectFixedSize());
         }
         return record_map.get(x);
     }
 
-    public boolean checkIfRecordExits(Long x) {
+    public boolean checkIfRecordExits(int x) {
         if (!record_map.containsKey(x)) {
             return false;
         }
@@ -95,10 +96,10 @@ public class StoredStateFixedSize implements Serializable{
         return record_map.get(o).getDegree();
     }
 
-/*    public StoredObject addRecordWithDegree(Long x, int degree) throws Exception {
+/*    public StoredObjectDbh addRecordWithDegree(Long x, int degree) throws Exception {
 
         if (!record_map.containsKey(x)){
-            record_map.put(x, new StoredObject(degree));
+            record_map.put(x, new StoredObjectDbh(degree));
         } else {
             throw new Exception("Entry already exists in state");
         }
@@ -121,7 +122,7 @@ public class StoredStateFixedSize implements Serializable{
     private double totalInsertTimeAfter = 0.0;
     private double vertexCountAfterFull = 0.0;
 
-    public synchronized StoredObjectFixedSize addRecordWithReservoirSampling(Long x, int degree) throws Exception {
+    public synchronized StoredObjectFixedSize addRecordWithReservoirSampling(int x, int degree) throws Exception {
 
         totalDegreeCount += degree;
         vertexCounter++;
@@ -130,7 +131,6 @@ public class StoredStateFixedSize implements Serializable{
         if (record_map.size() > sampleSize) {
             System.out.println(record_map.size() + " out of  ---- AAAAAALAAAAARM " + sampleSize);
         }
-
 
         if (record_map.size() < sampleSize) {
             if (!record_map.containsKey(x)){
@@ -141,10 +141,10 @@ public class StoredStateFixedSize implements Serializable{
             }
 
             // DEBUG
-            if (vertexCounter % 300_000 == 0) {
+            if (vertexCounter % 20_000_000 == 0) {
                 totalInsertTimeBefore = System.nanoTime() - lastCheck;
                 lastCheck = System.nanoTime();
-                System.out.println(totalInsertTimeBefore / 1000000 + " ms to add 300,000 vertices BEFORE" + vertexCounter);
+                System.out.println(totalInsertTimeBefore / 1000000 + " ms to add 20,000,000 vertices BEFORE" + vertexCounter);
             }
             // END DEGBUG
 
@@ -157,11 +157,11 @@ public class StoredStateFixedSize implements Serializable{
                 Object toBeReplaced = verticesInStateList.get(rand.nextInt(verticesInStateList.size()));
 
                 // DEBUG
-                if (vertexCounter % 1000 == 0) {
+/*                if (vertexCounter % 1000 == 0) {
                     totalInsertTimeBefore = System.nanoTime() - lastCheck;
                     lastCheck = System.nanoTime();
                     //System.out.println(totalInsertTimeBefore / 1000000 + " ms to add 1000 vertices AFTER" + vertexCounter);
-                }
+                }*/
                 // END DEGBUG
 
 /*                if (getRecord_map().size() > (sampleSize - 30000) && getRecord_map().size() < sampleSize) {
@@ -215,11 +215,11 @@ public class StoredStateFixedSize implements Serializable{
         return record_map.size();
     }
 
-    public HashMap<Long,Integer> getDegrees() {
+    public HashMap<Integer,Integer> getDegrees() {
 
-        HashMap<Long, Integer> degreeMap = new HashMap<>();
+        HashMap<Integer, Integer> degreeMap = new HashMap<>();
 
-        for (Long o : this.getRecord_map().keySet()) {
+        for (int o : this.getRecord_map().keySet()) {
             degreeMap.put(o,this.getRecord_map().get(o).getDegree());
         }
 
@@ -287,14 +287,14 @@ public class StoredStateFixedSize implements Serializable{
     }
 
 
-    public SortedSet<Long> getVertexIds() {
+    public SortedSet<Integer> getVertexIds() {
         //if (GLOBALS.OUTPUT_FILE_NAME!=null){ out.close(); }
-        return new TreeSet<Long>(record_map.keySet());
+        return new TreeSet<Integer>(record_map.keySet());
     }
 
     public List<Tuple3> printState() {
         List<Tuple3> stateList = new ArrayList<>();
-        for (Map.Entry<Long,StoredObjectFixedSize> entry: record_map.entrySet()) {
+        for (Map.Entry<Integer,StoredObjectFixedSize> entry: record_map.entrySet()) {
             Iterator<Byte> partitions = record_map.get(entry.getKey()).getPartitions();
             String partitionString = "";
             while(partitions.hasNext()) {

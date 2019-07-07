@@ -77,7 +77,7 @@ public class WinHashState {
 
     public boolean addEdge(Edge edge) throws Exception {
         this.edgesInState.add(edge);
-        this.updatetime = System.currentTimeMillis();
+        this.updatetime = System.currentTimeMillis() - starttime;
         this.updated = true;
         if(checkComplete())
             return true;
@@ -87,7 +87,7 @@ public class WinHashState {
 
     public boolean addBroadcast(int size) {
         this.size = size;
-        this.updatetime = System.currentTimeMillis();
+        this.updatetime = System.currentTimeMillis() - starttime;
         this.updated = true;
 
         if (checkComplete())

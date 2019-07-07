@@ -68,6 +68,8 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
     @Override
     public void processBroadcastElement(Tuple2<HashMap<Integer, Integer>,Long> broadcastElement, Context ctx, Collector<Tuple2<Edge<Integer, NullValue>,Integer>> out) throws Exception {
 
+        //ctx.output(GraphPartitionerImpl.outputTag,"BROAD: " + ctx.currentWatermark() + " - " + broadcastElement);
+
         countBroadcastsOnWorker++;
 
        /* if (modelBuilder.getHdrf().getCurrentState().getRecord_map().size() > 249999) {
@@ -83,7 +85,7 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
 
         for (Map.Entry<Integer, Integer> integerIntegerEntry : broadcastElement.f0.entrySet()) {
             Map.Entry<Integer, Integer> stateEntry = (Map.Entry) integerIntegerEntry;
-            long vertex = stateEntry.getKey();
+            int vertex = stateEntry.getKey();
             if (this.algorithm.equals("hdrf")) {
                 //System.out.println("vertex " + vertex + " in map? " + modelBuilder.getHdrf().getCurrentState().getRecord_map());
                 //System.out.println("Trying replace - sample is filled - probability to stay: " + probabilityToReplace + " to be replaced flip coin: " + flipCoin + " new field: " + x + " with degree (passed: ");
@@ -102,7 +104,7 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
                     modelBuilder.getHdrf().getCurrentState().getRecord(vertex).setDegree(degree);
                     modelBuilder.getHdrf().getCurrentState().increaseTotalDegree(degree);
                     //System.out.println("AVG degree -- " + modelBuilder.getHdrf().getCurrentState().getAverageDegree());
-                    modelBuilder.getHdrf().getCurrentState().getRecord(vertex).checkHighDegree(modelBuilder.getHdrf().getCurrentState().getAverageDegree());
+                    //modelBuilder.getHdrf().getCurrentState().getRecord(vertex).checkHighDegree(modelBuilder.getHdrf().getCurrentState().getAverageDegree());
                 } else {
                     long now = System.nanoTime();
                     modelBuilder.getHdrf().getCurrentState().addRecordWithReservoirSampling(vertex, toIntExact(stateEntry.getValue()));
@@ -142,6 +144,9 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
     @Override
     public void processElement(Edge<Integer, Long> currentEdge, ReadOnlyContext ctx, Collector<Tuple2<Edge<Integer, NullValue>,Integer>> out) throws Exception {
 
+       // ctx.output(GraphPartitionerImpl.outputTag,"ELEM: " + ctx.currentWatermark() + " - " + currentEdge);
+
+
         counterEdgesInstance++;
 
        /* if (modelBuilder.getHdrf().getCurrentState().getRecord_map().size() > 249999) {
@@ -152,7 +157,7 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
 
         emitAllReadyEdges(out);
 
-        if (counterEdgesInstance > 0 && counterEdgesInstance % 5_000_000 == 0)
+        if (counterEdgesInstance > 0 && counterEdgesInstance % 100_000 == 0)
             ctx.output(GraphPartitionerImpl.outputTag,checkTimer() );
 
     }
@@ -180,6 +185,10 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
             windowStateMap.remove(winState);
         }
         completeStateList.removeAll(statesToBeRemoved);
+
+        if (collectedEdges % 10000 == 0 && collectedEdges > 0)
+            System.out.println(checkProgressDEBUG());
+
 
         /*if (collectedEdges % 100 == 0 && collectedEdges > 0) {
             System.out.println(modelBuilder.getHdrf().getCurrentState().getRecord_map().size() + " entries in State Map");
@@ -214,8 +223,7 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
         } else {
             winState = new WinHashState(hashvalue,size);
             windowStateMap.put(hashvalue,winState);
-            //notCompleteStatesFORDEBUG++;
-
+            notCompleteStateListFORDEBUG.add(winState);
         }
 
     }
@@ -231,7 +239,7 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
             if (complete) {
                 addStateToReadyList(winState);
             } else {
-
+                notCompleteStateListFORDEBUG.add(winState);
             }
         } else {
             winState = new WinHashState(hashvalue,edge);
@@ -251,6 +259,8 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
     public void addStateToReadyList(WinHashState winState) {
         completeStateCounter++;
         completeStateList.add(winState);
+        completeStateListFORDEBUG.add(winState);
+        notCompleteStateListFORDEBUG.remove(winState);
         //totalCompletionTime = totalCompletionTime + winState.getTotalTime();
         //System.out.println(totalCompletionTime + " total time " + completeStateCounter);
 
@@ -285,22 +295,30 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
         double sumCompleteTime = 0.0;
         double completeCounter = 0.0;
         double updateCounter = 0.0;
+        double neverUpdatedCounter = 0.0;
 
-            for (WinHashState w : completeStateListFORDEBUG) {
-                returnString = returnString + "CO: " + w.getKey() + " " + w.getTotalTime() + " " + w.getSize() + " ;; ";
+
+        for (WinHashState w : completeStateListFORDEBUG) {
+                //returnString = returnString + "CO: " + w.getKey() + " " + w.getTotalTime() + " " + w.getSize() + " ;; ";
                 //totalTimesStateStateCompletion.add(w.getTotalTime());
-                sumCompleteTime += w.getTotalTime();
-                //completeCounter++;
+                sumCompleteTime += (double) w.getTotalTime();
+                completeCounter++;
             }
+        System.out.println(completeStateListFORDEBUG.size() + " completed states");
         returnString = returnString + "AVG Complete Time = " + sumCompleteTime/completeCounter + " (complete: " + completeCounter + ") ;;";
 
             for (WinHashState w : notCompleteStateListFORDEBUG) {
-                returnString = returnString + w.getKey() + " " + w.getTotalTime() + " " + w.getSize() + " ;; ";
+                //returnString = returnString + w.getKey() + " " + w.isUpdated() + " " + w.getUpdatetime() + " " + w.getSize() + " ;; ";
                 //totalTimesStateStateCompletion.add(w.getUpdatetime());
-                sumUpdateTime += w.getUpdatetime();
-                updateCounter++;
+                if (w.getUpdatetime() == 0.0) {
+                    neverUpdatedCounter++;
+                } else if (w.getUpdatetime() > 0.0) {
+                    sumUpdateTime += (double) w.getUpdatetime();
+                    updateCounter++;
+                }
+
             }
-            returnString = returnString + "AVG UpdateTime = " + sumUpdateTime/updateCounter + " (incomplete: " + updateCounter + ") ;;";
+            returnString = returnString + "AVG UpdateTime = " + sumUpdateTime/updateCounter + " (updated: " + updateCounter + ") never updated:" + neverUpdatedCounter + " ;;";
 
             return returnString;
         }

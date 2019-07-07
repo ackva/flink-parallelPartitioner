@@ -19,7 +19,7 @@ public class TEMPGLOBALVARIABLES {
 /*
 
             try{
-                HashMap<Long,StoredObject> map = modelBuilder.getHdrf().getCurrentState().getRecord_map();
+                HashMap<Long,StoredObjectDbh> map = modelBuilder.getHdrf().getCurrentState().getRecord_map();
                 //System.out.println("Index Size: " + map.size());
                 ByteArrayOutputStream baos=new ByteArrayOutputStream();
                 ObjectOutputStream oos=new ObjectOutputStream(baos);

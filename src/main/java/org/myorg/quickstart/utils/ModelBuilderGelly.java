@@ -78,26 +78,10 @@ public class ModelBuilderGelly implements Serializable {
             partitionId = rand.nextInt(4);
         }
 
-        updateLocalModel(edge, partitionId);
-
         if (partitionId < 0 ) throw new Exception("Something went wrong with the partitioning algorithm");
 
         return partitionId;
     }
 
-    public void updateLocalModel(Edge<Integer, NullValue> e, Integer partitionId) {
-        Integer[] vertices = new Integer[2];
-        vertices[0] = e.f0;
-        vertices[1] = e.f1;
 
-/*        // Loop over both vertices and see which one has the higher degree (if equal, the left vertex "wins").
-        for (int i = 0; i < 2; i++) {
-            HashSet<Integer> currentPartitions = new HashSet();
-            if (vertexDegreeMap.containsKey(vertices[i]))
-                currentPartitions = vertexDegreeMap.get(vertices[i]);
-            currentPartitions.add(partitionId);
-            vertexDegreeMap.put(vertices[i],currentPartitions);
-        }*/
-
-    }
 }

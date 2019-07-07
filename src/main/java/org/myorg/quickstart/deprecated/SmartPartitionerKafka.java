@@ -28,6 +28,7 @@
 
 package org.myorg.quickstart.deprecated;
 
+import jdk.nashorn.internal.ir.ObjectNode;
 import org.apache.flink.api.common.JobExecutionResult;
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.MapFunction;
@@ -40,8 +41,9 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer011;
 import org.apache.flink.util.Collector;
-import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
+//import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
 
 
 import java.io.IOException;
@@ -55,6 +57,7 @@ import java.util.HashMap;
 import java.util.Properties;
 
 import static java.lang.System.out;
+//import static org.apache.kafka.common.requests.OffsetsForLeaderEpochResponse.TOPIC;
 
 
 /*
@@ -90,7 +93,10 @@ public class SmartPartitionerKafka {
 		Properties properties = new Properties();
 		properties.setProperty("bootstrap.servers", "localhost:9092");
 
-		FlinkKafkaConsumer<String> myConsumer = new FlinkKafkaConsumer<>("graphRead2", new SimpleStringSchema(), properties);
+
+		DataStreamSource<String> inStream = env.addSource(new FlinkKafkaConsumer011<>("test", new SimpleStringSchema(), properties));//Add Kafka consumer
+
+		FlinkKafkaConsumer011<String> myConsumer = new FlinkKafkaConsumer011<>("graphRead2", new SimpleStringSchema(), properties);
 		//myConsumer.setStartFromEarliest();
 
 		// Get input from Kafka (must be up with topic "graphRead1")
