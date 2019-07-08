@@ -67,7 +67,7 @@ public class GraphPartitionMultiple {
         System.out.println(" ############ SAMPLE SIZE " + sampleSize);
 
         for (int i = 0; i < 1; i++) {
-            GraphPartitionerReservoirSampling gpw0 = new GraphPartitionerReservoirSampling(
+            GraphPartitionerWinHash gpw0 = new GraphPartitionerWinHash(
                     printInfo, inputPath, algorithm, keyParam, k, globalPhase, graphName + "_resSampling_noHigh", outputStatistics, outputPath, windowSizeInMs, wait, sampleSize, testing
             );
             gpw0.partitionGraph();
