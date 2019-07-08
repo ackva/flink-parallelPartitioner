@@ -64,15 +64,55 @@ public class GraphPartitionMultiple {
 */
 
 
-        System.out.println(" ############ SAMPLE SIZE " + sampleSize);
+        System.out.println(" ############ No reservoir " + sampleSize);
 
-        for (int i = 0; i < 1; i++) {
+/*        for (int i = 0; i < 1; i++) {
             GraphPartitionerWinHash gpw0 = new GraphPartitionerWinHash(
                     printInfo, inputPath, algorithm, keyParam, k, globalPhase, graphName + "_resSampling_noHigh", outputStatistics, outputPath, windowSizeInMs, wait, sampleSize, testing
             );
             gpw0.partitionGraph();
             Thread.sleep(1000);
             System.out.println(" ## This was repeat #" + i);
+
+        }*/
+
+
+        System.out.println("Testing SIZE " + sampleSize);
+
+
+        for (int i = 0; i < 2; i++) {
+
+            GraphPartitionerReservoirSampling gpw1 = new GraphPartitionerReservoirSampling(
+                    printInfo, inputPath, "dbh", keyParam, k, globalPhase, graphName + "_GC-test", outputStatistics, outputPath, windowSizeInMs, wait, sampleSize, testing);
+            gpw1.partitionGraph();
+            Thread.sleep(1000);
+
+            System.gc();
+
+        }
+
+
+       for (int i = 0; i < 2; i++) {
+
+            GraphPartitionerReservoirSampling gpw0 = new GraphPartitionerReservoirSampling(
+                    printInfo, inputPath, "hdrf", keyParam, k, globalPhase, graphName + "_GC-test", outputStatistics, outputPath, windowSizeInMs, wait, sampleSize, testing);
+            gpw0.partitionGraph();
+            Thread.sleep(1000);
+
+            System.gc();
+
+       }
+
+
+        for (int i = 0; i < 2; i++) {
+
+
+            GraphPartitionerReservoirSampling gpw2 = new GraphPartitionerReservoirSampling(
+                    printInfo, inputPath, "hash", keyParam, k, globalPhase, graphName + "_GC-test", outputStatistics, outputPath, windowSizeInMs, wait, sampleSize, testing);
+            gpw2.partitionGraph();
+            Thread.sleep(1000);
+
+            System.gc();
 
         }
 

@@ -63,10 +63,13 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
         this.algorithm = algorithm;
         this.parallelism = k;
         this.waitingEdges = new ArrayList<>();
-        if (algorithm.equals("hdrf"))
+        if (algorithm.equals("hdrf")) {
             this.modelBuilder = new ModelBuilderFixedSize(algorithm, k, lambda, sampleSize);
-        if (algorithm.equals("dbh"))
+
+        }
+        if (algorithm.equals("dbh")) {
             this.modelBuilder = new ModelBuilderFixedSize(algorithm, k, sampleSize);
+        }
         this.sampleSize = sampleSize;
     }
 
@@ -139,7 +142,7 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
                     degree = toIntExact(stateEntry.getValue()) + modelBuilder.getDbh().getCurrentState().getRecord(vertex).getDegree();
                     modelBuilder.getDbh().getCurrentState().getRecord(vertex).setDegree(degree);
                 } else {
-                    modelBuilder.getDbh().getCurrentState().addRecordWithDegree(vertex, toIntExact(stateEntry.getValue()));
+                    modelBuilder.getDbh().getCurrentState().addRecordWithReservoirSampling(vertex, toIntExact(stateEntry.getValue()));
                 }
             }
             edgeDegreeInBroadcast += stateEntry.getValue();
@@ -151,7 +154,14 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
 
         emitAllReadyEdges(out);
 
-        if (modelBuilder.getHdrf().getCurrentState().getRecord_map().size() == sampleSize) {
+        int currentStateSize;
+        if (this.algorithm.equals("hdrf")) {
+            currentStateSize = modelBuilder.getHdrf().getCurrentState().getRecord_map().size();
+        } else {
+            currentStateSize = modelBuilder.getDbh().getCurrentState().getRecord_map().size();
+        }
+
+        if (currentStateSize == sampleSize) {
             if (ctx.currentWatermark() - highestWatermark > 30000) {
                 cleanState(ctx.currentWatermark());
                 highestWatermark = ctx.currentWatermark();
@@ -183,34 +193,14 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
 
     }
 
-    /* private ProcessState2 checkValueState(long watermark) throws IOException {
-
-         ProcessState2 current = state.value();
-         if (current == null) {
-             current = new ProcessState2();
-             current.key = watermark;
-             stateCounter++;
-             stateList.add(watermark);
-         } else {
-             stateExistsCounter++;
-             System.out.println(stateExistsCounter + "/" + stateCounter + ": calls");
-         }
-         state.update(current);
-         //System.out.println("State overview after update (" + stateExists + "): " + state.value().key + " -- " + state.value().lastModified + " -- " + state.value().repetition + " -- " + state.value().edgeList + " -- ");
-
-         return current;
-         // schedule the next timer X milliseconds from the current event time
-
-     }
- */
     @Override
     public void processElement(Edge<Integer, Long> currentEdge, ReadOnlyContext ctx, Collector<Tuple2<Edge<Integer, NullValue>,Integer>> out) throws Exception {
 
-        if (timerEmitCall) {
+/*        if (timerEmitCall) {
             ctx.output(GraphPartitionerImpl.outputTag,"ProcessElement called after lastTimer");
-        }
+        }*/
 
-        if (!timerIsSet) {
+/*        if (!timerIsSet) {
             this.timerIsSet = true;
             //long newTime = watermark+60000;
             //System.out.println(newTime + " ---- new time: " + (watermark+60000));
@@ -218,14 +208,14 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
             //ctx.timerService().registerEventTimeTimer(3703500800000L);
             ctx.timerService().registerEventTimeTimer(3703500800000L);
             System.out.println("#### timer set");
-        }
+        }*/
        // ctx.output(GraphPartitionerImpl.outputTag,"ELEM: " + ctx.currentWatermark() + " - " + currentEdge);
         //ProcessState2 valState = checkValueState(ctx.currentWatermark());
         //long newTime = ctx.currentWatermark()+60000;
         //System.out.println(newTime + " ---- new time: " + ctx.currentWatermark()+60000);
 
         //ctx.timerService().registerEventTimeTimer((ctx.currentWatermark() + 60000));
-        ctx.timerService().registerEventTimeTimer(3703500800000L);
+        //ctx.timerService().registerEventTimeTimer(3703500800000L);
 
 
         counterEdgesInstance++;
@@ -304,9 +294,8 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
         } else {
             winState = new WinHashState(hashvalue,size, watermark);
             windowStateMap.put(hashvalue,winState);
-            notCompleteStateListFORDEBUG.add(winState);
+            //notCompleteStateListFORDEBUG.add(winState);
         }
-
     }
 
     private void updateState(long hashvalue, Edge edge, long watermark) throws Exception {
@@ -321,12 +310,12 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
                 winState.setCompleteWatermark(watermark);
                 addStateToReadyList(winState);
             } else {
-                notCompleteStateListFORDEBUG.add(winState);
+                //notCompleteStateListFORDEBUG.add(winState);
             }
         } else {
             winState = new WinHashState(hashvalue,edge,watermark);
             windowStateMap.put(hashvalue,winState);
-            notCompleteStatesFORDEBUG++;
+            //notCompleteStatesFORDEBUG++;
 
 
             //System.out.println("adding state " + edge.f0 + "," + edge.f1 + " to state " + winState.getKey() + " with size" + winState.getSize());
@@ -341,8 +330,8 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
     public void addStateToReadyList(WinHashState winState) {
         completeStateCounter++;
         completeStateList.add(winState);
-        completeStateListFORDEBUG.add(winState);
-        notCompleteStateListFORDEBUG.remove(winState);
+        //completeStateListFORDEBUG.add(winState);
+        //notCompleteStateListFORDEBUG.remove(winState);
         //totalCompletionTime = totalCompletionTime + winState.getTotalTime();
         //System.out.println(totalCompletionTime + " total time " + completeStateCounter);
 
@@ -429,7 +418,7 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
             System.out.println("#### highest WM setnew highest + set new timer in onTimer");
             highestWatermark = ctx.currentWatermark();
         }*/
-        if (watermark > 3803500800000L) {
+        /*if (watermark > 3803500800000L) {
             //System.out.println("#### cleanup now! edges collected now: " + collectedEdges);
             if (!timerEmitCall) {
                 ctx.output(GraphPartitionerImpl.outputTag,"emitting edges in timer " + collectedEdges);
@@ -438,7 +427,7 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
                 timerEmitCall = true;
             }
 
-        }
+        }*/
 
     }
 

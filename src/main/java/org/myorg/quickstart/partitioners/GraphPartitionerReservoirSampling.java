@@ -30,6 +30,9 @@ import org.myorg.quickstart.partitioners.matchFunctions.MatchFunctionWinHash;
 import org.myorg.quickstart.partitioners.matchFunctions.MatchFunctionWinHash2;
 import org.myorg.quickstart.partitioners.windowFunctions.ProcessWindowDegreeHashed;
 import org.myorg.quickstart.partitioners.windowFunctions.ProcessWindowGellyHashValue;
+import org.myorg.quickstart.utils.CustomKeySelector5;
+import org.myorg.quickstart.utils.CustomKeySelector6;
+import org.myorg.quickstart.utils.HashPartitioner;
 import org.myorg.quickstart.utils.TEMPGLOBALVARIABLES;
 
 import java.io.File;
@@ -132,7 +135,6 @@ public class GraphPartitionerReservoirSampling {
 
     public void partitionGraph() throws Exception {
 
-        long windowSize2 = windowSizeInMs * 2;
         String timestamp = new SimpleDateFormat("yy-MM-dd_HH-mm-ss").format(new Date());
         String folderName = "job_" + timestamp + "_" + algorithm + "_p" + k + "_" + graphName;
         String outputPathPartitions = outputPath + "/" + folderName;
@@ -162,68 +164,80 @@ public class GraphPartitionerReservoirSampling {
 
         // Create a data stream (read from file)
         SimpleEdgeStream<Integer, Long> edges = getGraphStream(env);
+        SimpleEdgeStream<Integer, NullValue> edgesHash = getGraphStreamHash(env);
 
 
         DataStream<Edge<Integer,NullValue>> partitionedEdges = null;
 
 
-        // *** PHASE 1 ***
-        //Process edges to build the local model for broadcast
-        DataStream<Tuple2<HashMap<Integer, Integer>,Long>> phaseOneStream = edges.getEdges()
-                .keyBy(ks)
-                .timeWindow(Time.milliseconds(windowSizeInMs))
-                .process(new ProcessWindowDegreeHashed());
+        if (algorithm.equals("hdrf") || algorithm.equals("dbh")) {
+            // *** PHASE 1 ***
+            //Process edges to build the local model for broadcast
+            DataStream<Tuple2<HashMap<Integer, Integer>, Long>> phaseOneStream = edges.getEdges()
+                    .keyBy(ks)
+                    .timeWindow(Time.milliseconds(windowSizeInMs))
+                    .process(new ProcessWindowDegreeHashed());
 
-        // Process edges in the similar time windows to "wait" for phase 2
-        DataStream<Edge<Integer, Long>> edgesWindowed = edges.getEdges()
-                .keyBy(ks)
-                .timeWindow(Time.milliseconds(windowSizeInMs))
-                .process(firstPhaseProcessor);
+            // Process edges in the similar time windows to "wait" for phase 2
+            DataStream<Edge<Integer, Long>> edgesWindowed = edges.getEdges()
+                    .keyBy(ks)
+                    .timeWindow(Time.milliseconds(windowSizeInMs))
+                    .process(firstPhaseProcessor);
 
-        // *** Phase 2 ***
-        // Broadcast local state from Phase 1 to all Task Managers
-        BroadcastStream<Tuple2<HashMap<Integer, Integer>,Long>> broadcastStateStream = phaseOneStream
-                .broadcast(rulesStateDescriptor);
+            // *** Phase 2 ***
+            // Broadcast local state from Phase 1 to all Task Managers
+            BroadcastStream<Tuple2<HashMap<Integer, Integer>, Long>> broadcastStateStream = phaseOneStream
+                    .broadcast(rulesStateDescriptor);
 
-        // Connect Broadcast Stream and EdgeDepr Stream to build global model
-        SingleOutputStreamOperator<Tuple2<Edge<Integer, NullValue>, Integer>> phaseTwoStream = edgesWindowed
-                .keyBy(new KeySelector<Edge<Integer, Long>, Integer>() {
-                    @Override
-                    public Integer getKey(Edge value) throws Exception {
-                        return Integer.parseInt(value.f0.toString());
-                    }
-                })
-                .connect(broadcastStateStream)
-                .process(matchFunction).setParallelism(globalPhase);
-        //phaseTwoStream.print();
+            // Connect Broadcast Stream and EdgeDepr Stream to build global model
+            SingleOutputStreamOperator<Tuple2<Edge<Integer, NullValue>, Integer>> phaseTwoStream = edgesWindowed
+                    .keyBy(new KeySelector<Edge<Integer, Long>, Integer>() {
+                        @Override
+                        public Integer getKey(Edge value) throws Exception {
+                            return Integer.parseInt(value.f0.toString());
+                        }
+                    })
+                    .connect(broadcastStateStream)
+                    .process(matchFunction).setParallelism(globalPhase);
+            //phaseTwoStream.print();
 
-        DataStream<String> sideOutputStream = phaseTwoStream.getSideOutput(outputTag);
-        //DataStream<String> errorStream = phaseTwoStream.getSideOutput(outputTagError);
-        //errorStream.print();
-        //sideOutputStream.print();
-        sideOutputStream.writeAsText(loggingPath.replaceAll(":","_"));
+            DataStream<String> sideOutputStream = phaseTwoStream.getSideOutput(outputTag);
+            //DataStream<String> errorStream = phaseTwoStream.getSideOutput(outputTagError);
+            //errorStream.print();
+            //sideOutputStream.print();
+            sideOutputStream.writeAsText(loggingPath.replaceAll(":", "_"));
 
-        // Final Step -- Custom Partition, based on pre-calculated ID
-        partitionedEdges = phaseTwoStream
-                .partitionCustom(new PartitionByTag(), 1)
-                .map(new MapFunction<Tuple2<Edge<Integer,NullValue>, Integer>, Edge<Integer,NullValue>>() {
-                    public Edge<Integer,NullValue> map(Tuple2<Edge<Integer,NullValue>, Integer> input) {
-                        return input.f0;
-                    }});
+            // Final Step -- Custom Partition, based on pre-calculated ID
+            partitionedEdges = phaseTwoStream
+                    .partitionCustom(new PartitionByTag(), 1)
+                    .map(new MapFunction<Tuple2<Edge<Integer,NullValue>, Integer>, Edge<Integer,NullValue>>() {
+                        public Edge<Integer,NullValue> map(Tuple2<Edge<Integer,NullValue>, Integer> input) {
+                            return input.f0;
+                        }});
+
+            DataStream<String> loggingStream = sideOutputStream.map(new MapFunction<String, String>() {
+                @Override
+                public String map(String value) throws Exception {
+                    //String[] line = value.split(";");
+                    return "logging_" + value;
+                }
+            }).setParallelism(1);
+            loggingStream.print();
+
+        } else if (algorithm.equals("hash")) {
+            partitionedEdges = edgesHash.getEdges()
+                    .partitionCustom(new HashPartitioner<>(k),new CustomKeySelector5<>(0));
+        } else {
+        }
+
+
 
         //Print result in human-readable way --> e.g. (4,2,0) means: EdgeDepr(4,2) partitioned to machineId 0
         partitionedEdges.writeAsText(outputPathPartitions.replaceAll(":","_"));
         //partitionedEdges.print();
 
 
-        DataStream<String> loggingStream = sideOutputStream.map(new MapFunction<String, String>() {
-            @Override
-            public String map(String value) throws Exception {
-                //String[] line = value.split(";");
-                return "logging_" + value;
-            }
-        }).setParallelism(1);
-        loggingStream.print();
+
 
         // ### Execute the job in Flink
         //System.out.println(env.getExecutionPlan());
@@ -354,6 +368,25 @@ public class GraphPartitionerReservoirSampling {
                             //long valuePrime = srcHash*trgHash % nextPrime;
                             //System.out.println(src + " " + trg + " --> " + srcHash + " --- " + trgHash + " --> " + value);
                             out.collect(new Edge<>(src, trg, value));
+                        }
+                    }
+                }), env);
+    }
+
+    private static SimpleEdgeStream<Integer, NullValue> getGraphStreamHash(StreamExecutionEnvironment env) {
+
+        long nextPrime = 4294967311L;
+
+        return new SimpleEdgeStream<>(env.readTextFile(inputPath)
+                .flatMap(new FlatMapFunction<String, Edge<Integer, NullValue>>() {
+                    @Override
+                    public void flatMap(String s, Collector<Edge<Integer, NullValue>> out) throws InterruptedException {
+                        String[] fields = s.replaceAll(","," ").split(" ");
+                        //String[] fields = s.split("\\s");
+                        if (!fields[0].equals("%")) {
+                            int src = Integer.parseInt(fields[0]);
+                            int trg = Integer.parseInt(fields[1]);
+                            out.collect(new Edge<>(src, trg, NullValue.getInstance()));
                         }
                     }
                 }), env);

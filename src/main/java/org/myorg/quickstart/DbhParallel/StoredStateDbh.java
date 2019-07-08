@@ -4,6 +4,7 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.graph.Edge;
 import org.myorg.quickstart.utils.StoredObject;
+import org.myorg.quickstart.utils.TEMPGLOBALVARIABLES;
 import scala.Int;
 
 import java.io.Serializable;
@@ -71,6 +72,103 @@ public class StoredStateDbh implements Serializable{
         return record_map.get(o).getDegree();
     }
 
+    private long totalDegreeCount;
+    private int vertexCounter;
+    private int sampleSize;
+    private List<Integer> verticesInStateList = new ArrayList<>();
+    private double totalInsertTimeBefore;
+    private long lastCheck;
+
+    public synchronized StoredObjectDbh addRecordWithReservoirSampling(int x, int degree) throws Exception {
+
+            totalDegreeCount += degree;
+            vertexCounter++;
+
+
+            if (record_map.size() > sampleSize) {
+                System.out.println(record_map.size() + " out of  ---- AAAAAALAAAAARM " + sampleSize);
+            }
+
+            if (record_map.size() < sampleSize) {
+                if (!record_map.containsKey(x)){
+                    record_map.put(x, new StoredObjectDbh(degree));
+                    verticesInStateList.add(x);
+                } else {
+                    throw new Exception("Entry already exists in state");
+                }
+
+                // DEBUG
+                if (vertexCounter % 20_000_000 == 0) {
+                    totalInsertTimeBefore = System.nanoTime() - lastCheck;
+                    lastCheck = System.nanoTime();
+                    System.out.println(totalInsertTimeBefore / 1000000 + " ms to add 20,000,000 vertices BEFORE" + vertexCounter);
+                }
+                // END DEGBUG
+
+            } else {
+                //System.out.println(record_map.size()  + " out of " + sampleSize);
+                double probabilityToReplace = (double) sampleSize / (double) vertexCounter;
+                if (flipCoin(probabilityToReplace)) {
+                    Random rand = new Random();
+                    long now = System.nanoTime();
+                    Object toBeReplaced = verticesInStateList.get(rand.nextInt(verticesInStateList.size()));
+
+                    // DEBUG
+/*                if (vertexCounter % 1000 == 0) {
+                    totalInsertTimeBefore = System.nanoTime() - lastCheck;
+                    lastCheck = System.nanoTime();
+                    //System.out.println(totalInsertTimeBefore / 1000000 + " ms to add 1000 vertices AFTER" + vertexCounter);
+                }*/
+                    // END DEGBUG
+
+/*                if (getRecord_map().size() > (sampleSize - 30000) && getRecord_map().size() < sampleSize) {
+                    totalInsertTimeBefore += System.nanoTime() - now;
+                    avgInsertTimeBefore = totalInsertTimeBefore / (double) vertexCounter;
+                    if (vertexCounter % 10 == 0)
+                        System.out.println("checking size before full table took  avg " + avgInsertTimeBefore/1000000 + " ms. counter " + vertexCounter);
+                } else if (getRecord_map().size() == (sampleSize)) {
+                    vertexCountAfterFull++;
+                    totalInsertTimeAfter = totalInsertTimeAfter + (System.nanoTime() - now);
+                    avgInsertTimeAfter = totalInsertTimeAfter / (double) vertexCountAfterFull;
+                    if (vertexCountAfterFull % 10 == 0)
+                        System.out.println("checking size after full table took   " + (double) avgInsertTimeAfter/1000000 + " ms. counter " + vertexCountAfterFull);
+                }*/
+                    //if (record_map.get(toBeReplaced).isHighDegree()) {
+
+                    if (TEMPGLOBALVARIABLES.keepHighDegree) {
+                        probabilityToReplace = 1.0 - (double)record_map.get(toBeReplaced).getDegree()/(double)(vertexCounter-1);
+                        if (probabilityToReplace < 0.95)
+                            //System.out.println("probabiltity/centraility replaced " + probabilityToReplace);
+                            if (flipCoin(probabilityToReplace)) {
+                                //System.out.println("probabiltity/centraility replaced " + probabilityToReplace);
+                                record_map.remove(toBeReplaced);
+                                verticesInStateList.remove(toBeReplaced);
+                                record_map.put(x, new StoredObjectDbh(degree));
+                                verticesInStateList.add(x);
+                            }
+                        //System.out.println("replacement done: " + probabilityToReplace);
+                    }
+
+
+                }
+                //}
+                //}
+
+            }
+
+
+            return record_map.get(x);
+        }
+
+    private boolean flipCoin(double probability) {
+        if(Math.random() < probability) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    @Deprecated
     public StoredObjectDbh addRecordWithDegree(int x, int degree) throws Exception {
         if (!record_map.containsKey(x)){
             record_map.put(x, new StoredObjectDbh(degree));

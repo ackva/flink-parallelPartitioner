@@ -134,7 +134,6 @@ public class GraphPartitionerWinHash {
 
     public void partitionGraph() throws Exception {
 
-        long windowSize2 = windowSizeInMs * 2;
         String timestamp = new SimpleDateFormat("yy-MM-dd_HH-mm-ss").format(new Date());
         String folderName = "job_" + timestamp + "_" + algorithm + "_p" + k + "_" + graphName;
         String outputPathPartitions = outputPath + "/" + folderName;
