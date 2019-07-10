@@ -174,7 +174,7 @@ public class GraphPartitionerReservoirSampling {
 
 
         if (algorithm.equals("hdrf") || algorithm.equals("dbh")) {
-            env.setParallelism(4);
+            env.setParallelism(k);
             SimpleEdgeStream<Integer, Long> edges = getGraphStream(env);
 
             // *** PHASE 1 ***
