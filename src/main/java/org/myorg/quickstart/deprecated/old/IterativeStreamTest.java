@@ -21,7 +21,7 @@ public class IterativeStreamTest {
         env.getConfig().setGlobalJobParameters(params);
 
 
-        DataStream<Long> someIntegers = env.generateSequence(0, 1000);
+        DataStream<Long> someIntegers = env.generateSequence(0, 100);
 
         IterativeStream<Long> iteration = someIntegers.iterate();
 

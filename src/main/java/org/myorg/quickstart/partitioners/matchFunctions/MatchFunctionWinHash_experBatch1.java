@@ -29,8 +29,8 @@ public class MatchFunctionWinHash_experBatch1 extends KeyedBroadcastProcessFunct
     long currentWatermarkEle = 1;
     long lastCheck;
 
-    List<WinHashState> completeStateListFORDEBUG = new ArrayList<>();
-    List<WinHashState> notCompleteStateListFORDEBUG = new ArrayList<>();
+    List<WinHashStateBig> completeStateListFORDEBUG = new ArrayList<>();
+    List<WinHashStateBig> notCompleteStateListFORDEBUG = new ArrayList<>();
     List<ProcessStateWatermark> allStates = new ArrayList<>();
     private int stateCounter;
     private int uncompleteStateCounter;
@@ -182,8 +182,8 @@ public class MatchFunctionWinHash_experBatch1 extends KeyedBroadcastProcessFunct
 
 
     private void emitAllReadyEdges(Collector<Tuple2<Edge<Integer, NullValue>,Integer>> out) throws Exception {
-        List<WinHashState> statesToBeRemoved = new ArrayList<>();
-        for (WinHashState winState : completeStateList) {
+        List<WinHashStateBig> statesToBeRemoved = new ArrayList<>();
+        for (WinHashStateBig winState : completeStateList) {
             List<Edge> edgesToBeRemoved = new ArrayList<>();
             for (Edge e : winState.getEdgeList()) {
                 int partitionId = modelBuilder.choosePartition(e);
@@ -219,8 +219,8 @@ public class MatchFunctionWinHash_experBatch1 extends KeyedBroadcastProcessFunct
         }
     }*/
 
-    private HashMap<Long, WinHashState> windowStateMap = new HashMap<>();
-    private HashSet<WinHashState> completeStateList = new HashSet<>();
+    private HashMap<Long, WinHashStateBig> windowStateMap = new HashMap<>();
+    private HashSet<WinHashStateBig> completeStateList = new HashSet<>();
 
     private int completeCounter = 0;
 
@@ -228,7 +228,7 @@ public class MatchFunctionWinHash_experBatch1 extends KeyedBroadcastProcessFunct
 
 
     private void updateState(long hashvalue, int size) throws Exception {
-        WinHashState winState;
+        WinHashStateBig winState;
         if (windowStateMap.containsKey(hashvalue)) {
             winState = windowStateMap.get(hashvalue);
             boolean complete = winState.addBroadcast(size);
@@ -238,7 +238,7 @@ public class MatchFunctionWinHash_experBatch1 extends KeyedBroadcastProcessFunct
                 addStateToReadyList(winState);
             }
         } else {
-            winState = new WinHashState(hashvalue,size);
+            winState = new WinHashStateBig(hashvalue,size);
             windowStateMap.put(hashvalue,winState);
             //stateCounter++;
             //System.out.println("# of states: " + stateCounter + "# of broadcasts: " + countBroadcastsOnWorker + "# of edges: " + counterEdgesInstance);
@@ -248,7 +248,7 @@ public class MatchFunctionWinHash_experBatch1 extends KeyedBroadcastProcessFunct
 
     private void updateState(long hashvalue, Edge edge) throws Exception {
 
-        WinHashState winState;
+        WinHashStateBig winState;
         if (windowStateMap.containsKey(hashvalue)) {
             winState = windowStateMap.get(hashvalue);
             //System.out.println(" new edge " + edge.f0 + "," + edge.f1 + " for state " + winState.getKey() + " with size" + winState.getSize());
@@ -260,7 +260,7 @@ public class MatchFunctionWinHash_experBatch1 extends KeyedBroadcastProcessFunct
 
             }
         } else {
-            winState = new WinHashState(hashvalue,edge);
+            winState = new WinHashStateBig(hashvalue,edge);
             windowStateMap.put(hashvalue,winState);
             if (TEMPGLOBALVARIABLES.printTime) {
                 //notCompleteStateListFORDEBUG.add(winState);
@@ -273,7 +273,7 @@ public class MatchFunctionWinHash_experBatch1 extends KeyedBroadcastProcessFunct
 
     }
 
-    public void addStateToReadyList(WinHashState winState) {
+    public void addStateToReadyList(WinHashStateBig winState) {
         completeCounter++;
         uncompleteStateCounter--;
         completeStateList.add(winState);
@@ -294,7 +294,7 @@ public class MatchFunctionWinHash_experBatch1 extends KeyedBroadcastProcessFunct
         double completeCounter = 0.0;
         double updateCounter = 0.0;
 
-            for (WinHashState w : completeStateListFORDEBUG) {
+            for (WinHashStateBig w : completeStateListFORDEBUG) {
                 returnString = returnString + "CO: " + w.getKey() + " " + w.getTotalTime() + " " + w.getSize() + " ;; ";
                 //totalTimesStateStateCompletion.add(w.getTotalTime());
                 sumCompleteTime += w.getTotalTime();
@@ -302,7 +302,7 @@ public class MatchFunctionWinHash_experBatch1 extends KeyedBroadcastProcessFunct
             }
         returnString = returnString + "AVG Complete Time = " + sumCompleteTime/completeCounter + " (complete: " + completeCounter + ") ;;";
 
-            for (WinHashState w : notCompleteStateListFORDEBUG) {
+            for (WinHashStateBig w : notCompleteStateListFORDEBUG) {
                 returnString = returnString + w.getKey() + " " + w.getTotalTime() + " " + w.getSize() + " ;; ";
                 //totalTimesStateStateCompletion.add(w.getUpdatetime());
                 sumUpdateTime += w.getUpdatetime();

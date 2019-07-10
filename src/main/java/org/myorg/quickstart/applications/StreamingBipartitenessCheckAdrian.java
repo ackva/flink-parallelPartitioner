@@ -43,7 +43,7 @@ public class StreamingBipartitenessCheckAdrian {
 
 
         DataStream<Edge<Long, NullValue>> edges = getGraphStream(env);
-        //edges.print();
+        edges.print();
         env.setParallelism(k);
 
         DataStream<Edge<Long, NullValue>> partitionesedges  = edges.partitionCustom(new HDRF<>(new CustomKeySelector(0),k,1), new CustomKeySelector<>(0));
@@ -56,8 +56,8 @@ public class StreamingBipartitenessCheckAdrian {
 		//graph.getEdges().print();
 		double starttime= System.currentTimeMillis();
 		DataStream<Candidates> bipartition = graph.aggregate(new BipartitenessCheck<>((long) 5000));
-		//bipartition.addSink(new DumSink1());		//	edges.partitionCustom(new DbhPartitioner<>(new CustomKeySelector(0),k), new CustomKeySelector<>(0)).writeAsCsv(outputPath, FileSystem.WriteMode.OVERWRITE).setParallelism(k);
-		//bipartition.print();		//	edges.partitionCustom(new DbhPartitioner<>(new CustomKeySelector(0),k), new CustomKeySelector<>(0)).writeAsCsv(outputPath, FileSystem.WriteMode.OVERWRITE).setParallelism(k);
+		bipartition.addSink(new DumSink1());		//	edges.partitionCustom(new DbhPartitioner<>(new CustomKeySelector(0),k), new CustomKeySelector<>(0)).writeAsCsv(outputPath, FileSystem.WriteMode.OVERWRITE).setParallelism(k);
+		bipartition.print();		//	edges.partitionCustom(new DbhPartitioner<>(new CustomKeySelector(0),k), new CustomKeySelector<>(0)).writeAsCsv(outputPath, FileSystem.WriteMode.OVERWRITE).setParallelism(k);
 		JobExecutionResult result1 = env.execute("My Flink Job1");
 		//System.out.println("job 1 execution time"+result1.getNetRuntime(TimeUnit.MILLISECONDS));
 
@@ -609,6 +609,13 @@ public class StreamingBipartitenessCheckAdrian {
                         return !value.contains("%");
                     }
                 })
+                .filter(new FilterFunction<String>() {
+                    @Override
+                    public boolean filter(String s) throws Exception {
+                        String[] fields = s.replaceAll(","," ").split(" ");
+                        return !(fields[0].equals(fields[1]));
+                    }
+                })
                 .map(new MapFunction<String, Edge<Long, NullValue>>() {
                     @Override
                     public Edge<Long, NullValue> map(String s) throws Exception {
@@ -616,6 +623,7 @@ public class StreamingBipartitenessCheckAdrian {
                         long src = Long.parseLong(fields[0]);
                         long trg = Long.parseLong(fields[1]);
                         return new Edge<>(src, trg, NullValue.getInstance());
+
                     }
                 });
 

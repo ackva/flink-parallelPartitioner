@@ -4,6 +4,7 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.graph.Edge;
 import org.myorg.quickstart.utils.StoredObject;
+import org.myorg.quickstart.utils.StoredObjectFixedSize;
 import org.myorg.quickstart.utils.TEMPGLOBALVARIABLES;
 import scala.Int;
 
@@ -19,12 +20,28 @@ public class StoredStateDbh implements Serializable{
     private HashMap<Integer, StoredObjectDbh> record_map;
     private AtomicInteger[] machines_load_edges;
     private AtomicInteger[] machines_load_vertices;
+    private int vertexCounter;
+    private long totalDegreeCount;
+    private int sampleSize;
+    private double totalInsertTimeBefore;
+
+
+
+    //private HashSet<Integer> highDegreeVerices = new HashSet<>();
+    private List<Integer> verticesInStateList = new ArrayList<>();
+    private long lastCheck = 0L;
 
     int MAX_LOAD;
 
     public StoredStateDbh(int k, int sampleSize) {
 
-        record_map = new HashMap<>();
+        record_map = new HashMap<>((int) (sampleSize * 1.5));
+        this.sampleSize = sampleSize;
+        this.vertexCounter = 0;
+        this.totalDegreeCount = 0;
+
+        System.out.println("sample size: " + sampleSize);
+
         machines_load_edges = new AtomicInteger[k];
         for (int i = 0; i<machines_load_edges.length;i++){
             machines_load_edges[i] = new AtomicInteger(0);
@@ -37,8 +54,27 @@ public class StoredStateDbh implements Serializable{
 
     }
 
+    public void removeVerticesFromList(HashSet<Integer> toBeRemoved) {
+        verticesInStateList.removeAll(toBeRemoved);
+    }
+
     public void incrementMachineLoadVertices(int m) {
         machines_load_vertices[m].incrementAndGet();
+    }
+
+    public long getAverageDegree() {
+        return (totalDegreeCount/vertexCounter);
+    }
+
+
+    public List<Integer> getVerticesInStateList() {
+        return verticesInStateList;
+    }
+
+    public void removeRecord(int vertexId) {
+        this.totalDegreeCount -= this.getRecord(vertexId).getDegree();
+        this.getRecord_map().remove(vertexId);
+        this.vertexCounter--;
     }
 
     public int[] getMachines_loadVertices() {
@@ -58,6 +94,13 @@ public class StoredStateDbh implements Serializable{
         return record_map.get(x);
     }
 
+    // TODO: this is a change, compared to Zainab's version!! She adds the object if not existing
+    public StoredObjectDbh getRecordOld(Integer x){
+        if (!record_map.containsKey(x)){
+            record_map.put(x, new StoredObjectDbh());
+        }
+        return record_map.get(x);
+    }
 
     public boolean checkIfRecordExits(int x) {
         if (!record_map.containsKey(x)) {
@@ -68,16 +111,19 @@ public class StoredStateDbh implements Serializable{
         }
     }
 
+    public int getDegree (StoredObjectFixedSize o) {
+        return record_map.get(o).getDegree();
+    }
+
+    public long increaseTotalDegree(int degree) {
+        totalDegreeCount += degree;
+        return totalDegreeCount;
+    }
+
     public long getDegree (StoredObjectDbh o) {
         return record_map.get(o).getDegree();
     }
 
-    private long totalDegreeCount;
-    private int vertexCounter;
-    private int sampleSize;
-    private List<Integer> verticesInStateList = new ArrayList<>();
-    private double totalInsertTimeBefore;
-    private long lastCheck;
 
     public synchronized StoredObjectDbh addRecordWithReservoirSampling(int x, int degree) throws Exception {
 

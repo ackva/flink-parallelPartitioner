@@ -25,8 +25,9 @@ import org.apache.flink.util.OutputTag;
 import org.myorg.quickstart.applications.SimpleEdgeStream;
 import org.myorg.quickstart.jobstatistics.LoadBalanceCalculator;
 import org.myorg.quickstart.jobstatistics.VertexCut;
+import org.myorg.quickstart.partitioners.matchFunctions.MatchFunctionClearState;
 import org.myorg.quickstart.partitioners.matchFunctions.MatchFunctionReservoirSampling;
-import org.myorg.quickstart.partitioners.matchFunctions.MatchFunctionWinHash;
+//import org.myorg.quickstart.partitioners.matchFunctions.MatchFunctionWinHash;
 import org.myorg.quickstart.partitioners.matchFunctions.MatchFunctionWinHash2;
 import org.myorg.quickstart.partitioners.windowFunctions.ProcessWindowDegreeHashed;
 import org.myorg.quickstart.partitioners.windowFunctions.ProcessWindowGellyHashValue;
@@ -102,10 +103,12 @@ public class GraphPartitionerReservoirSampling {
     public static double lambda = 1.0;
     public static boolean localRun = false;
     public static int sampleSize = 0;
+    public static long cleanIntervall = 1000000;
+    public static double lowDegreeThreshold = 1.0;
 
     public GraphPartitionerReservoirSampling(
             String printInfo, String inputPath, String algorithm, int keyParam, int k, int globalPhase, String graphName, String outputStatistics,
-            String outputPath, long windowSizeInMs, long wait, int sampleSize, String testing) throws Exception {
+            String outputPath, long windowSizeInMs, long wait, int sampleSize, String testing, double lowDegreeThreshold, long cleanIntervall) throws Exception {
         this.printInfo = printInfo;
         if (printInfo.equals("0")) {
             System.out.println("Debugging mode - more output can be found at logs_job_xyz: " + TEMPGLOBALVARIABLES.printTime);
@@ -130,6 +133,8 @@ public class GraphPartitionerReservoirSampling {
         }
         if (testing.equals("cluster") && TEMPGLOBALVARIABLES.printModulo < 1000000)
             throw new Exception("PRINT MODULO is " + TEMPGLOBALVARIABLES.printModulo + " . Change it please to avoid excessive logging");
+        this.cleanIntervall = cleanIntervall;
+        this.lowDegreeThreshold = lowDegreeThreshold;
     }
 
 
@@ -140,8 +145,8 @@ public class GraphPartitionerReservoirSampling {
         String outputPathPartitions = outputPath + "/" + folderName;
         loggingPath = outputPath + "/logs_" + folderName;
 
-        ProcessWindowGellyHashValue firstPhaseProcessor = new ProcessWindowGellyHashValue();
-        MatchFunctionReservoirSampling matchFunction = new MatchFunctionReservoirSampling(algorithm, k, lambda, sampleSize);
+        //ProcessWindowGellyHashValue firstPhaseProcessor = new ProcessWindowGellyHashValue();
+        MatchFunctionClearState matchFunction = new MatchFunctionClearState(algorithm, k, lambda, sampleSize, cleanIntervall, lowDegreeThreshold);
         MapStateDescriptor<String, Tuple2<Integer, ArrayList<Integer>>> rulesStateDescriptor = new MapStateDescriptor<>("RulesBroadcastState", BasicTypeInfo.STRING_TYPE_INFO,tupleTypeInfo);
 
         //System.out.println(new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()) + " timestamp for whatever you want");
@@ -163,14 +168,15 @@ public class GraphPartitionerReservoirSampling {
         };
 
         // Create a data stream (read from file)
-        SimpleEdgeStream<Integer, Long> edges = getGraphStream(env);
-        SimpleEdgeStream<Integer, NullValue> edgesHash = getGraphStreamHash(env);
 
 
         DataStream<Edge<Integer,NullValue>> partitionedEdges = null;
 
 
         if (algorithm.equals("hdrf") || algorithm.equals("dbh")) {
+            env.setParallelism(4);
+            SimpleEdgeStream<Integer, Long> edges = getGraphStream(env);
+
             // *** PHASE 1 ***
             //Process edges to build the local model for broadcast
             DataStream<Tuple2<HashMap<Integer, Integer>, Long>> phaseOneStream = edges.getEdges()
@@ -182,7 +188,7 @@ public class GraphPartitionerReservoirSampling {
             DataStream<Edge<Integer, Long>> edgesWindowed = edges.getEdges()
                     .keyBy(ks)
                     .timeWindow(Time.milliseconds(windowSizeInMs))
-                    .process(firstPhaseProcessor);
+                    .process(new ProcessWindowGellyHashValue());
 
             // *** Phase 2 ***
             // Broadcast local state from Phase 1 to all Task Managers
@@ -204,7 +210,7 @@ public class GraphPartitionerReservoirSampling {
             DataStream<String> sideOutputStream = phaseTwoStream.getSideOutput(outputTag);
             //DataStream<String> errorStream = phaseTwoStream.getSideOutput(outputTagError);
             //errorStream.print();
-            //sideOutputStream.print();
+            sideOutputStream.print();
             sideOutputStream.writeAsText(loggingPath.replaceAll(":", "_"));
 
             // Final Step -- Custom Partition, based on pre-calculated ID
@@ -215,16 +221,10 @@ public class GraphPartitionerReservoirSampling {
                             return input.f0;
                         }});
 
-            DataStream<String> loggingStream = sideOutputStream.map(new MapFunction<String, String>() {
-                @Override
-                public String map(String value) throws Exception {
-                    //String[] line = value.split(";");
-                    return "logging_" + value;
-                }
-            }).setParallelism(1);
-            loggingStream.print();
 
         } else if (algorithm.equals("hash")) {
+
+            SimpleEdgeStream<Integer, NullValue> edgesHash = getGraphStreamHash(env);
             partitionedEdges = edgesHash.getEdges()
                     .partitionCustom(new HashPartitioner<>(k),new CustomKeySelector5<>(0));
         } else {
@@ -240,7 +240,7 @@ public class GraphPartitionerReservoirSampling {
 
 
         // ### Execute the job in Flink
-        //System.out.println(env.getExecutionPlan());
+        System.out.println(env.getExecutionPlan());
         JobExecutionResult result = env.execute(createJobName(algorithm,k, graphName));
 
         System.out.println("The job took " + result.getNetRuntime(TimeUnit.SECONDS) + " seconds to execute"+"\n");//appends the string to the file

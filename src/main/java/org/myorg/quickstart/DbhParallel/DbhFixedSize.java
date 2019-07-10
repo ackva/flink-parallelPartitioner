@@ -14,7 +14,7 @@ public class DbhFixedSize<T> implements Partitioner {
     CustomKeySelector keySelector;
 
     private int k;
-    StoredStateDbh currentState;
+    private StoredStateDbh currentState;
     private static final int MAX_SHRINK = 100;
     private double seed;
     private int shrink;
@@ -59,6 +59,8 @@ public class DbhFixedSize<T> implements Partitioner {
             second_vertex.setDegree(1);
             //System.out.println(target + " - target doesn't exist");
             madeup2 = true;
+        }
+
             int shard_u = Math.abs((int) ((int) source * seed * shrink) % k);
             int shard_v = Math.abs((int) ((int) target * seed * shrink) % k);
 
@@ -83,40 +85,8 @@ public class DbhFixedSize<T> implements Partitioner {
                     System.exit(-1);
                 }
             }
-            /*
-             *   ARE THESE THING NEEDED????
-             */
-
-            //UPDATE EDGES
-            //Edge e = new Edge<>(source, target, NullValue.getInstance());
 
 
-            //currentState.incrementMachineLoad(machine_id,e);
-
-            //UPDATE RECORDS
-/*        if (currentState.getClass() == StoredStateFixedSize.class){
-            StoredStateFixedSize cord_state = (StoredStateFixedSize) currentState;
-            //NEW UPDATE RECORDS RULE TO UPFDATE THE SIZE OF THE PARTITIONS EXPRESSED AS THE NUMBER OF VERTICES THEY CONTAINS
-            if (!first_vertex.hasReplicaInPartition(machine_id)){ first_vertex.addPartition(machine_id); cord_state.incrementMachineLoadVertices(machine_id);}
-            if (!second_vertex.hasReplicaInPartition(machine_id)){ second_vertex.addPartition(machine_id); cord_state.incrementMachineLoadVertices(machine_id);}
-        }
-        else{
-            //1-UPDATE RECORDS
-            if (!first_vertex.hasReplicaInPartition(machine_id)){ first_vertex.addPartition(machine_id);}
-            if (!second_vertex.hasReplicaInPartition(machine_id)){ second_vertex.addPartition(machine_id);}
-        }*/
-
-        /*
-        //3-UPDATE DEGREES ##### SKIPPING THIS BECAUSE DEGREE IS ALREADY MAINTAINED IN MATCHFUNCTION
-
-        //System.out.print("source"+source);
-        //System.out.println("target"+target);
-        //System.out.println("machineid"+machine_id);
-        first_vertex.incrementDegree();
-        second_vertex.incrementDegree();
-        */
-
-        }
 
             return machine_id;
 

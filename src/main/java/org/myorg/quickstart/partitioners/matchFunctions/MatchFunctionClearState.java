@@ -7,7 +7,9 @@ import org.apache.flink.streaming.api.functions.co.KeyedBroadcastProcessFunction
 import org.apache.flink.types.NullValue;
 import org.apache.flink.util.Collector;
 import org.myorg.quickstart.partitioners.GraphPartitionerImpl;
-import org.myorg.quickstart.utils.*;
+import org.myorg.quickstart.utils.ModelBuilderFixedSize;
+import org.myorg.quickstart.utils.ProcessState2;
+import org.myorg.quickstart.utils.WinHashState;
 
 import java.util.*;
 
@@ -19,7 +21,7 @@ import static java.lang.Math.toIntExact;
  *
  */
 
-public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunction<Integer, Edge<Integer, Long>, Tuple2<HashMap<Integer, Integer>,Long>, Tuple2<Edge<Integer, NullValue>,Integer>> {
+public class MatchFunctionClearState extends KeyedBroadcastProcessFunction<Integer, Edge<Integer, Long>, Tuple2<HashMap<Integer, Integer>,Long>, Tuple2<Edge<Integer, NullValue>,Integer>> {
 
     private int vertexArrivalAfterTableFull = 0;
     private double avgStateCompletionTime = 0.0;
@@ -53,13 +55,17 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
     private boolean timerEmitCall;
     private int onTimerCount;
     private boolean cleanup;
+    private long cleanIntervall = 1000000;
+    private double lowDegreeThreshold = 1.0;
+    private int lowDegreeCallCount = 0;
+    private int cleanStateCallCount = 0;
 
     //private ListState<Long> state;
    //MapStateDescriptor<String, Tuple2<Long,Boolean>> updatedStateDescriptor = new MapStateDescriptor<>("keineAhnung", BasicTypeInfo.STRING_TYPE_INFO, ValueTypeInfo.BOOLEAN_VALUE_TYPE_INFO);
     private int nullCounter = 0;
 
 
-    public MatchFunctionReservoirSampling(String algorithm, Integer k, double lambda, int sampleSize) {
+    public MatchFunctionClearState(String algorithm, Integer k, double lambda, int sampleSize, long cleanIntervall, double lowDegreeThreshold) {
         //HashMap<Integer, Integer> vertexDegreeMap = new HashMap<>();
         this.algorithm = algorithm;
         this.parallelism = k;
@@ -71,6 +77,8 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
             this.modelBuilder = new ModelBuilderFixedSize(algorithm, k, sampleSize);
         }
         this.sampleSize = sampleSize;
+        this.lowDegreeThreshold = lowDegreeThreshold;
+        this.cleanIntervall = cleanIntervall;
     }
 
     // This function is called every time when a broadcast state is processed from the previous phase
@@ -158,54 +166,44 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
         int currentStateSize;
         if (this.algorithm.equals("hdrf")) {
                 currentStateSize = modelBuilder.getHdrf().getCurrentState().getRecord_map().size();
-            //if (currentStateSize > 1)
-                //System.out.println("HDRF Map size" + currentStateSize);
-
         } else { // DBH
             currentStateSize = modelBuilder.getDbh().getCurrentState().getRecord_map().size();
-            //if (currentStateSize > 1)
-                //System.out.println("DBH Map size" + currentStateSize);
         }
 
-        if (currentStateSize > (int) (0.95 * sampleSize)) {
-            ctx.output(GraphPartitionerImpl.outputTag,"remove called");
-            //if (currentStateSize > (int) (0.95 * sampleSize) && ctx.currentWatermark() - cleanupWatermark > 3000) {
+        //System.out.println((ctx.currentWatermark() - cleanupWatermark) + " time between");
+        if (collectedEdges > 100_000_000 && currentStateSize > (int) (0.95 * sampleSize) && (ctx.currentWatermark() - cleanupWatermark) > cleanIntervall) {
             ctx.output(GraphPartitionerImpl.outputTag,removeLowDegreeVertices());
-            ctx.output(GraphPartitionerImpl.outputTag, removeWinHashBroadcasts(ctx.currentWatermark()));
             cleanupWatermark = ctx.currentWatermark();
-            //System.out.println(modelBuilder.getHdrf().getCurrentState().getRecord_map().size() + " state size after cleanup");
         }
 
-
-        //if (currentStateSize == sampleSize) {
-            if (ctx.currentWatermark() - highestWatermark > 300000 && currentStateSize > (int) (0.95 * sampleSize)) {
-                //System.out.println(currentStateSize + " state size");
+        //System.out.println((highestWatermark - cleanIntervall*4) + " time between");
+         if (collectedEdges > 100_000_000 && (ctx.currentWatermark() - highestWatermark) > (cleanIntervall*4)) {
                 ctx.output(GraphPartitionerImpl.outputTag, removeWinHashBroadcasts(ctx.currentWatermark()));
                 highestWatermark = ctx.currentWatermark();
             }
-        //}re
 
 
 
     }
 
     private String removeLowDegreeVertices() {
+        lowDegreeCallCount++;
         int removedVertices = 0;
         if (this.algorithm.equals("hdrf")) {
             double avgDegree = (double) modelBuilder.getHdrf().getCurrentState().getAverageDegree();
             int mapSizeBefore = modelBuilder.getHdrf().getCurrentState().getRecord_map().size();
             HashSet<Integer> toBeRemoved = new HashSet<>();
             for (int i : this.modelBuilder.getHdrf().getCurrentState().getVerticesInStateList()) {
-                if ((double) modelBuilder.getHdrf().getCurrentState().getRecord(i).getDegree() < (avgDegree * 0.1)) {
+                if ((double) modelBuilder.getHdrf().getCurrentState().getRecord(i).getDegree() < (avgDegree * lowDegreeThreshold)) {
                     modelBuilder.getHdrf().getCurrentState().removeRecord(i);
                     toBeRemoved.add(i);
                     removedVertices++;
                 }
             }
-            System.out.println("removing " + toBeRemoved.size() + " elements" + System.currentTimeMillis());
+            //System.out.println("removing " + toBeRemoved.size() + " elements" + System.currentTimeMillis());
             modelBuilder.getHdrf().getCurrentState().removeVerticesFromList(toBeRemoved);
             avgDegree = (double) modelBuilder.getHdrf().getCurrentState().getAverageDegree();
-            System.out.println("AVG degree before: " + avgDegree + " . after: " + modelBuilder.getHdrf().getCurrentState().getAverageDegree() + " . State size before " + mapSizeBefore + ". After: " + modelBuilder.getHdrf().getCurrentState().getRecord_map().size());
+            //System.out.println("AVG degree before: " + avgDegree + " . after: " + modelBuilder.getHdrf().getCurrentState().getAverageDegree() + " . State size before " + mapSizeBefore + ". After: " + modelBuilder.getHdrf().getCurrentState().getRecord_map().size());
 
         }
         if (this.algorithm.equals("dbh")) {
@@ -217,7 +215,7 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
                 //System.out.println("checking vertex " + i);
                 //System.out.println("value " + (double) modelBuilder.getDbh().getCurrentState().getRecord_map().get(i).getDegree() + " .. vs " + (avgDegree * 0.5));
                 //if ((double) modelBuilder.getDbh().getCurrentState().getRecord(i).getDegree() < (avgDegree * 0.1)) {
-                if ((double) modelBuilder.getDbh().getCurrentState().getRecord(i).getDegree() < (avgDegree * 0.2)) {
+                if ((double) modelBuilder.getDbh().getCurrentState().getRecord(i).getDegree() < (avgDegree * lowDegreeThreshold)) {
                     //System.out.println("degree below AVG * 0.1 ==> " + modelBuilder.getDbh().getCurrentState().getRecord(i).getDegree());
                     modelBuilder.getDbh().getCurrentState().removeRecord(i);
                     toBeRemoved.add(i);
@@ -226,22 +224,24 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
             }
             System.out.println("removing " + toBeRemoved.size() + " elements" + System.currentTimeMillis());
             modelBuilder.getDbh().getCurrentState().removeVerticesFromList(toBeRemoved);
-            avgDegree = (double) modelBuilder.getDbh().getCurrentState().getAverageDegree();
-            System.out.println("AVG degree before: " + avgDegree + " . after: " + modelBuilder.getDbh().getCurrentState().getAverageDegree() + " . State size before " + mapSizeBefore + ". After: " + modelBuilder.getDbh().getCurrentState().getRecord_map().size());
+            //avgDegree = (double) modelBuilder.getDbh().getCurrentState().getAverageDegree();
+            //System.out.println("AVG degree before: " + avgDegree + " . after: " + modelBuilder.getDbh().getCurrentState().getAverageDegree() + " . State size before " + mapSizeBefore + ". After: " + modelBuilder.getDbh().getCurrentState().getRecord_map().size());
 
         }
 
-        return "removed " + removedVertices + " from state";
+        return "Removed Vertices: " + removedVertices + " - method called: " + lowDegreeCallCount;
 
 
     }
 
     private String removeWinHashBroadcasts(long watermark) {
+        cleanStateCallCount++;
+
         int uselessBroadcastCounter = 0;
         List<WinHashState> statesToBeRemoved = new ArrayList<>();
 
         for (WinHashState w : windowStateMap.values()) {
-            if (!w.getCreatedBy() && !w.isComplete() && !w.isUpdated() && (watermark - w.getCreateWatermark()) > 150000) {
+            if (!w.getCreatedBy() && !w.isComplete() && !w.isUpdated() && (watermark - w.getCreateWatermark()) > cleanIntervall) {
                 //System.out.println((watermark - w.getCreateWatermark()) + " diff for state " + w.getKey() + " created by " + w.getCreatedBy());
                 uselessBroadcastCounter++;
                 statesToBeRemoved.add(w);
@@ -254,7 +254,7 @@ public class MatchFunctionReservoirSampling extends KeyedBroadcastProcessFunctio
         }
         statesToBeRemoved.clear();
 
-        return "Removing broadcasts: " + uselessBroadcastCounter;
+        return "Removing broadcasts: " + uselessBroadcastCounter + " - method called: " + cleanStateCallCount;
 
     }
 

@@ -21,7 +21,9 @@ public class StoredStateFixedSize implements Serializable{
     private AtomicInteger[] machines_load_vertices;
     private int vertexCounter;
     private long totalDegreeCount;
-    private HashSet<Integer> highDegreeVerices = new HashSet<>();
+
+
+    //private HashSet<Integer> highDegreeVerices = new HashSet<>();
     private List<Integer> verticesInStateList = new ArrayList<>();
     private long lastCheck = 0L;
 
@@ -29,7 +31,7 @@ public class StoredStateFixedSize implements Serializable{
 
     public StoredStateFixedSize(int k, int sampleSize) {
 
-        record_map = new HashMap<Integer,StoredObjectFixedSize>();
+        record_map = new HashMap<>((int) (sampleSize * 1.5));
         this.sampleSize = sampleSize;
         this.vertexCounter = 0;
         this.totalDegreeCount = 0;
@@ -50,6 +52,10 @@ public class StoredStateFixedSize implements Serializable{
         //	}
 
         //System.out.print("created");
+    }
+
+    public void removeVerticesFromList(HashSet<Integer> toBeRemoved) {
+        verticesInStateList.removeAll(toBeRemoved);
     }
 
     public void incrementMachineLoadVertices(int m) {
@@ -121,6 +127,12 @@ public class StoredStateFixedSize implements Serializable{
     private double avgInsertTimeAfter = 0.0;
     private double totalInsertTimeAfter = 0.0;
     private double vertexCountAfterFull = 0.0;
+
+    public void removeRecord(int vertexId) {
+        this.totalDegreeCount -= this.getRecord(vertexId).getDegree();
+        this.getRecord_map().remove(vertexId);
+        this.vertexCounter--;
+    }
 
     public synchronized StoredObjectFixedSize addRecordWithReservoirSampling(int x, int degree) throws Exception {
 
@@ -286,6 +298,10 @@ public class StoredStateFixedSize implements Serializable{
         return MAX_LOAD;
     }
 
+
+    public List<Integer> getVerticesInStateList() {
+        return verticesInStateList;
+    }
 
     public SortedSet<Integer> getVertexIds() {
         //if (GLOBALS.OUTPUT_FILE_NAME!=null){ out.close(); }

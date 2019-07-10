@@ -25,7 +25,7 @@ import org.apache.flink.util.OutputTag;
 import org.myorg.quickstart.applications.SimpleEdgeStream;
 import org.myorg.quickstart.jobstatistics.LoadBalanceCalculator;
 import org.myorg.quickstart.jobstatistics.VertexCut;
-import org.myorg.quickstart.partitioners.matchFunctions.MatchFunctionWinHash;
+//import org.myorg.quickstart.partitioners.matchFunctions.MatchFunctionWinHash;
 import org.myorg.quickstart.partitioners.matchFunctions.MatchFunctionWinHash2;
 import org.myorg.quickstart.partitioners.matchFunctions.MatchFunctionWindowHash;
 import org.myorg.quickstart.partitioners.windowFunctions.ProcessWindowDegreeHashed;

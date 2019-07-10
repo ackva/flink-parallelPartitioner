@@ -32,8 +32,8 @@ public class MatchFunctionWinHash2 extends KeyedBroadcastProcessFunction<Integer
     long currentWatermarkEle = 1;
     long lastCheck;
 
-    List<WinHashState> completeStateListFORDEBUG = new ArrayList<>();
-    List<WinHashState> notCompleteStateListFORDEBUG = new ArrayList<>();
+    List<WinHashStateBig> completeStateListFORDEBUG = new ArrayList<>();
+    List<WinHashStateBig> notCompleteStateListFORDEBUG = new ArrayList<>();
     List<ProcessStateWatermark> allStates = new ArrayList<>();
     private int stateCounter;
     private int uncompleteStateCounter;
@@ -74,8 +74,8 @@ public class MatchFunctionWinHash2 extends KeyedBroadcastProcessFunction<Integer
     private int parallelism;
     List<Long> totalTimesStateStateCompletion = new ArrayList<>();
     private long highestWatermark;
-    private HashMap<Long, WinHashState> windowStateMap = new HashMap<>();
-    private HashSet<WinHashState> completeStateList = new HashSet<>();
+    private HashMap<Long, WinHashStateBig> windowStateMap = new HashMap<>();
+    private HashSet<WinHashStateBig> completeStateList = new HashSet<>();
 
 
     private ListState<ProcessState> state1;
@@ -163,8 +163,8 @@ public class MatchFunctionWinHash2 extends KeyedBroadcastProcessFunction<Integer
 
     private void emitAllReadyEdges(Collector<Tuple2<Edge<Integer, NullValue>,Integer>> out) throws Exception {
 
-        List<WinHashState> statesToBeRemoved = new ArrayList<>();
-        for (WinHashState winState : completeStateList) {
+        List<WinHashStateBig> statesToBeRemoved = new ArrayList<>();
+        for (WinHashStateBig winState : completeStateList) {
             List<Edge> edgesToBeRemoved = new ArrayList<>();
             for (Edge e : winState.getEdgeList()) {
                 int partitionId = modelBuilder.choosePartition(e);
@@ -188,9 +188,9 @@ public class MatchFunctionWinHash2 extends KeyedBroadcastProcessFunction<Integer
 
     private void cleanState(long watermark) {
         int uselessBroadcastCounter = 0;
-        List<WinHashState> statesToBeRemoved = new ArrayList<>();
+        List<WinHashStateBig> statesToBeRemoved = new ArrayList<>();
 
-        for (WinHashState w : windowStateMap.values()) {
+        for (WinHashStateBig w : windowStateMap.values()) {
             if (collectedEdges > 100_000 && w.getCreatedBy().equals("bro") && !w.isComplete() && !w.isUpdated() && (watermark - w.getCreateWatermark()) > 60000 && watermark > 0) {
                 //System.out.println((watermark - w.getCreateWatermark()) + " diff for state " + w.getKey() + " created by " + w.getCreatedBy());
                 uselessBroadcastCounter++;
@@ -200,7 +200,7 @@ public class MatchFunctionWinHash2 extends KeyedBroadcastProcessFunction<Integer
         }
         System.out.println("Useless broadcasts: " + uselessBroadcastCounter);
 
-        for (WinHashState winState : statesToBeRemoved) {
+        for (WinHashStateBig winState : statesToBeRemoved) {
             windowStateMap.remove(winState.getKey());
 
         }
@@ -211,7 +211,7 @@ public class MatchFunctionWinHash2 extends KeyedBroadcastProcessFunction<Integer
     private int completeCounter = 0;
 
     private void updateState(long hashvalue, int size) throws Exception {
-        WinHashState winState;
+        WinHashStateBig winState;
         if (windowStateMap.containsKey(hashvalue)) {
             winState = windowStateMap.get(hashvalue);
             boolean complete = winState.addBroadcast(size);
@@ -221,7 +221,7 @@ public class MatchFunctionWinHash2 extends KeyedBroadcastProcessFunction<Integer
                 addStateToReadyList(winState);
             }
         } else {
-            winState = new WinHashState(hashvalue,size);
+            winState = new WinHashStateBig(hashvalue,size);
             windowStateMap.put(hashvalue,winState);
             //stateCounter++;
             //System.out.println("# of states: " + stateCounter + "# of broadcasts: " + countBroadcastsOnWorker + "# of edges: " + counterEdgesInstance);
@@ -231,7 +231,7 @@ public class MatchFunctionWinHash2 extends KeyedBroadcastProcessFunction<Integer
 
     private void updateState(long hashvalue, Edge edge) throws Exception {
 
-        WinHashState winState;
+        WinHashStateBig winState;
         if (windowStateMap.containsKey(hashvalue)) {
             winState = windowStateMap.get(hashvalue);
             //System.out.println(" new edge " + edge.f0 + "," + edge.f1 + " for state " + winState.getKey() + " with size" + winState.getSize());
@@ -243,7 +243,7 @@ public class MatchFunctionWinHash2 extends KeyedBroadcastProcessFunction<Integer
 
             }
         } else {
-            winState = new WinHashState(hashvalue,edge);
+            winState = new WinHashStateBig(hashvalue,edge);
             windowStateMap.put(hashvalue,winState);
             if (TEMPGLOBALVARIABLES.printTime) {
                 //notCompleteStateListFORDEBUG.add(winState);
@@ -256,7 +256,7 @@ public class MatchFunctionWinHash2 extends KeyedBroadcastProcessFunction<Integer
 
     }
 
-    public void addStateToReadyList(WinHashState winState) {
+    public void addStateToReadyList(WinHashStateBig winState) {
         completeCounter++;
         uncompleteStateCounter--;
         completeStateList.add(winState);
@@ -279,7 +279,7 @@ public class MatchFunctionWinHash2 extends KeyedBroadcastProcessFunction<Integer
         double completeCounter = 0.0;
         double updateCounter = 0.0;
 
-            for (WinHashState w : completeStateListFORDEBUG) {
+            for (WinHashStateBig w : completeStateListFORDEBUG) {
                 returnString = returnString + "CO: " + w.getKey() + " " + w.getTotalTime() + " " + w.getSize() + " ;; ";
                 //totalTimesStateStateCompletion.add(w.getTotalTime());
                 sumCompleteTime += w.getTotalTime();
@@ -287,7 +287,7 @@ public class MatchFunctionWinHash2 extends KeyedBroadcastProcessFunction<Integer
             }
         returnString = returnString + "AVG Complete Time = " + sumCompleteTime/completeCounter + " (complete: " + completeCounter + ") ;;";
 
-            for (WinHashState w : notCompleteStateListFORDEBUG) {
+            for (WinHashStateBig w : notCompleteStateListFORDEBUG) {
                 returnString = returnString + w.getKey() + " " + w.getTotalTime() + " " + w.getSize() + " ;; ";
                 //totalTimesStateStateCompletion.add(w.getUpdatetime());
                 sumUpdateTime += w.getUpdatetime();

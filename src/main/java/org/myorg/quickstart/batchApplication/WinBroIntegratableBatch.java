@@ -1,9 +1,13 @@
-package org.myorg.quickstart.partitioners;
+package org.myorg.quickstart.batchApplication;
 
-import org.apache.flink.api.common.JobExecutionResult;
-import org.apache.flink.api.common.functions.*;
+import org.apache.flink.api.common.functions.FilterFunction;
+import org.apache.flink.api.common.functions.FlatMapFunction;
+import org.apache.flink.api.common.functions.MapFunction;
+import org.apache.flink.api.common.functions.Partitioner;
 import org.apache.flink.api.common.state.MapStateDescriptor;
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
+import org.apache.flink.api.java.DataSet;
+import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.GenericTypeInfo;
@@ -20,29 +24,19 @@ import org.apache.flink.util.Collector;
 import org.apache.flink.util.MathUtils;
 import org.apache.flink.util.OutputTag;
 import org.myorg.quickstart.applications.SimpleEdgeStream;
-import org.myorg.quickstart.jobstatistics.LoadBalanceCalculator;
-import org.myorg.quickstart.jobstatistics.VertexCut;
-//import org.myorg.quickstart.partitioners.matchFunctions.MatchFunctionWinHash;
 import org.myorg.quickstart.partitioners.matchFunctions.MatchFunctionWinHash2;
-import org.myorg.quickstart.partitioners.matchFunctions.MatchFunctionWindowHash;
 import org.myorg.quickstart.partitioners.windowFunctions.ProcessWindowDegreeHashed;
 import org.myorg.quickstart.partitioners.windowFunctions.ProcessWindowGellyHashValue;
-import org.myorg.quickstart.utils.CustomKeySelector6;
-import org.myorg.quickstart.utils.HashPartitioner;
-import org.myorg.quickstart.utils.TEMPGLOBALVARIABLES;
 
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
 
-public class WinBroIntegratable {
+//import org.myorg.quickstart.partitioners.matchFunctions.MatchFunctionWinHash;
+
+public class WinBroIntegratableBatch {
 
     public static final OutputTag<String> outputTag = new OutputTag<String>("side-output"){};
 
@@ -63,7 +57,7 @@ public class WinBroIntegratable {
     public static double lambda = 1.0;
     public static int stateDelay = 0;
 
-    public WinBroIntegratable(
+    public WinBroIntegratableBatch(
             StreamExecutionEnvironment env, String inputPath, String algorithm, int keyParam, int k, int globalPhase, long windowSizeInMs,
             int stateDelay) throws Exception {
         this.env = env;
@@ -91,7 +85,7 @@ public class WinBroIntegratable {
 
         // Environment setup
         env.setParallelism(k);
-        env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
+        //env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
 
         KeySelector<Edge<Integer, Long>, Integer> ks = new KeySelector<Edge<Integer, Long>, Integer>() {
             @Override
@@ -108,6 +102,7 @@ public class WinBroIntegratable {
         // Create a data stream (read from file)
         DataStream<Edge<Integer, Long>> edges = getDataStream(env);
 
+        DataStream<Edge<Integer, Long>> edges1 = getDataStream(env);
         DataStream<Edge<Integer,NullValue>> partitionedEdges = null;
 
 

@@ -1,3 +1,4 @@
+/*
 package org.myorg.quickstart.partitioners.matchFunctions;
 
 import org.apache.flink.api.common.state.ListState;
@@ -16,12 +17,14 @@ import java.util.*;
 
 import static java.lang.Math.toIntExact;
 
+*/
 /**
  *
  * This match function uses the "on Timer" approach. When processElement() is called, it sets an event to a later watermark and processes the edge(s) later.
  * This shall help to reduce the overall "waiting" time with unnecessary loop iterations.
  *
- */
+ *//*
+
 
 public class MatchFunctionWatery extends KeyedBroadcastProcessFunction<Integer, Edge<Integer, Long>, Tuple2<HashMap<Integer, Integer>,Long>, Tuple2<Edge<Integer, NullValue>,Integer>> {
 
@@ -65,7 +68,9 @@ public class MatchFunctionWatery extends KeyedBroadcastProcessFunction<Integer, 
     private List<Edge<Integer, Long>> waitingEdges;
     private long startTime = System.currentTimeMillis();
     private int stateDelay = 0;
-    /** The state that is maintained by this process function */
+    */
+/** The state that is maintained by this process function *//*
+
     private ValueState<ProcessStateWatermark> state;
     private int parallelism;
     List<Long> totalTimesStateStateCompletion = new ArrayList<>();
@@ -217,6 +222,7 @@ public class MatchFunctionWatery extends KeyedBroadcastProcessFunction<Integer, 
 
 
 
+*/
 /*    private void checkWatermark(long watermark) {
         if (broadcastWatermark != watermark) {
             watermarksBro.add(watermark);
@@ -226,7 +232,8 @@ public class MatchFunctionWatery extends KeyedBroadcastProcessFunction<Integer, 
         if (watermark == Long.MAX_VALUE) {
             System.out.println("Watermarks: " + watermarksBro.size() + " -- " + watermarksBro);
         }
-    }*/
+    }*//*
+
 
     private HashMap<Long, WinHashState> windowStateMap = new HashMap<>();
     private HashSet<WinHashState> completeStateList = new HashSet<>();
@@ -287,11 +294,13 @@ public class MatchFunctionWatery extends KeyedBroadcastProcessFunction<Integer, 
         uncompleteStateCounter--;
         completeStateList.add(winState);
 
+*/
 /*        // debugging
         if (TEMPGLOBALVARIABLES.printTime) {
             notCompleteStateListFORDEBUG.remove(winState);
             completeStateListFORDEBUG.add(winState);
-        }*/
+        }*//*
+
 
     }
 
@@ -365,3 +374,4 @@ public class MatchFunctionWatery extends KeyedBroadcastProcessFunction<Integer, 
 
 
 
+*/

@@ -37,7 +37,7 @@ public class HdrfFixedSize<T> implements Partitioner {
         currentState.getRecord(target);
     }*/
 
-    public int selectPartition(Edge edge) {
+    public int selectPartition(Edge<Integer, Long> edge) {
 
        /* if (this.getCurrentState().getRecord_map().size() >= 250000) {
             System.out.println("inside choose partition");
@@ -46,8 +46,8 @@ public class HdrfFixedSize<T> implements Partitioner {
         boolean madeup1 = false;
         boolean madeup2 = false;
 
-        int source = Integer.parseInt(edge.f0.toString());
-        int target = Integer.parseInt(edge.f1.toString());
+        int source = edge.f0;
+        int target = edge.f1;
 
         int machine_id = -1;
 

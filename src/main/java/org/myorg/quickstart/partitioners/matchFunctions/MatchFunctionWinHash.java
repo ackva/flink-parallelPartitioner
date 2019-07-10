@@ -1,3 +1,4 @@
+/*
 package org.myorg.quickstart.partitioners.matchFunctions;
 
 import org.apache.flink.api.common.state.ValueState;
@@ -18,12 +19,14 @@ import java.util.*;
 
 import static java.lang.Math.toIntExact;
 
+*/
 /**
  *
  * This match function uses the "on Timer" approach. When processElement() is called, it sets an event to a later watermark and processes the edge(s) later.
  * This shall help to reduce the overall "waiting" time with unnecessary loop iterations.
  *
- */
+ *//*
+
 
 public class MatchFunctionWinHash extends KeyedBroadcastProcessFunction<Integer, Edge<Integer, Long>, Tuple2<HashMap<Integer, Integer>,Long>, Tuple2<Edge<Integer, NullValue>,Integer>> {
 
@@ -71,7 +74,9 @@ public class MatchFunctionWinHash extends KeyedBroadcastProcessFunction<Integer,
     private List<Edge<Integer, Long>> waitingEdges;
     private long startTime = System.currentTimeMillis();
     private int stateDelay = 0;
-    /** The state that is maintained by this process function */
+    */
+/** The state that is maintained by this process function *//*
+
     private ValueState<ProcessStateLong> state;
     private int parallelism;
     List<Long> totalTimesStateStateCompletion = new ArrayList<>();
@@ -111,10 +116,12 @@ public class MatchFunctionWinHash extends KeyedBroadcastProcessFunction<Integer,
 
 
 
-        /*if (TEMPGLOBALVARIABLES.printTime) {
+        */
+/*if (TEMPGLOBALVARIABLES.printTime) {
             if (globalCounterForPrint > 2_000)
             ctx.output(GraphPartitionerImpl.outputTag,"broadcasts " + globalCounterForPrint);
-        }*/
+        }*//*
+
 
         int edgeDegreeInBroadcast = 0;
 
@@ -155,17 +162,20 @@ public class MatchFunctionWinHash extends KeyedBroadcastProcessFunction<Integer,
 
         emitAllReadyEdges(out);
 
+*/
 /*        if (uncompleteStateCounter > 0 && collectedEdges > 345000) {
             ctx.output(GraphPartitionerImpl.outputTag,"EDGE progress: " + checkUncompleteDEBUG());
             String progress = checkTimer();
             ctx.output(GraphPartitionerImpl.outputTag, progress); // " --- " + df.format(((double) totalEdgesBroadcasted/parallelism) / (double) counterEdgesInstance) + " diff broadcasted/processed");
-        }*/
+        }*//*
+
 
 
 
         //ctx.output(GraphPartitionerImpl.outputTag,"BROAD > " + broadcastElement.f1 + " > " + edgesInBroadcast +  " > " + broadcastElement.f0);
         //checkDifference(broadcastElement.f1, 0,ctx.currentWatermark(),ctx.currentProcessingTime(), edgeDegreeInBroadcast, broadcastElement.f0.toString());
 
+*/
 /*        long waitEdgesTime = 0;
         if (waitingEdges.size() > 0) {
             totalWaitingEdgesCalls++;
@@ -195,7 +205,8 @@ public class MatchFunctionWinHash extends KeyedBroadcastProcessFunction<Integer,
                 long endTime2 = System.nanoTime();
                 waitEdgesTime = endTime2 - startTime2;
             }
-        }*/
+        }*//*
+
 
 
     }
@@ -212,15 +223,19 @@ public class MatchFunctionWinHash extends KeyedBroadcastProcessFunction<Integer,
 
         emitAllReadyEdges(out);
 
-        /*if (counterEdgesInstance % 1_000_000 == 0)
-            ctx.output(GraphPartitionerImpl.outputTag, checkTimer());*/
+        */
+/*if (counterEdgesInstance % 1_000_000 == 0)
+            ctx.output(GraphPartitionerImpl.outputTag, checkTimer());*//*
 
+
+*/
 /*
         if (uncompleteStateCounter > 0 && collectedEdges > 345000) {
             ctx.output(GraphPartitionerImpl.outputTag,"EDGE progress: " + checkUncompleteDEBUG());
             String progress = checkTimer();
             ctx.output(GraphPartitionerImpl.outputTag, progress); // " --- " + df.format(((double) totalEdgesBroadcasted/parallelism) / (double) counterEdgesInstance) + " diff broadcasted/processed");
-        }*/
+        }*//*
+
 
 
         if (TEMPGLOBALVARIABLES.printTime) {
@@ -232,7 +247,8 @@ public class MatchFunctionWinHash extends KeyedBroadcastProcessFunction<Integer,
                 String progress = checkTimer();
                 ctx.output(GraphPartitionerImpl.outputTag, progress); // " --- " + df.format(((double) totalEdgesBroadcasted/parallelism) / (double) counterEdgesInstance) + " diff broadcasted/processed");
             }
-            /*if (counterEdgesInstance % 670000 == 0) {
+            */
+/*if (counterEdgesInstance % 670000 == 0) {
                 String toPrint = "";
                 Iterator it = windowStateMap.entrySet().iterator();
                 while (it.hasNext()) {
@@ -252,7 +268,8 @@ public class MatchFunctionWinHash extends KeyedBroadcastProcessFunction<Integer,
 
                         String progress = checkTimer();
                 ctx.output(GraphPartitionerImpl.outputTag, progress); // " --- " + df.format(((double) totalEdgesBroadcasted/parallelism) / (double) counterEdgesInstance) + " diff broadcasted/processed");
-            }*/
+            }*//*
+
         }
 
     }
@@ -283,6 +300,7 @@ public class MatchFunctionWinHash extends KeyedBroadcastProcessFunction<Integer,
 
 
 
+*/
 /*    private void checkWatermark(long watermark) {
         if (broadcastWatermark != watermark) {
             watermarksBro.add(watermark);
@@ -292,7 +310,8 @@ public class MatchFunctionWinHash extends KeyedBroadcastProcessFunction<Integer,
         if (watermark == Long.MAX_VALUE) {
             System.out.println("Watermarks: " + watermarksBro.size() + " -- " + watermarksBro);
         }
-    }*/
+    }*//*
+
 
     private HashMap<Long, WinHashState> windowStateMap = new HashMap<>();
     private HashSet<WinHashState> completeStateList = new HashSet<>();
@@ -423,11 +442,13 @@ public class MatchFunctionWinHash extends KeyedBroadcastProcessFunction<Integer,
                 updateCounter++;
             }
             returnString = returnString + "AVG UpdateTime = " + sumUpdateTime/updateCounter + " (incomplete: " + updateCounter + ") ;;";
-            /*System.out.println("Size of not-completed " + totalTimesStateStateCompletion.size());
+            */
+/*System.out.println("Size of not-completed " + totalTimesStateStateCompletion.size());
             Percentile(totalTimesStateStateCompletion, 25);
             Percentile(totalTimesStateStateCompletion, 50);
             Percentile(totalTimesStateStateCompletion, 75);
-            Percentile(totalTimesStateStateCompletion, 100);*/
+            Percentile(totalTimesStateStateCompletion, 100);*//*
+
 
             return returnString;
         }
@@ -438,31 +459,37 @@ public class MatchFunctionWinHash extends KeyedBroadcastProcessFunction<Integer,
         System.out.print("p " + Percentile + ": " + (int)Math.ceil(((double)Percentile / (double)100) * (double)latencies.size()) + " ---- ");
     }
 
+*/
 /*        if (completeCounter % 1 == 0) {
             //System.out.println("complete: " + completeCounter + " out of " + windowStateMap.size());
             for (WinHashState w : completeStateListFORDEBUG) {
                 System.out.println("- " + w.getKey());
             }
-        }*/
+        }*//*
 
 
 
 
 
-      /*  avgDiffWatermark = arrivedDiffWaterMark.get(hashvalue) / edgeCounter;
+
+      */
+/*  avgDiffWatermark = arrivedDiffWaterMark.get(hashvalue) / edgeCounter;
         avgDiffWatermark = arrivedDiffProcessing.get(hashvalue) / edgeCounter;
 
         arrivedDiffWaterMark.put(hashvalue,-1L);
-        arrivedDiffProcessing.put(hashvalue,-1L);*/
+        arrivedDiffProcessing.put(hashvalue,-1L);*//*
 
 
+
+*/
 /*        System.out.println("Arrived First: " + arrivedFirst.size() + " --> " + arrivedFirst);
         System.out.println("Differences Watermarks : " + arrivedDiffWaterMark.size() + " --> " + arrivedDiffWaterMark);
         System.out.println("Differences Processing : " + arrivedDiffProcessing.size() + " --> " + arrivedDiffProcessing);
         System.out.println("Differences SystemTime : " + arrivedDiffProcessing.size() + " --> " + arrivedDiffSysTime);
         System.out.println("Avg Diff Watermarks: " + avgDiffWatermark);
         System.out.println("Avg Diff Processing: " + avgDiffProcessing);
-        System.out.println("Avg Diff SystemTime: " + avgDiffSysTime);*/
+        System.out.println("Avg Diff SystemTime: " + avgDiffSysTime);*//*
+
 
 
 
@@ -543,3 +570,4 @@ public class MatchFunctionWinHash extends KeyedBroadcastProcessFunction<Integer,
 
 
 
+*/

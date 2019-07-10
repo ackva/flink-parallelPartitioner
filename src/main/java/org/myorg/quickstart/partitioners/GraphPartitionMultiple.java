@@ -33,6 +33,9 @@ public class GraphPartitionMultiple {
     public static double lambda = 1.0;
     public static boolean localRun = false;
     public static int sampleSize = 1_000_000;
+    public static long cleanIntervall = 0;
+    public static double lowDegreeThreshold = 0;
+    public static int repetitions = 1;
 
 
     public static void main (String[] args) throws Exception {
@@ -77,27 +80,27 @@ public class GraphPartitionMultiple {
         }*/
 
 
-        System.out.println("Testing SIZE " + sampleSize);
+        System.out.println("Testing  " + sampleSize);
 
 
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < repetitions; i++) {
 
             GraphPartitionerReservoirSampling gpw1 = new GraphPartitionerReservoirSampling(
-                    printInfo, inputPath, "dbh", keyParam, k, globalPhase, graphName + "_GC-test", outputStatistics, outputPath, windowSizeInMs, wait, sampleSize, testing);
+                    printInfo, inputPath, algorithm, keyParam, k, globalPhase, graphName, outputStatistics, outputPath, windowSizeInMs, wait, sampleSize, testing, lowDegreeThreshold, cleanIntervall);
             gpw1.partitionGraph();
-            Thread.sleep(1000);
+            Thread.sleep(5000);
 
             System.gc();
 
         }
 
 
-       for (int i = 0; i < 2; i++) {
+/*       for (int i = 0; i < 2; i++) {
 
             GraphPartitionerReservoirSampling gpw0 = new GraphPartitionerReservoirSampling(
                     printInfo, inputPath, "hdrf", keyParam, k, globalPhase, graphName + "_GC-test", outputStatistics, outputPath, windowSizeInMs, wait, sampleSize, testing);
             gpw0.partitionGraph();
-            Thread.sleep(1000);
+            Thread.sleep(5000);
 
             System.gc();
 
@@ -110,11 +113,11 @@ public class GraphPartitionMultiple {
             GraphPartitionerReservoirSampling gpw2 = new GraphPartitionerReservoirSampling(
                     printInfo, inputPath, "hash", keyParam, k, globalPhase, graphName + "_GC-test", outputStatistics, outputPath, windowSizeInMs, wait, sampleSize, testing);
             gpw2.partitionGraph();
-            Thread.sleep(1000);
+            Thread.sleep(5000);
 
             System.gc();
 
-        }
+        }*/
 
 
 
@@ -322,6 +325,11 @@ public class GraphPartitionMultiple {
             wait = Long.parseLong(args[10]);
             sampleSize = Integer.valueOf(args[11]);
             testing = args[12];
+            lowDegreeThreshold = Double.valueOf(args[13]);
+            cleanIntervall = Long.parseLong(args[14]);
+            repetitions = Integer.parseInt(args[15]);
+
+
         } else {
             System.out.println("Please provide parameters.");
             System.out.println(" --> Usage: PhasePartitioner <TODO>");

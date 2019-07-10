@@ -65,14 +65,14 @@ public class GraphPartitionDbh {
 */
 
 
-        System.out.println(" ############ SAMPLE SIZE " + sampleSize);
+/*        System.out.println(" ############ SAMPLE SIZE " + sampleSize);
 
         GraphPartitionerReservoirSampling gpw0 = new GraphPartitionerReservoirSampling(
                 printInfo, inputPath, algorithm, keyParam, k, globalPhase, graphName + "_resSampling_noHigh", outputStatistics, outputPath, windowSizeInMs, wait, sampleSize, testing
         );
         gpw0.partitionGraph();
         Thread.sleep(1000);
-        System.out.println(" ############ ");
+        System.out.println(" ############ ");*/
 
 
 

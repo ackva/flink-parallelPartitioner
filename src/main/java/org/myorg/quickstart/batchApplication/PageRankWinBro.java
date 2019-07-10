@@ -1,5 +1,5 @@
 
-package org.myorg.quickstart.applications;
+package org.myorg.quickstart.batchApplication;
 
 import org.apache.flink.api.common.JobExecutionResult;
 import org.apache.flink.api.common.functions.FlatJoinFunction;
@@ -15,11 +15,10 @@ import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.graph.Edge;
 import org.apache.flink.graph.EdgeJoinFunction;
 import org.apache.flink.graph.Graph;
+import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.types.LongValue;
 import org.apache.flink.types.NullValue;
 import org.apache.flink.util.Collector;
-import org.myorg.quickstart.batchApplication.WinBroIntegratableBatch;
-import org.myorg.quickstart.partitioners.WinBroIntegratable;
 import org.myorg.quickstart.utils.CustomKeySelector3;
 import org.myorg.quickstart.utils.CustomKeySelector4;
 import org.myorg.quickstart.utils.StoredObject;
@@ -30,7 +29,7 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 
-public class PageRankZainab {
+public class PageRankWinBro {
 
 
 
@@ -50,6 +49,7 @@ public class PageRankZainab {
             return;
         }
         ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment envStream = StreamExecutionEnvironment.getExecutionEnvironment();
 
         env.setParallelism(1);
 
@@ -89,8 +89,9 @@ public class PageRankZainab {
 
         DataSet<Tuple2<Double, Double>> changes = iteration.getWorkset().join(edges).where(new CustomKeySelector3(0)).equalTo(new CustomKeySelector4(0))
                 .with(new RankMessenger()).withPartitioner(new HDRF<>(new CustomKeySelector3(0), k, 1));
-
-        changes
+        /*DataSet<Tuple2<Double, Double>> changes1 = iteration.getWorkset().join(edges).where(new CustomKeySelector3(0)).equalTo(new CustomKeySelector4(0))
+                .with(new RankMessenger()).withPartitioner(new WinBroIntegratableBatch(envStream, edgesInputPath, "hdrf", 0, 4, 4, 0, 0).PartitionByTag());
+        */changes
                 .groupBy(0)
                 .aggregate(Aggregations.SUM, 1)
                 .join(iteration.getSolutionSet()).where(0).equalTo(0)
