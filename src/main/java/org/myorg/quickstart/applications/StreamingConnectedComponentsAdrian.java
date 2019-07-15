@@ -6,10 +6,9 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.graph.Edge;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.types.NullValue;
 import org.apache.flink.util.Collector;
-import org.myorg.quickstart.partitioners.WinBroIntegratable;
+import org.myorg.quickstart.partitioners.WinBro;
 import org.myorg.quickstart.utils.*;
 
 import java.io.*;
@@ -52,7 +51,7 @@ public class StreamingConnectedComponentsAdrian {
         if (algorithm.equals("hdrf")) {
 
             DataStream<Edge<Integer, NullValue>> edgeStream;
-            edgeStream = new WinBroIntegratable(env, InputPath, "hdrf", keyParam, k, k, windowSizeInMs, wait)
+            edgeStream = new WinBro(env, InputPath, "hdrf", keyParam, k, k, windowSizeInMs, wait)
                     .partitionGraph();
             GraphStream<Integer, NullValue, NullValue> graph = new SimpleEdgeStream<Integer, NullValue>(edgeStream, env);
 
@@ -62,7 +61,7 @@ public class StreamingConnectedComponentsAdrian {
         } else if (algorithm.equals("dbh")) {
 
             DataStream<Edge<Integer, NullValue>> edgeStream;
-            edgeStream = new WinBroIntegratable(env, InputPath, "dbh", keyParam, k, k, windowSizeInMs, wait)
+            edgeStream = new WinBro(env, InputPath, "dbh", keyParam, k, k, windowSizeInMs, wait)
                     .partitionGraph();
             GraphStream<Integer, NullValue, NullValue> graph = new SimpleEdgeStream<Integer, NullValue>(edgeStream, env);
 
@@ -71,12 +70,13 @@ public class StreamingConnectedComponentsAdrian {
 
         } else if (algorithm.equals("hash")) {
 
-            DataStream<Edge<Long, NullValue>> edgeStreamHash;
-            DataStream<Edge<Long, NullValue>> edges = getGraphStream(env);
-            edgeStreamHash = edges.partitionCustom(new HashPartitioner<>(new CustomKeySelector(0)), new CustomKeySelector<>(0));
-            GraphStream<Long, NullValue, NullValue> graph = new SimpleEdgeStream<Long, NullValue>(edgeStreamHash, env);
-            DataStream<DisjointSet<Long>> cc = graph.aggregate(new ConnectedComponents<Long, NullValue>(5000, outputPath));
-            cc.addSink(new DumSink3());
+            DataStream<Edge<Integer, NullValue>> edgeStream;
+            edgeStream = new WinBro(env, InputPath, "hash", keyParam, k, k, windowSizeInMs, wait)
+                    .partitionGraph();
+            GraphStream<Integer, NullValue, NullValue> graph = new SimpleEdgeStream<Integer, NullValue>(edgeStream, env);
+
+            DataStream<DisjointSet<Integer>> cc1 = graph.aggregate(new ConnectedComponents<Integer, NullValue>(5000, outputPath));
+            cc1.addSink(new DumSink4());
 
         } else {
             // Zainab's single partitioner HDRF

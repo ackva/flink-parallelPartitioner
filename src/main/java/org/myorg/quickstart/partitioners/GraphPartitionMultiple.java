@@ -80,48 +80,19 @@ public class GraphPartitionMultiple {
         }*/
 
 
-        System.out.println("HDRF  p = " + k);
+        System.out.println(algorithm + "  p = " + k);
 
 
         for (int i = 0; i < repetitions; i++) {
 
             GraphPartitionerReservoirSampling gpw1 = new GraphPartitionerReservoirSampling(
-                    printInfo, inputPath, "hdrf", keyParam, k, k, graphName, outputStatistics, outputPath, windowSizeInMs, wait, sampleSize, testing, lowDegreeThreshold, cleanIntervall);
+                    printInfo, inputPath, algorithm, keyParam, k, k, graphName, outputStatistics, outputPath, windowSizeInMs, wait, sampleSize, testing, lowDegreeThreshold, cleanIntervall);
             gpw1.partitionGraph();
             Thread.sleep(5000);
 
             System.gc();
 
         }
-
-        System.out.println("DBH  p = " + k);
-
-
-        for (int i = 0; i < repetitions; i++) {
-
-            GraphPartitionerReservoirSampling gpw1 = new GraphPartitionerReservoirSampling(
-                    printInfo, inputPath, "dbh", keyParam, k, k, graphName, outputStatistics, outputPath, windowSizeInMs, wait, sampleSize, testing, lowDegreeThreshold, cleanIntervall);
-            gpw1.partitionGraph();
-            Thread.sleep(5000);
-
-            System.gc();
-
-        }
-
-        System.out.println("Hash  p = " + k);
-
-
-        for (int i = 0; i < repetitions; i++) {
-
-            GraphPartitionerReservoirSampling gpw1 = new GraphPartitionerReservoirSampling(
-                    printInfo, inputPath, "hash", keyParam, k, k, graphName, outputStatistics, outputPath, windowSizeInMs, wait, sampleSize, testing, lowDegreeThreshold, cleanIntervall);
-            gpw1.partitionGraph();
-            Thread.sleep(5000);
-
-            System.gc();
-
-        }
-
 /*       for (int i = 0; i < 2; i++) {
 
             GraphPartitionerReservoirSampling gpw0 = new GraphPartitionerReservoirSampling(

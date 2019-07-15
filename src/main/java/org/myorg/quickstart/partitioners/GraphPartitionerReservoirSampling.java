@@ -172,28 +172,23 @@ public class GraphPartitionerReservoirSampling {
 
         DataStream<Edge<Integer,NullValue>> partitionedEdges = null;
 
-
         if (algorithm.equals("hdrf") || algorithm.equals("dbh")) {
             env.setParallelism(k);
             SimpleEdgeStream<Integer, Long> edges = getGraphStream(env);
 
             // *** PHASE 1 ***
             //Process edges to build the local model for broadcast
-            DataStream<Tuple2<HashMap<Integer, Integer>, Long>> phaseOneStream = edges.getEdges()
+            BroadcastStream<Tuple2<HashMap<Integer, Integer>, Long>> broadcastStateStream = edges.getEdges()
                     .keyBy(ks)
                     .timeWindow(Time.milliseconds(windowSizeInMs))
-                    .process(new ProcessWindowDegreeHashed());
+                    .process(new ProcessWindowDegreeHashed())
+                    .broadcast(rulesStateDescriptor);;
 
             // Process edges in the similar time windows to "wait" for phase 2
             DataStream<Edge<Integer, Long>> edgesWindowed = edges.getEdges()
                     .keyBy(ks)
                     .timeWindow(Time.milliseconds(windowSizeInMs))
                     .process(new ProcessWindowGellyHashValue());
-
-            // *** Phase 2 ***
-            // Broadcast local state from Phase 1 to all Task Managers
-            BroadcastStream<Tuple2<HashMap<Integer, Integer>, Long>> broadcastStateStream = phaseOneStream
-                    .broadcast(rulesStateDescriptor);
 
             // Connect Broadcast Stream and EdgeDepr Stream to build global model
             SingleOutputStreamOperator<Tuple2<Edge<Integer, NullValue>, Integer>> phaseTwoStream = edgesWindowed
@@ -230,8 +225,6 @@ public class GraphPartitionerReservoirSampling {
         } else {
         }
 
-
-
         //Print result in human-readable way --> e.g. (4,2,0) means: EdgeDepr(4,2) partitioned to machineId 0
         partitionedEdges.writeAsText(outputPathPartitions.replaceAll(":","_"));
         //partitionedEdges.print();
@@ -240,7 +233,7 @@ public class GraphPartitionerReservoirSampling {
 
 
         // ### Execute the job in Flink
-        System.out.println(env.getExecutionPlan());
+        //System.out.println(env.getExecutionPlan());
         JobExecutionResult result = env.execute(createJobName(algorithm,k, graphName));
 
         System.out.println("The job took " + result.getNetRuntime(TimeUnit.SECONDS) + " seconds to execute"+"\n");//appends the string to the file

@@ -61,8 +61,8 @@ public class DbhFixedSize<T> implements Partitioner {
             madeup2 = true;
         }
 
-            int shard_u = Math.abs((int) ((int) source * seed * shrink) % k);
-            int shard_v = Math.abs((int) ((int) target * seed * shrink) % k);
+            int shard_u = Math.abs((int) (source * seed * shrink) % k);
+            int shard_v = Math.abs((int) (target * seed * shrink) % k);
 
             // CHECK THIS HERE
             int degree_u = first_vertex.getDegree();    // removed +1 here

@@ -89,11 +89,11 @@ public class HdrfFixedSize<T> implements Partitioner {
             int degree_u;
             int degree_v;
             if (!madeup1)
-                degree_u = first_vertex.getDegree() + 1;
+                degree_u = first_vertex.getDegree();
             else
                 degree_u = 1;
             if (!madeup2) {
-                degree_v = second_vertex.getDegree() + 1;
+                degree_v = second_vertex.getDegree();
                 //System.out.println("target not made up " + target + " degree" + degree_v);
             } else
                 degree_v = 1;

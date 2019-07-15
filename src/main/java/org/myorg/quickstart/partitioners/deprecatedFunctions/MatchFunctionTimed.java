@@ -135,7 +135,6 @@ public class MatchFunctionTimed extends KeyedBroadcastProcessFunction<Integer, E
         //System.out.println("3$" + ctx.broadcastWatermark() + "$" + ctx.currentProcessingTime() + "$" + ctx.timerService().currentProcessingTime() + "$" + currentEdge);
         counterEdgesInstance++;
 
-
             ProcessState current = state.value();
             if (current == null) {
                 //System.out.println("new state created" + currentEdge);

@@ -16,12 +16,8 @@ import java.util.List;
 public class ProcessWindowDegreeHashed extends ProcessWindowFunction<Edge<Integer, Long>, Tuple2<HashMap<Integer, Integer>,Long>, Integer, TimeWindow> {
 
     private String algorithm;
-    int windowCounter = 0;
-    int edgeCounter = 0;
-    long startTime = System.currentTimeMillis();
-    long currentWatermark = 1;
-    List<Long> watermarks = new ArrayList<>();
-    HashMap<Long, List<Edge>> edgesInWatermark = new HashMap<>();
+    private int windowCounter = 0;
+    private int edgeCounter = 0;
 
     public ProcessWindowDegreeHashed() {
 

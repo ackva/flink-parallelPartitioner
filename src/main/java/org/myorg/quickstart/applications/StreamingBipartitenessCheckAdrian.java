@@ -11,18 +11,15 @@ import org.apache.flink.graph.streaming.summaries.Candidates;
 import org.apache.flink.graph.streaming.summaries.DisjointSet;*/
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.types.NullValue;
 import org.apache.flink.util.Collector;
-import org.myorg.quickstart.partitioners.WinBroIntegratable;
+import org.myorg.quickstart.partitioners.WinBro;
 import org.myorg.quickstart.utils.*;
 
 import java.io.*;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.Random;
-import java.util.concurrent.TimeUnit;
-
 
 
 /**
@@ -39,11 +36,60 @@ public class StreamingBipartitenessCheckAdrian {
 
 
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        env.setParallelism(1);
+        env.setParallelism(k);
 
 
-        DataStream<Edge<Long, NullValue>> edges = getGraphStream(env);
-        edges.print();
+        if (algorithm.equals("hdrf")) {
+
+            DataStream<Edge<Integer, NullValue>> edgeStream;
+            edgeStream = new WinBro(env, InputPath, "hdrf", 0, k, k, 1, 0)
+                    .partitionGraph();
+            GraphStream<Integer, NullValue, NullValue> graph = new SimpleEdgeStream<Integer, NullValue>(edgeStream, env);
+            DataStream<Candidates> bipartition = graph.aggregate(new BipartitenessCheck<>((long) 5000));
+            bipartition.addSink(new DumSink1());
+            bipartition.print();
+
+
+        } else if (algorithm.equals("dbh")) {
+
+            DataStream<Edge<Integer, NullValue>> edgeStream;
+            edgeStream = new WinBro(env, InputPath, "dbh", 0, k, k, 1, 0)
+                    .partitionGraph();
+            GraphStream<Integer, NullValue, NullValue> graph = new SimpleEdgeStream<Integer, NullValue>(edgeStream, env);
+            DataStream<Candidates> bipartition = graph.aggregate(new BipartitenessCheck<>((long) 5000));
+            bipartition.addSink(new DumSink1());
+            bipartition.print();
+
+
+        } else if (algorithm.equals("hash")) {
+
+            DataStream<Edge<Integer, NullValue>> edgeStream;
+            edgeStream = new WinBro(env, InputPath, "hash", 0, k, k, 1, 0)
+                    .partitionGraph();
+            GraphStream<Integer, NullValue, NullValue> graph = new SimpleEdgeStream<Integer, NullValue>(edgeStream, env);
+            DataStream<Candidates> bipartition = graph.aggregate(new BipartitenessCheck<>((long) 5000));
+            bipartition.addSink(new DumSink1());
+            bipartition.print();
+
+        } else {
+            // Zainab's single partitioner HDRF
+            env.setParallelism(1);
+            DataStream<Edge<Long, NullValue>> edgeStreamHdrfZainab;
+            DataStream<Edge<Long, NullValue>> edges = getGraphStream(env);
+            edgeStreamHdrfZainab = edges.partitionCustom(new HDRF<>(new CustomKeySelector(0),k,1), new CustomKeySelector<>(0));
+            GraphStream<Long, NullValue, NullValue> graph = new SimpleEdgeStream<Long, NullValue>(edgeStreamHdrfZainab, env);
+            DataStream<DisjointSet<Long>> cc = graph.aggregate(new ConnectedComponents<Long, NullValue>(5000, outputPath));
+            cc.addSink(new DumSink3());
+
+        }
+
+
+        JobExecutionResult result1 = env.execute("Bipartite Check Streaming " + algorithm + ", p=" + k);
+
+
+
+        /*DataStream<Edge<Long, NullValue>> edges = getGraphStream(env);
+        //edges.print();
         env.setParallelism(k);
 
         DataStream<Edge<Long, NullValue>> partitionesedges  = edges.partitionCustom(new HDRF<>(new CustomKeySelector(0),k,1), new CustomKeySelector<>(0));
@@ -70,7 +116,7 @@ public class StreamingBipartitenessCheckAdrian {
             fw.close();
         } catch (IOException ioe) {
             System.err.println("IOException: " + ioe.getMessage());
-        }
+        }*/
 
     }
 
@@ -79,10 +125,11 @@ public class StreamingBipartitenessCheckAdrian {
     private static String log = null;
     private static int k = 0;
     private static int count = 0;
+    public static String algorithm = "na";
     private static boolean parseParameters(String[] args) {
 
         if (args.length > 0) {
-            if (args.length != 4) {
+            if (args.length != 5) {
                 System.err.println("Usage: Dbh <input edges path> <output path> <log> <partitions> ");
                 return false;
             }
@@ -91,6 +138,7 @@ public class StreamingBipartitenessCheckAdrian {
             outputPath = args[1];
             log = args[2];
             k = (int) Long.parseLong(args[3]);
+            algorithm = args[4];
         } else {
             System.out.println("Executing example with default parameters and built-in default data.");
             System.out.println("  Provide parameters to read input data from files.");

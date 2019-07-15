@@ -42,7 +42,7 @@ public class BipartitenessCheck<K extends Serializable, EV> extends WindowGraphA
 	/**
 	 * Creates a BipartitenessCheck object using WindowGraphAggregation class.
 	 * To perform the Bipartiteness check the BipartitenessCheck object is passed as an argument
-	 * to the aggregate function of the {@link org.apache.flink.graph.streaming.GraphStream} class.
+	 * to the aggregate function of the {@link //org.apache.flink.graph.streaming.GraphStream} class.
 	 * Creating the Bipartiteness object sets the EdgeFold, ReduceFunction, Initial Value,
 	 * MergeWindow Time and Transient State for using the Window Graph Aggregation class.
 	 *
@@ -72,7 +72,7 @@ public class BipartitenessCheck<K extends Serializable, EV> extends WindowGraphA
 	 *
 	 * @param <K> the vertex ID type
 	 */
-	public static class updateFunction<K extends Serializable> implements EdgesFold<Long, NullValue, Candidates> {
+	public static class updateFunction<K extends Serializable> implements EdgesFold<Integer, NullValue, Candidates> {
 
 		/**
 		 * Implements foldEdges method of EdgesFold interface for combining
@@ -91,7 +91,7 @@ public class BipartitenessCheck<K extends Serializable, EV> extends WindowGraphA
 		 * @throws Exception
 		 */
 		@Override
-		public Candidates foldEdges(Candidates candidates, Long v1, Long v2, NullValue edgeVal) throws Exception {
+		public Candidates foldEdges(Candidates candidates, Integer v1, Integer v2, NullValue edgeVal) throws Exception {
 			return candidates.merge(edgeToCandidate(v1, v2));
 		}
 	}
